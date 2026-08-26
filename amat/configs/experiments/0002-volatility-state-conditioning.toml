@@ -1,0 +1,46 @@
+# Registered BEFORE any result was inspected, per the registry rules.
+
+id = "0002-volatility-state-conditioning"
+registered_at = 2026-08-13T00:30:58Z
+hypothesis = """
+Halving position size while SPY's trailing 21-session realized volatility
+exceeds its own expanding 80th percentile (causal: threshold from history
+through t only; scalar 1.0 before 252 sessions of history) improves the
+risk-adjusted result of the frozen v1 core. Judged exclusively by the
+conditioning falsification battery: the candidate must beat unconditioned v1
+AND every matched worthless control (shuffled, turnover-matched random,
+static mean) on Sharpe at identical data, costs, and funding. Prior: two
+regime designs already died on these controls (v3's fitted KMeans lost to
+its own static mean; v4's breadth blend lost to its shuffled control), so
+the expected outcome is REJECTED; this design removes every fitted
+parameter to test whether the *idea* fails or only the estimators did.
+"""
+base_config = "configs/strategy/amat_v1.toml"
+changes = [
+  "weight_scalars hook only: per-session multiplier in {0.5, 1.0} from amat.validation.regimes.volatility_state_scalars(reference='SPY', vol_window=21, quantile=0.80, reduced_scalar=0.50, min_history_sessions=252)",
+]
+sample = "snapshot alpaca-sip-2026-08-11, full window; $100,000; 2 bps one-way; control seed 0"
+benchmarks = [
+  "unconditioned v1",
+  "shuffled scalars",
+  "turnover-matched random scalars",
+  "static-mean scalars",
+]
+status = "complete"
+run_id = "regime-experiment-amat-etf-20260813T003358.615261Z"
+outcome = """
+Nominal verdict: SURVIVES the controls -- the first conditioning candidate
+to do so (candidate Sharpe 1.0494 vs baseline 1.0091, shuffled 0.9446,
+turnover-matched random 1.0052, static mean 1.0482). Honest reading: the
+margin over the static-mean control is 0.0012 Sharpe -- one part in a
+thousand, far inside the seed/sample sensitivity the v4 shuffled-control
+work already measured -- so the TIMING of the cuts is not established;
+essentially all of the improvement is reproduced by simply running at the
+series' 0.903 mean size always. The candidate does cut max drawdown to
+-6.31% (baseline -8.69%, static mean -7.87%) at the cost of 5.9pp total
+return. Decision: NOT promoted to a strategy version. The evidence supports
+"volatility-scaled de-risking reduces drawdown at a return cost", which the
+target-volatility sweep (0001) expresses more directly; a third regime
+mechanism will not be pursued on a 0.001-Sharpe timing margin.
+"""
+notes = "Full battery rows in the run record at full precision."

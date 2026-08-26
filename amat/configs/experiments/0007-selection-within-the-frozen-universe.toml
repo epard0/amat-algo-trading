@@ -1,0 +1,144 @@
+# =============================================================================
+# REGISTERED EXPERIMENT 0007 — cross-sectional selection inside the frozen
+# universe
+#
+# REGISTERED 2026-08-20, BEFORE ANY ARM WAS RUN. Written after 0006 closed and
+# before a single 0007 number existed. The registered prior below is a
+# prediction on the record with a stated mechanism, and the verdict rules are
+# fixed here so a marginal result cannot be re-described later.
+#
+# Every arm runs on history through 2026-08-10, which is BURNED. No number this
+# experiment produces is out-of-sample evidence. The most a winning arm can earn
+# is eligibility and a registry entry.
+# =============================================================================
+
+[registration]
+id = "0007"
+title = "Cross-sectional selection inside the frozen universe"
+registered_at = 2026-08-20
+follows_from = "0006"
+snapshot = "alpaca-sip-2026-08-11"
+
+[question]
+primary = """
+0006 established that cross-sectional ranking beats random selection when the
+universe is wide (18 of 20 seeds at 5-of-50 eligible), and that widening the
+universe destroys more than the ranking recovers. That leaves one question it
+did not ask: does a selective rule help INSIDE the frozen 12-symbol universe,
+where no widening cost is paid at all?
+"""
+
+[hypothesis]
+mechanism = """
+0006's own diagnostics point at redundancy as the active ingredient. Measured on
+this snapshot, mean pairwise correlation of daily returns rises monotonically
+with universe width:
+
+    v1  (12 symbols)  +0.192      eligible/session  mean 6.9, median 7
+    v6  (11 symbols)  +0.228      eligible/session  mean 6.5, median 7
+    wide30            +0.344      eligible/session  mean 18.0, median 21
+    wide81            +0.377      eligible/session  mean 46.9, median 54
+
+Ranking prunes redundancy. A wide universe has plenty (three US sector funds and
+a total-market fund can all be the same bet), which is why ranking beat chance
+there. The frozen 12 was deliberately built across five risk families -- equity,
+rates, metals, commodities, dollar -- so it carries roughly half the pairwise
+correlation and has far less for a ranking to remove.
+"""
+
+[prior]
+expectation = "fails"
+reasoning = """
+Predicted to FAIL, for two reasons that would each be sufficient.
+
+1. NOTHING TO PRUNE. At +0.192 mean pairwise correlation the frozen universe is
+   already close to the diversified portfolio a selection rule is trying to
+   find. Ranking can only reorder holdings it already owns.
+
+2. SELECTION REMOVES THE DIVERSIFICATION THE VOLATILITY TARGET DEPENDS ON. With
+   a median of 7 eligible symbols, K=3 or K=4 concentrates the book into a
+   handful of correlated names, and the 8% target then has to SIZE UP to reach
+   its risk budget from fewer, more correlated bets. That is the opposite of
+   what happened at 81 symbols, where selection reduced an over-diversified,
+   over-traded book.
+
+The specific prediction that distinguishes this from a lazy null: selection
+should hurt MORE at low K here, and the damage should show up as HIGHER realised
+volatility and deeper drawdown rather than lower gross return -- because the
+mechanism is lost diversification, not lost signal.
+"""
+
+[grid]
+# The ONLY parameters swept. Fixed at registration; the multiple-testing
+# discount is computed from this count and no other.
+max_positions = [3, 4, 5, 6, 8]
+min_horizon_agreement = [0, 3]
+candidate_count_per_universe = 10
+notes = """
+K chosen against the universe's own structure, not its returns: the median
+eligible count is 7, so K=8 is barely binding and K=3 is maximally selective.
+K above 8 would be a no-op most sessions and is excluded rather than run as
+filler that inflates the trial count.
+"""
+
+[[arm]]
+id = "A1"
+role = "baseline"
+config = "configs/strategy/amat_v1.toml"
+
+[[arm]]
+id = "A2"
+role = "baseline"
+config = "configs/strategy/amat_v6.toml"
+note = "The live paper-trading configuration; carries the TLT hindsight caveat."
+
+[[arm]]
+id = "S1"
+role = "selection inside v1"
+universe = "amat_v1.toml, unchanged"
+note = "v1 core + [cross_sectional]. Universe, target, and every other parameter identical to A1."
+
+[[arm]]
+id = "S6"
+role = "selection inside v6"
+universe = "amat_v6.toml, unchanged"
+note = "v6 core + [cross_sectional]. Identical to A2 apart from selection."
+
+[split]
+# Unchanged from 0001/0003/0006 so results are comparable across experiments.
+training_end = 2022-12-30
+validation_start = 2023-01-03
+validation_end = 2026-08-10
+fold_score = "0.5 * median(fold Sharpe) + 0.5 * min(fold Sharpe)"
+
+[controls]
+random_k_matched = """
+DECISIVE. 20 seeds per training winner, sharing the candidate's own eligibility
+filter (dead-band, and horizon agreement where configured) so that ONLY the
+choice among eligible symbols is randomised. Holdings persist while they remain
+eligible and vacancies fill at random, which keeps turnover in the same range
+rather than churning every session. The candidate must beat the MEDIAN seed.
+"""
+diagnostic_redundancy_curve = """
+Pre-declared as a DIAGNOSTIC, not a verdict input: measure the random-K
+beat-rate against each universe's mean pairwise correlation across all four
+universes (v1, v6, wide30, wide81). If the mechanism in [hypothesis] is right,
+the beat-rate should rise with redundancy. This is a mechanism study on burned
+data and cannot promote or reject anything on its own.
+"""
+
+[verdict_rules]
+promote = "NOTHING. Burned history."
+win = """
+Beats (a) its own baseline arm, (b) the median random-K seed, on Sharpe, net of
+the baseline cost assumption, on the ranking-blind validation window. There is
+no hold-everything arm to beat here because the baseline IS hold-everything.
+A win earns a registry entry and eligibility for the full protocol -- nothing else.
+"""
+tie = "Training fold scores within 1e-09 produce an explicit no-winner verdict."
+loss = "Recorded in the registry beside the prior that predicted it."
+multiple_testing = """
+Report the trial count (10 per universe, 20 total) beside every headline figure,
+and deflate before claiming any margin. 0006's best margin was negative before
+deflation and was not restated; the same rule applies here.
+"""

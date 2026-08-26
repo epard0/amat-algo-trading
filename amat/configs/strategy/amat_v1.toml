@@ -1,0 +1,194 @@
+# =============================================================================
+# AMAT ETF v1 -- canonical strategy configuration
+#
+# Normative source: .claude/references/strategy-contract.md
+# This file is the machine-readable expression of that contract. If the two
+# disagree, the contract wins and this file is the defect.
+#
+# Freezing rule: once the validation protocol is frozen and the locked holdout
+# is created, changing any value below produces a NEW strategy version with a
+# new registry entry. Editing values in place invalidates every prior result.
+#
+# Unknown keys are rejected by the loader (extra = "forbid"), so a typo fails
+# the run instead of being silently ignored.
+# =============================================================================
+
+name = "amat-etf"
+version = "1.0.0"
+
+# -----------------------------------------------------------------------------
+# Universe
+#
+# Cluster declaration order fixes the symbol order used by every downstream
+# matrix (covariance, weights, targets). It is part of the frozen definition.
+# Every symbol belongs to exactly one cluster; the loader enforces this.
+# Long or cash only: no leverage, inverse products, shorting, options, or
+# futures.
+# -----------------------------------------------------------------------------
+[[universe.clusters]]
+name = "us_equity"
+gross_cap = 0.40
+symbols = ["SPY", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "international"
+gross_cap = 0.25
+symbols = ["EFA", "EEM"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+symbols = ["TLT", "IEF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.20
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.20
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+# -----------------------------------------------------------------------------
+# Volatility
+#
+#   sigma20 = EWMAStd(log returns, half_life = 20) * sqrt(252)
+#   sigma60 = EWMAStd(log returns, half_life = 60) * sqrt(252)
+#   sigma   = max(sigma20, 0.75 * sigma60, 0.05)
+#
+# min_periods_sessions prevents the slow estimate from being reported from an
+# unconverged window. The exact EWMA convention and null policy are fixed here
+# and verified against hand-calculated fixtures.
+# -----------------------------------------------------------------------------
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+# -----------------------------------------------------------------------------
+# Trend signal
+#
+#   r_h  = ln(P[t] / P[t-h])                     for h in horizons
+#   z_h  = clip(r_h / (sigma * sqrt(h / 252)), -2, +2)
+#   s    = tanh(mean(z_h))
+#   s    = 0 where abs(s) < 0.20                 (deadband)
+#   long_score = max(s, 0)                       (long_only)
+#
+# Prices are fully adjusted closes from completed sessions only.
+# -----------------------------------------------------------------------------
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+# -----------------------------------------------------------------------------
+# Covariance
+#
+# 120-session annualized covariance with Ledoit-Wolf shrinkage, estimated using
+# only rows through the decision session.
+# -----------------------------------------------------------------------------
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+# -----------------------------------------------------------------------------
+# Volatility target and constraints
+#
+#   q = long_score / sigma
+#   forecast_vol = sqrt(q' C q)
+#   w = q * 0.08 / forecast_vol
+#
+# Constraints then apply in this fixed order:
+#   1. symbol cap        (max_symbol_weight)
+#   2. cluster gross caps (declared per cluster above)
+#   3. gross cap          (max_gross_exposure)
+#   4. risk-contribution limit, when enabled
+#   5. recompute forecast risk after clipping
+#   6. residual stays in cash
+#
+# allow_releverage_after_clipping is pinned false: the portfolio is never
+# re-levered beyond the gross cap to recover the 8% target. When every score is
+# zero the portfolio is 100% cash.
+# -----------------------------------------------------------------------------
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+# risk_contribution_limit is unset for v1; enabling it is a new version.
+
+# -----------------------------------------------------------------------------
+# Rebalance
+#
+# A trade is generated only on a weight delta of at least 2 percentage points,
+# a zero/non-zero transition, a constraint breach, a corporate action, or a
+# retry of an earlier missed fill. Minimum simulated trade is $25 notional.
+# min_trade_notional is a string so it parses as an exact Decimal.
+# -----------------------------------------------------------------------------
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+# -----------------------------------------------------------------------------
+# Execution
+#
+# A decision formed after the close of session t executes no earlier than the
+# 09:30-09:35 America/New_York window of session t+1, priced at the raw-price
+# VWAP of that window. signal_to_execution_lag_sessions has a hard floor of 1:
+# a value of 0 would execute on the signal bar, which is the canonical
+# look-ahead defect and an automatic rejection condition.
+#
+# A missing or zero-volume window records a missed fill. It is never imputed
+# from a prior close or a forward fill.
+# -----------------------------------------------------------------------------
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+# -----------------------------------------------------------------------------
+# Costs
+#
+# Baseline one-way cost is 2 bps. Zero-cost runs are diagnostic only and must
+# never be presented as expected performance. The stress ladder is mandatory:
+# the robustness protocol requires baseline, 2x, 3x, and 5x cost runs.
+# -----------------------------------------------------------------------------
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+# -----------------------------------------------------------------------------
+# Cash
+#
+# The canonical primary result assumes a 0% cash return. A three-month Treasury
+# yield is a separate sensitivity and may not be merged into the primary
+# result; a configuration selecting it must set is_primary = false.
+# -----------------------------------------------------------------------------
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+# -----------------------------------------------------------------------------
+# Warm-up
+#
+# 252 completed valid sessions, which also covers the 120-session covariance
+# lookback and the 60-session volatility minimum period.
+# -----------------------------------------------------------------------------
+[warmup]
+min_completed_sessions = 252

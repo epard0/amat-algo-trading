@@ -1,0 +1,118 @@
+# Shared ignore rules for the AMAT research module and paper executor.
+
+# ---------------------------------------------------------------------------
+# Secrets and machine-local configuration
+# ---------------------------------------------------------------------------
+**/.env
+**/.env.*
+!**/.env.example
+# Match either a file or a directory; both forms exist in developer workspaces.
+**/secrets
+**/credentials
+**/.mcp.json
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local shell/user configuration accidentally copied into a project.
+**/.bash_history
+**/.zsh_history
+**/.bash_profile
+**/.bashrc
+**/.profile
+**/.gitconfig
+
+# ---------------------------------------------------------------------------
+# Python environments, bytecode, packaging, and test/tool caches
+# ---------------------------------------------------------------------------
+**/.venv/
+**/venv/
+**/env/
+**/__pycache__/
+*.py[cod]
+*.pyd
+*.so
+**/.Python
+**/*.egg-info/
+**/.eggs/
+**/build/
+**/dist/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.hypothesis/
+**/.tox/
+**/.nox/
+**/.coverage
+**/.coverage.*
+**/htmlcov/
+
+# Jupyter-generated state; notebook sources remain trackable.
+**/.ipynb_checkpoints/
+
+# ---------------------------------------------------------------------------
+# JavaScript/package-manager generated content
+# ---------------------------------------------------------------------------
+**/node_modules/
+**/.npm/
+**/.pnpm-store/
+**/.yarn/cache/
+**/.yarn/install-state.gz
+
+# ---------------------------------------------------------------------------
+# AMAT research data and generated evidence
+#
+# These directories are intentionally local. Snapshot/run provenance is carried
+# by manifests and digests, not by committing large vendor and report artifacts.
+# ---------------------------------------------------------------------------
+/amat/data/
+/amat/outputs/
+
+# ---------------------------------------------------------------------------
+# Executor runtime state and guarded-rebuild artifacts
+# ---------------------------------------------------------------------------
+/executor/state/
+/executor/reports/
+/executor/plans/
+/executor/backups/
+/executor/*.ndjson
+
+# Local Compose changes and exported container/account data.
+/executor/docker-compose.override.yml
+/executor/compose.override.yml
+/executor/account-before.json
+/executor/account-after.json
+
+# ---------------------------------------------------------------------------
+# Claude/local agent state while preserving shared rules, skills, and templates
+# ---------------------------------------------------------------------------
+**/.claude/settings.local.json
+**/.claude/agent-memory-local/
+**/.claude/worktrees/
+**/.claude/.cache/
+**/.claude/logs/
+**/.claude/tsc-cache/
+**/.claude/.cc-writes/
+**/.claude/*.tmp
+
+# ---------------------------------------------------------------------------
+# Editors, operating systems, logs, and temporary files
+# ---------------------------------------------------------------------------
+# Match file markers as well as the usual directories.
+**/.idea
+**/.vscode
+**/.DS_Store
+**/Thumbs.db
+**/*.swp
+**/*.swo
+**/*~
+**/*.log
+**/*.tmp
+**/*.temp
+
+# Root-level scratch and coverage/report directories.
+/.cache/
+/tmp/
+/temp/
+/coverage/

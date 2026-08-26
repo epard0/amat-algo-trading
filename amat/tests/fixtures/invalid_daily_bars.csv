@@ -1,0 +1,7 @@
+violation,symbol,session_date,raw_open,raw_high,raw_low,raw_close,adjusted_close,volume,source,adjustment_mode
+high_below_close,AAA,2024-01-02,100.00,100.50,99.00,101.00,101.00,1000000,synthetic,split_and_dividend
+low_above_open,AAA,2024-01-03,100.00,101.00,100.50,100.80,100.80,1000000,synthetic,split_and_dividend
+non_positive_close,AAA,2024-01-04,100.00,101.00,99.00,0.00,100.00,1000000,synthetic,split_and_dividend
+negative_adjusted_close,AAA,2024-01-05,100.00,101.00,99.00,100.50,-100.50,1000000,synthetic,split_and_dividend
+negative_volume,AAA,2024-01-08,100.00,101.00,99.00,100.50,100.50,-1,synthetic,split_and_dividend
+missing_source,AAA,2024-01-09,100.00,101.00,99.00,100.50,100.50,1000000,,split_and_dividend

@@ -1,0 +1,208 @@
+# =============================================================================
+# SENSITIVITY VARIANT -- amat-managed 2.0.0 with the Kelly cap disabled.
+#
+# This is NOT a promotion candidate and is NOT the shipped configuration. It
+# exists to measure one thing: how much of the v2 book's shortfall against its
+# 8% volatility target, and of its concentration-gate failure, is attributable
+# to `kelly_scalar`.
+#
+# Why the question is worth a run. `kelly_scalar` is the measured Kelly fraction
+# divided by `design_kelly_fraction()`, which hardcodes a 60% win rate at 2:1
+# payoff (quarter Kelly), a reference of 0.10. The strategy measures 49.8% at
+# 1.08, giving an applied fraction of 0.0082 -- a scalar of 0.082, so a 92% cut
+# on every position in every session. Two things are arguable about that:
+#
+#   * it double-counts with volatility targeting, since the allocator already
+#     sizes the book to a target risk and Kelly is also a position-sizing rule;
+#   * its denominator is an aspiration the system has never met, so the ratio
+#     measures the gap between hope and measurement rather than risk.
+#
+# Neither point settles the matter -- a genuinely small edge does deserve a
+# small bet -- which is why this is a measurement rather than a change to the
+# shipped configuration. Read the result beside the baseline, not instead of it.
+# =============================================================================
+
+# =============================================================================
+# AMAT managed v2 -- the production candidate
+#
+# This is a NEW strategy version, not an edit of v1. The freezing rule in
+# .claude/references/strategy-contract.md makes any change to a frozen value a
+# new version with its own registry entry, and this configuration changes two
+# frozen things: the universe (12 -> 29 symbols) and the addition of a risk
+# overlay. configs/strategy/amat_v1.toml is therefore left untouched; it remains
+# the frozen contract artifact and the benchmark every v2 result is measured
+# against.
+#
+# What is inherited from v1 unchanged:
+#   signal mathematics, volatility estimation, covariance estimation, the
+#   volatility target, constraint ordering, rebalance thresholds, execution
+#   timing and pricing, the cost ladder, the cash assumption, and warm-up.
+#
+# What is new:
+#   the expanded universe and its cluster caps, and the [risk] overlay.
+#
+# The overlay can only shrink or veto a v1 target. It has no path to increase a
+# position, which is what makes "v2 minus v1" attributable to risk management
+# alone rather than to a different signal.
+# =============================================================================
+
+name = "amat-managed-no-kelly"
+version = "2.0.0"
+
+# -----------------------------------------------------------------------------
+# Universe
+#
+# 29 US-listed ETFs with continuous SIP coverage from 2016-01-04. Continuity is
+# a hard selection criterion, not a convenience: the Ledoit-Wolf estimator needs
+# complete rows, and a symbol that lists mid-sample would either shorten the
+# whole panel or require padding returns the market never produced. IBIT and
+# similar post-2016 listings are excluded for exactly this reason.
+#
+# Cluster declaration order fixes the symbol order of every downstream matrix.
+# Caps sum to 2.20, comfortably above the 1.00 gross cap, so no cluster cap is
+# individually load-bearing for reachability.
+#
+# The sector and broad-equity clusters are deliberately separate. XLK and SPY
+# are not independent, and pooling them into one 0.40 cluster would let a single
+# tech-beta bet consume the entire equity budget while appearing diversified.
+# The correlation guard in [risk] handles what the static split cannot.
+# -----------------------------------------------------------------------------
+[[universe.clusters]]
+name = "us_equity"
+gross_cap = 0.40
+symbols = ["SPY", "QQQ", "IWM", "VTI"]
+
+[[universe.clusters]]
+name = "us_sectors"
+gross_cap = 0.30
+symbols = ["XLK", "XLF", "XLE", "XLV", "XLI"]
+
+[[universe.clusters]]
+name = "international"
+gross_cap = 0.25
+symbols = ["EFA", "EEM", "VEA", "VWO", "EWJ", "FXI"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+symbols = ["TLT", "IEF", "SHY", "AGG", "TIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.20
+symbols = ["LQD", "HYG"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.20
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.20
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.15
+symbols = ["VNQ", "IYR"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+# -----------------------------------------------------------------------------
+# Signal core -- inherited from v1 verbatim.
+# -----------------------------------------------------------------------------
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+# max_symbol_weight is 0.10 rather than v1's 0.20. With 29 symbols instead of
+# 12, a 0.20 cap lets three names fill 60% of the book, which defeats the point
+# of widening the universe. This is a constraint change, hence the new version.
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.10
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+is_primary = true
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252
+
+# -----------------------------------------------------------------------------
+# Risk overlay
+#
+# Values here are the tuned settings from the walk-forward search recorded in
+# docs/optimization-2026-08-08.md. Every one is a limit; none is a target.
+# -----------------------------------------------------------------------------
+[risk]
+max_risk_per_trade = 0.01
+max_portfolio_heat = 0.06
+max_daily_loss = 0.03
+max_drawdown_halt = 0.20
+min_expectancy_trades = 30
+min_expectancy = 0.0
+expectancy_window_sessions = 252
+max_correlation = 0.80
+min_effective_bets = 2.0
+max_positions = 15
+min_grade = 2
+
+use_kelly = false
+kelly_fraction_multiplier = 0.25
+
+regime_clusters = 3
+regime_fit_window_sessions = 504
+regime_refit_interval_sessions = 21
+
+# The smallest size a *measured* regime may justify.
+regime_risk_floor = 0.25
+
+# The size applied while no regime has been established: the entire 504-session
+# warm-up, plus any session the model cannot classify. This was previously tied
+# to regime_risk_floor, which encoded "no estimate" as "worst estimate" and held
+# roughly a fifth of every backtest at quarter size for reasons unrelated to any
+# regime. It is neutral here because the grade floor, expectancy gate,
+# correlation cap, and risk caps are all still active during warm-up, so a
+# neutral regime multiplier is not an unguarded one.
+regime_unknown_scalar = 1.0

@@ -1,0 +1,205 @@
+# =============================================================================
+# AMAT ETF v4 -- cooperative stance switching over the v1 core
+#
+# Two complete stances of the SAME strategy core, blended per session by a
+# declared, unfitted breadth rule:
+#
+#   lambda_t = clip((EWMA_10(breadth_63) - 0.35) / (0.65 - 0.35), 0, 1)
+#   target_t = lambda_t * trend_target_t + (1 - lambda_t) * defensive_target_t
+#
+# where breadth_63 is the fraction of the trend universe trading above its own
+# close 63 sessions earlier, computed from completed sessions only. lambda = 1
+# is pure v1; lambda = 0 is the defensive stance (rates, metals, dollar; 70%
+# gross cap; 6% vol target). The blend is convex, so every cap either stance
+# declares bounds the blended book at the looser of the two declared values.
+#
+# Both stances run through amat.portfolio.decide -- there is one strategy core,
+# and this file adds no new mathematics to it. The only new constants v4
+# introduces are the four values in [switching]; none is fitted.
+#
+# Run:
+#   uv run amat study-v4 configs/strategy/amat_v4.toml \
+#       --snapshot data/snapshots/<id> [--falsify] [--pdf out.pdf]
+#
+# A v4 result is a candidate only if it survives the falsification controls
+# (shuffled lambda, turnover-matched random lambda, static-mean lambda) and
+# the walk-forward protocol. The measured verdict lives in
+# docs/experiment-registry.md, whichever way it lands.
+#
+# Freezing rule: changing any value below produces a NEW strategy version with
+# a new registry entry. Editing values in place invalidates every prior result.
+# =============================================================================
+
+name = "amat-etf-switching"
+version = "4.0.0"
+
+[switching]
+breadth_horizon_sessions = 63
+smoothing_half_life_sessions = 10
+floor_breadth = 0.35
+full_breadth = 0.65
+
+# -----------------------------------------------------------------------------
+# TREND STANCE -- the v1 contract, verbatim except for its label.
+# -----------------------------------------------------------------------------
+[trend]
+name = "amat-etf-v4-trend"
+version = "4.0.0"
+
+[[trend.universe.clusters]]
+name = "us_equity"
+gross_cap = 0.40
+symbols = ["SPY", "QQQ", "IWM"]
+
+[[trend.universe.clusters]]
+name = "international"
+gross_cap = 0.25
+symbols = ["EFA", "EEM"]
+
+[[trend.universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+symbols = ["TLT", "IEF"]
+
+[[trend.universe.clusters]]
+name = "metals"
+gross_cap = 0.20
+symbols = ["GLD", "SLV"]
+
+[[trend.universe.clusters]]
+name = "commodities"
+gross_cap = 0.20
+symbols = ["DBC", "USO"]
+
+[[trend.universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+[trend.volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend.trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[trend.covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[trend.constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[trend.rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[trend.execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[trend.costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[trend.cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[trend.warmup]
+min_completed_sessions = 252
+
+# -----------------------------------------------------------------------------
+# DEFENSIVE STANCE -- same core, flight-to-quality universe.
+#
+# Rates, metals, and the dollar keep their v1 cluster caps, so the caps sum to
+# 0.70 and the stance holds at least 30% cash even fully invested. The vol
+# target drops to 6%: the stance exists to be held when breadth has collapsed,
+# which is precisely when realized correlations rise. Signal, covariance,
+# rebalance, execution, costs, cash, and warm-up are the v1 contract verbatim.
+# -----------------------------------------------------------------------------
+[defensive]
+name = "amat-etf-v4-defensive"
+version = "4.0.0"
+
+[[defensive.universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+symbols = ["TLT", "IEF"]
+
+[[defensive.universe.clusters]]
+name = "metals"
+gross_cap = 0.20
+symbols = ["GLD", "SLV"]
+
+[[defensive.universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+[defensive.volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[defensive.trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[defensive.covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[defensive.constraints]
+target_annualized_volatility = 0.06
+max_symbol_weight = 0.20
+max_gross_exposure = 0.70
+allow_releverage_after_clipping = false
+
+[defensive.rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[defensive.execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[defensive.costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[defensive.cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[defensive.warmup]
+min_completed_sessions = 252

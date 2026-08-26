@@ -1,0 +1,129 @@
+# AMAT v7-xs92: v1 core, all 92 symbols, plus cross-sectional selection.
+#
+# REGISTERED EXPERIMENT 0006, arm C92. Research candidate on burned history.
+#
+# Differs from amat_v7_wide92.toml by the [cross_sectional] section ALONE.
+#
+# Selection is also what makes a 92-asset universe statistically tractable:
+# weights are non-zero only on the selected K, so the quadratic form that sets
+# portfolio risk reads a K x K block of the covariance rather than 92 x 92. At
+# K=15 against a 120-session lookback that block sees eight observations per
+# asset. The shrinkage intensity is still estimated from all 92 columns, so this
+# is a mitigation and not an exemption -- which is precisely what arm B92 is for.
+
+name = "amat-etf-xs92"
+version = "7.3.0"
+[[universe.clusters]]
+name = "us_equity_broad"
+gross_cap = 0.40
+symbols = ["SPY", "VTI", "QQQ", "IWM", "IJH", "IJR", "MDY", "RSP"]
+
+[[universe.clusters]]
+name = "us_equity_style"
+gross_cap = 0.35
+symbols = ["IWD", "IWF", "MTUM", "QUAL", "USMV", "VLUE", "SPLV"]
+
+[[universe.clusters]]
+name = "us_equity_sector"
+gross_cap = 0.40
+symbols = ["XLK", "XLF", "XLE", "XLV", "XLI", "XLP", "XLY", "XLU", "XLB"]
+
+[[universe.clusters]]
+name = "intl_developed"
+gross_cap = 0.40
+symbols = ["EFA", "VEA", "EWJ", "EWG", "EWU", "EWC", "EWA", "IEV", "EZU", "IEFA", "ACWI"]
+
+[[universe.clusters]]
+name = "intl_emerging"
+gross_cap = 0.40
+symbols = ["EEM", "VWO", "FXI", "EWY", "EWT", "EWZ", "EWH", "EWW", "INDA", "IEMG"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.40
+symbols = ["TLT", "IEF", "SHY", "TIP", "IEI", "TLH", "SHV", "BIL", "STIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.40
+symbols = ["AGG", "LQD", "HYG", "EMB", "BND", "BNDX", "MBB", "JNK", "VCIT", "VCSH", "MUB", "PFF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.15
+symbols = ["GLD", "SLV", "PPLT"]
+
+[[universe.clusters]]
+name = "real_asset_equity"
+gross_cap = 0.30
+symbols = ["GDX", "GDXJ", "SLX", "XME", "XOP", "WOOD"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.25
+symbols = ["DBC", "USO", "DBA", "DBB", "UNG"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.25
+symbols = ["VNQ", "IYR", "XLRE", "REM", "SCHH"]
+
+[[universe.clusters]]
+name = "currencies"
+gross_cap = 0.35
+symbols = ["UUP", "FXE", "FXY", "FXB", "FXF", "FXA", "FXC"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252
+
+[cross_sectional]
+enabled = true
+max_positions = 10
+min_horizon_agreement = 0

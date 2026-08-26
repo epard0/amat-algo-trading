@@ -1,0 +1,51 @@
+# =============================================================================
+# Declared market-data sources.
+#
+# STATUS: declaration only. No loader consumes this file yet; the ingestion
+# client is built in the data-foundation phase. It exists now so that the
+# credential policy is fixed before any code touches a provider.
+#
+# CREDENTIAL POLICY
+# This file records the NAMES of environment variables, never their values.
+# Secrets live in the operator's shell or secret manager. A literal key in this
+# file, in source, in a fixture, in a notebook, or in a report is a defect and
+# is blocked by .claude/hooks/pre_tool_guard.py and
+# .claude/scripts/scan_repository.py.
+# =============================================================================
+
+[[sources]]
+id = "alpaca_daily_bars"
+provider = "alpaca"
+dataset = "us_equity_daily_bars"
+purpose = "adjusted daily closes for research features"
+adjustment_mode = "split_and_dividend"
+credential_env_vars = ["ALPACA_MARKET_API_KEY", "ALPACA_MARKET_API_SECRET"]
+docs = "https://docs.alpaca.markets/"
+# Ingestion requirements enforced by the data stage:
+#   - record provider, feed, adjustment mode, ingestion time, as-of time,
+#     request parameters, pagination state, and coverage in the snapshot
+#     manifest;
+#   - verify every pagination token and fail closed on a partial response;
+#   - write to a new checksum-addressed directory under data/raw; never patch
+#     an existing snapshot in place.
+
+[[sources]]
+id = "alpaca_intraday_bars"
+provider = "alpaca"
+dataset = "us_equity_minute_bars"
+purpose = "raw intraday prices for the 09:30-09:35 execution window VWAP"
+adjustment_mode = "raw"
+credential_env_vars = ["ALPACA_MARKET_API_KEY", "ALPACA_MARKET_API_SECRET"]
+docs = "https://docs.alpaca.markets/"
+
+[[sources]]
+id = "fred_treasury_3m"
+provider = "fred"
+dataset = "DTB3"
+purpose = "three-month Treasury yield; cash-return SENSITIVITY only"
+adjustment_mode = "raw"
+credential_env_vars = ["FRED_API_KEY"]
+docs = "https://fred.stlouisfed.org/"
+# This series may never be merged into the primary result. The primary cash
+# assumption is a constant 0%; see [cash] in configs/strategy/amat_v1.toml.
+primary_result_eligible = false

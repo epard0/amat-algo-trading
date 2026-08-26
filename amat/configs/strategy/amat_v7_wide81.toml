@@ -1,0 +1,152 @@
+# AMAT v7-wide81: the frozen v1 core over the wide snapshot's usable symbols.
+#
+# REGISTERED EXPERIMENT 0006, arm B92 — RUN AS B81. This is a DOCUMENTED
+# DEVIATION from the registration, recorded as one rather than presented as the
+# registered arm.
+#
+# WHY 81 AND NOT 92. Two mechanical exclusion rules, both reading DATA QUALITY
+# and never returns, applied to the snapshot as built:
+#
+# 1. AMBIGUOUS DISTRIBUTIONS (8 symbols: BND, BNDX, EWT, IWF, MTUM, TLH, VCIT,
+#    VCSH). The snapshot records 18 corporate actions with conflicting values on
+#    one ex-date across these symbols. Twelve fall in December, which is the
+#    signature of an income distribution and a year-end capital-gains
+#    distribution booked to the same ex-date -- in which case summing is
+#    correct. But that is a hypothesis about vendor bookkeeping, not evidence
+#    about any particular record, and the registry is explicit that the loader
+#    must not be relaxed to sum. Eighteen distributions cannot be resolved to
+#    the standard the SHY entry met (eleven years of pattern evidence for one
+#    record), so they are not resolved and their symbols are dropped. SHY is
+#    RETAINED because its single conflict does carry such an entry.
+#
+# 2. INCOMPLETE COVERAGE (3 symbols: JNK, SLX, GDXJ). The inclusion probe that
+#    built the 92-symbol list tested the RAW daily pull only. `_build_daily_frame`
+#    inner-joins the raw and adjusted pulls and drops any cell present in just
+#    one, because a key in only one pull means the vendor's view changed between
+#    them. JNK survives that join only from 2019-05-06, and `load_panel`
+#    intersects, so leaving it in truncated the whole panel from 2,665 sessions
+#    to 1,826 and made the arm incomparable to every other. SLX and GDXJ lose
+#    2016 Q1 the same way.
+#
+# THE BIAS THIS INTRODUCES, STATED PLAINLY. Both rules are mechanical, but they
+# are applied after seeing which symbols fail, and the excluded set is mostly
+# bond funds -- which underperformed over 2016-2026. Removing weak performers
+# FLATTERS this arm relative to a true 92-symbol result. The registered prior
+# for this arm is failure; a bias that flatters it makes a failure result more
+# convincing, not less. It would NOT be safe to read a success here as evidence.
+#
+# Everything else is byte-for-byte amat_v1.toml, including the 120-session
+# covariance lookback -- deliberately not widened, so the estimation cost of a
+# large universe is measured rather than compensated for.
+
+name = "amat-etf-wide81"
+version = "7.4.0"
+[[universe.clusters]]
+name = "us_equity_broad"
+gross_cap = 0.40
+symbols = ["SPY", "VTI", "QQQ", "IWM", "IJH", "IJR", "MDY", "RSP"]
+
+[[universe.clusters]]
+name = "us_equity_style"
+gross_cap = 0.25
+symbols = ["IWD", "QUAL", "USMV", "VLUE", "SPLV"]
+
+[[universe.clusters]]
+name = "us_equity_sector"
+gross_cap = 0.40
+symbols = ["XLK", "XLF", "XLE", "XLV", "XLI", "XLP", "XLY", "XLU", "XLB"]
+
+[[universe.clusters]]
+name = "intl_developed"
+gross_cap = 0.40
+symbols = ["EFA", "VEA", "EWJ", "EWG", "EWU", "EWC", "EWA", "IEV", "EZU", "IEFA", "ACWI"]
+
+[[universe.clusters]]
+name = "intl_emerging"
+gross_cap = 0.40
+symbols = ["EEM", "VWO", "FXI", "EWY", "EWZ", "EWH", "EWW", "INDA", "IEMG"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.40
+symbols = ["TLT", "IEF", "SHY", "TIP", "IEI", "SHV", "BIL", "STIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.35
+symbols = ["AGG", "LQD", "HYG", "EMB", "MBB", "MUB", "PFF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.15
+symbols = ["GLD", "SLV", "PPLT"]
+
+[[universe.clusters]]
+name = "real_asset_equity"
+gross_cap = 0.20
+symbols = ["GDX", "XME", "XOP", "WOOD"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.25
+symbols = ["DBC", "USO", "DBA", "DBB", "UNG"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.25
+symbols = ["VNQ", "IYR", "XLRE", "REM", "SCHH"]
+
+[[universe.clusters]]
+name = "currencies"
+gross_cap = 0.35
+symbols = ["UUP", "FXE", "FXY", "FXB", "FXF", "FXA", "FXC"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252

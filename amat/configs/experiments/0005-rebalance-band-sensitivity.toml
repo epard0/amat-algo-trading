@@ -1,0 +1,65 @@
+# Registered BEFORE any value was run, per the registry rules.
+# Motivated by the v6 audit's cost finding ("Increasing the 2-percentage-
+# point rebalance band may reduce costs further, but it requires its own
+# registered sensitivity because it also allows larger target drift").
+# The split date matches experiments 0001/0003/0004 and never moves.
+
+id = "0005-rebalance-band-sensitivity"
+registered_at = 2026-08-15T06:50:00Z
+hypothesis = """
+Widening the min_weight_delta rebalance band from the frozen 2% reduces
+turnover and cost by enough to rank above the frozen value on training-window
+fold consistency AND hold that advantage on the validation window.
+
+Prior, stated in advance: WEAK EITHER WAY. Costs are small relative to the
+result (2 bps one-way; measured cost drag well under 0.3% annualized), so
+the savings from a wider band are bounded and the tracking drift it admits
+is not. The expected outcome is a flat neighbourhood -- which would itself
+be valuable evidence for nearby-parameter stability of the frozen 2% -- and
+per the standing rule, even a clean winner earns only eligibility for a
+future registered version, never an in-place change.
+
+Falsification: the frozen 2% row ranks first on training, the winner fails
+to hold on validation, or the spread across the band grid is inside one
+standard error of the Sharpe (in which case the honest verdict is
+"insensitive", not a winner).
+"""
+base_config = "configs/strategy/amat_v1.toml"
+changes = [
+  "min_weight_delta grid: {1%, 2% (frozen), 3%, 4%, 5%}; nothing else varies",
+]
+sample = "snapshot alpaca-sip-2026-08-11, full window; training through 2022-12-30 (ranking only), validation 2023-01-02..2026-08-10 (measured for every value, ranking-blind); $100,000; 2 bps one-way"
+benchmarks = ["frozen amat_v1.toml (2% band) under identical data, costs, funding, and split"]
+status = "complete"
+
+# Also serves the open nearby-parameter-stability item for the rebalance
+# threshold. The remaining unmeasured neighbourhoods (horizons, deadband,
+# covariance lookback) are measured as pure sensitivities in the same
+# artifact, with NO ranking and NO selection -- they were not registered as
+# candidates and cannot become one from this run.
+
+# ---------------------------------------------------------------------------
+# Outcome, recorded 2026-08-15 after the grid ran once.
+# Artifact: outputs/experiments/neighborhood-20260815T064052Z.json
+#
+# Verdict, verbatim: "The frozen 2% band ranks first on training; falsified
+# per registration."
+#
+# The grid (training fold / validation Sharpe / full-sample costs):
+# 1%: 0.650 / 1.15 / $5,332;  2% frozen: 0.652 / 1.19 / $4,712;
+# 3%: 0.617 / 1.24 / $4,276;  4%: 0.633 / 1.30 / $4,010;
+# 5%: 0.486 / 1.13 / $3,724.  Validation-Sharpe spread 0.168, inside one
+# standard error -- per the registration's own clause the honest verdict is
+# "insensitive", and the frozen 2% additionally ranks FIRST on training.
+# Costs fall monotonically with the band, as expected, and it does not
+# matter at 2 bps.
+#
+# The unranked sensitivities in the same artifact show a plateau: every
+# horizon/deadband/lookback perturbation lands at validation Sharpe
+# 1.11-1.36 around the frozen 1.19, with training and validation orderings
+# DISAGREEING (e.g. horizons 21/50/252: train Sharpe 0.75, validation 1.36)
+# -- the signature of noise, not of a better configuration nearby. The
+# nearby-parameter-stability item is now measured: the frozen configuration
+# sits on a plateau.
+outcome = "falsified"
+run_artifact = "outputs/experiments/neighborhood-20260815T064052Z.json"

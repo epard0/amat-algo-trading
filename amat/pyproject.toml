@@ -1,0 +1,183 @@
+[project]
+name = "amat"
+version = "0.1.0"
+description = "Reproducible, adversarially validated backtesting platform for the Adaptive Multi-Asset Trend (AMAT) ETF strategy."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [{ name = "AMAT project" }]
+classifiers = [
+  "Private :: Do Not Upload",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+  "google-genai>=1.21",
+  "matplotlib>=3.9",
+  "numpy>=2.1",
+  "polars>=1.17",
+  "pydantic>=2.10",
+  "scikit-learn>=1.6",
+]
+
+# Diagnostic/acceleration (VectorBT) and event-driven (NautilusTrader) adapters are
+# deliberately NOT declared yet. They are introduced only after the pure domain core
+# exists, and only with a reviewed, pinned version. See docs/architecture-notes.md.
+
+[project.scripts]
+amat = "amat.cli.main:main"
+deskreview = "deskreview.cli:main"
+newsdesk = "newsdesk.cli:main"
+
+[dependency-groups]
+dev = [
+  "hypothesis>=6.120",
+  "mypy>=1.14",
+  "pytest>=8.3",
+  "ruff>=0.9",
+]
+# Executing the research notebooks headlessly (`nbclient`) or interactively
+# (any Jupyter frontend speaking to `ipykernel`). Separate from `dev` so the
+# quality gates never depend on a notebook stack.
+notebooks = [
+  "ipykernel>=6.29",
+  "nbclient>=0.10",
+  "nbformat>=5.10",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Three packages, one dependency direction. `amat` imports neither of the
+# others; `deskreview` reads amat's own functions so a review can never
+# disagree with the strategy it describes; `newsdesk` reaches the strategy
+# only through its database. tests/unit/test_newsdesk_isolation.py and
+# tests/unit/test_deskreview.py fail the build if an edge appears.
+# (`deskreview` was missing from this list for a day -- installed wheels
+# shipped a CLI entry pointing at a package that was not in the wheel.)
+packages = ["src/amat", "src/newsdesk", "src/deskreview"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/newsdesk/schema.sql" = "newsdesk/schema.sql"
+
+# ---------------------------------------------------------------------------
+# Lint / format
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+# The Claude bundle under .claude/ is validated by .claude/scripts/validate_bundle.py
+# and is intentionally outside this project's lint scope. Notebooks are
+# narrative research documents; the strict library rule set (T20, ANN, ...)
+# is deliberately not applied to their cells.
+extend-exclude = [".claude", "data", "outputs", "notebooks"]
+
+[tool.ruff.lint]
+select = [
+  "A",    # builtin shadowing
+  "ANN",  # missing annotations
+  "ARG",  # unused arguments
+  "B",    # bugbear
+  "C4",   # comprehensions
+  "DTZ",  # naive datetimes
+  "E",    # pycodestyle errors
+  "F",    # pyflakes
+  "I",    # import sorting
+  "N",    # naming
+  "PL",   # pylint subset
+  "PTH",  # use pathlib
+  "RET",  # return consistency
+  "RUF",  # ruff-specific
+  "S",    # security (bandit subset)
+  "SIM",  # simplify
+  "T20",  # print / pprint
+  "UP",   # pyupgrade
+  "W",    # pycodestyle warnings
+]
+ignore = [
+  "ANN401", # explicit Any is occasionally required at serialization boundaries
+  "PLR0913",# domain records legitimately carry many fields
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "PLR2004", "S101", "PLC0415", "ARG002"]
+"src/amat/cli/*.py" = ["T20"]
+# Operator-facing commands: stdout is their interface, same as amat's CLI.
+"src/deskreview/cli.py" = ["T20"]
+"src/newsdesk/cli.py" = ["T20"]
+# Operator-facing scripts: stdout is their interface.
+"scripts/*.py" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["amat"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# ---------------------------------------------------------------------------
+# Types
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+mypy_path = "src"
+strict = true
+warn_unreachable = true
+warn_unused_configs = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+
+[[tool.mypy.overrides]]
+module = ["sklearn.*"]
+ignore_missing_imports = true
+
+# The PDF renderers speak to matplotlib, whose public API is only partially
+# typed (savefig/AutoDateLocator are untyped; `plot` stubs reject `list[date]`
+# although the library documents date support). Only those two error classes
+# are relaxed, and only for the renderer modules; every other strict check
+# still applies to them.
+[[tool.mypy.overrides]]
+module = ["amat.reporting.pdf", "amat.reporting.montecarlo", "amat.reporting.projection"]
+disable_error_code = ["no-untyped-call", "arg-type"]
+
+# ---------------------------------------------------------------------------
+# Runtime type validation vs. warn_unreachable
+#
+# Modules below validate their own inputs at runtime (isinstance / is_finite)
+# even though the annotations already declare the correct types. mypy proves
+# those branches unreachable *under the annotations*, but Python does not
+# enforce annotations: these records are constructed from CSV rows, TOML, and
+# vendor payloads where the declared type is a claim, not a guarantee.
+#
+# Audit finding 11 (docs/audit-2026-08-08.md) was precisely a missing runtime
+# check of this kind -- a NaN volume passed validation and silently produced a
+# permanently untradable session. Deleting the guards to satisfy the checker
+# would reintroduce that class of defect, so warn_unreachable is scoped off
+# here instead. Every other strict setting still applies.
+[[tool.mypy.overrides]]
+module = [
+  "amat.domain.*",
+  "amat.execution",
+  "amat.portfolio",
+  "amat.cli.main",
+]
+warn_unreachable = false
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+  "network: requires network access; never part of a default or gate run",
+  "slow: long-running validation or robustness test",
+]
+filterwarnings = ["error"]

@@ -1,0 +1,22 @@
+# Secrets. The example file is tracked; the filled copy never is.
+.env
+.env.*
+!.env.example
+
+# Executor state, when running outside a container.
+state/
+*.ndjson
+reports/
+plans/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+backups/

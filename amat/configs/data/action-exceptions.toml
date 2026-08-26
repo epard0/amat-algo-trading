@@ -1,0 +1,123 @@
+# Per-record decisions about ambiguous corporate actions.
+#
+# `load_corporate_actions` fails closed when a snapshot records two different
+# values for one (symbol, ex-date, kind). That default does not change. This
+# file is the reviewable place to record a decision about ONE specific record,
+# with the evidence that produced it, so the judgement is attributable rather
+# than buried in a loader heuristic.
+#
+# Rules enforced by `amat.data.action_exceptions`, not by convention:
+#
+#   * `snapshot_id` scopes the entry. A re-ingested snapshot is a different id
+#     and inherits nothing -- the conflict, if it survives, must be re-decided.
+#   * `chosen` + `rejected` must equal the values the partition actually holds.
+#     If the data changes, the entry stops applying and the load fails loudly
+#     rather than applying a decision made about different numbers.
+#   * There is no wildcard and no per-symbol policy. Every conflict needs its
+#     own entry, because a policy would resolve future ambiguities nobody has
+#     looked at.
+#
+# Adding an entry is a research decision. State the evidence, not the verdict.
+
+[[exception]]
+snapshot_id = "alpaca-sip-2026-08-11"
+symbol = "SHY"
+ex_date = 2021-12-01
+kind = "cash_dividend"
+chosen = 0.018007
+rejected = [0.031906]
+recorded_at = 2026-08-20
+reason = """
+SHY distributes monthly on the 1st and adds a second distribution in mid-December.
+That two-payment December pattern holds in every one of the ten other years in this
+snapshot (2016-12-01/12-22, 2017-12-01/12-21, 2018-12-03/12-18, 2019-12-02/12-19,
+2020-12-01/12-17, 2022-12-01/12-15, 2023-12-01/12-14, 2024-12-02/12-18,
+2025-12-01/12-19), and in each of them the two December values are close to one
+another. 2021 already carries its second December distribution on 2021-12-16 at
+0.018063.
+
+Of the two conflicting 2021-12-01 rows, 0.018007 is within 0.3% of that 12-16 value
+and continues the monthly progression off 2021-10-01 (0.010678) and 2021-11-01
+(0.010985). 0.031906 is roughly 1.8x its neighbouring months, pairs with nothing,
+and would make 2021 the only year in the sample with three December rows. It is
+also close to both 2020 December values (0.032872 and 0.031970), which is what a
+restatement or a mis-dated carry-over of the prior year's figure would look like.
+
+Choosing 0.018007 puts SHY's 2021 total distribution at 0.191948 on a ~$86 share,
+about 0.22% for the year -- consistent with 2-year Treasury yields at the 2021 ZIRP
+trough. Summing both rows (0.223854, ~0.26%) would credit income to a position that
+the payment schedule gives no reason to believe existed.
+
+This is a reading of the schedule, not a confirmation from the issuer. The
+alternative resolution named in the registry -- a re-ingested snapshot with the
+conflict corrected at source -- remains preferable and is not blocked by this entry.
+"""
+
+# The same record, re-decided for the wide snapshot. The ledger is scoped per
+# snapshot id on purpose: a new pull inherits nothing, so this is a deliberate
+# re-recording of the same evidence against the same values, not an inheritance.
+[[exception]]
+snapshot_id = "alpaca-sip-wide92-2026-08-20"
+symbol = "SHY"
+ex_date = 2021-12-01
+kind = "cash_dividend"
+chosen = 0.018007
+rejected = [0.031906]
+recorded_at = 2026-08-20
+reason = """
+Identical values and identical evidence to the alpaca-sip-2026-08-11 entry above,
+verified present in this snapshot: SHY pays monthly plus a second mid-December
+distribution in every one of the eleven years covered, 0.018007 pairs with
+2021-12-16's 0.018063 while 0.031906 pairs with nothing, and choosing 0.018007
+puts SHY's 2021 total at 0.191948 (~0.22% on a ~$86 share), consistent with
+2-year Treasury yields at the 2021 ZIRP trough.
+"""
+# =============================================================================
+# Confirmed price discontinuities.
+#
+# `_check_daily_quality` fails closed on any single-session move in the ADJUSTED
+# series beyond 60%, because the leading explanation for one is a split the
+# vendor did not record. That threshold was calibrated against 30 broad, liquid
+# ETFs. A wider universe reaches instruments that legitimately move further, and
+# the check cannot tell a real move from a missing corporate action.
+#
+# An entry here is a statement that a human looked at one specific bar and
+# confirmed the move against independent evidence. Same guards as above: scoped
+# to one snapshot id, matched against the move actually observed (within
+# `tolerance`), and required to state its evidence. Every unconfirmed jump still
+# fails the ingest.
+# =============================================================================
+
+[[price_discontinuity]]
+snapshot_id = "alpaca-sip-wide92-2026-08-20"
+symbol = "GDXJ"
+session = 2020-03-17
+observed_move = 0.6271
+tolerance = 0.005
+recorded_at = 2026-08-20
+reason = """
+Real market move, confirmed three ways, not a missing corporate action.
+
+1. SECTOR-WIDE. Every gold-miner ETF moved together on 2020-03-17: GDXJ +62.7%,
+   GDX +50.5%, SIL +44.2%. A corporate action affects one issuer's share count;
+   it does not move three unrelated funds on the same session. Broad-market
+   references that day were ordinary by comparison (GLD +4.6%, XME +9.7%).
+
+2. RAW AND ADJUSTED AGREE. Raw close-to-close is +62.65% and adjusted is +62.71%.
+   A split the vendor failed to record would appear in the raw series and be
+   absent from the adjusted one; here both series carry the same move, which is
+   what a price change looks like and what an unrecorded split does not.
+
+3. THE OHLC IS INTERNALLY COHERENT. 2020-03-16 printed O=19.80 H=27.85 L=19.79
+   C=20.00 on 117.8M shares -- an eight-dollar intraday range closing at its low.
+   2020-03-17 opened at 27.01 with a low of 27.00 and closed 32.53. The headline
+   +62.7% is close-to-close across that pin; open-to-open is +36%. Alpaca reports
+   no split for GDXJ in 2020.
+
+Context: the March 2020 liquidity crunch, in which miners were sold
+indiscriminately for cash and rebounded violently. The next session was -23.1%.
+
+This entry confirms one bar. It does not raise the threshold, and it says nothing
+about any other symbol or date -- a survey of all 92 symbols over 2016-01-04 to
+2026-08-10 found this to be the only unexplained discontinuity in the sample.
+"""

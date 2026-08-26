@@ -1,0 +1,164 @@
+# AMAT v6 research candidate: v1 core + causal asset-regime and liquidity overlay.
+# This is a new file and a dedicated loader; v1-v5 artifacts/configs remain unchanged.
+#
+# UNIVERSE CHANGED 2026-08-15: TLT removed by operator decision (see the rates
+# cluster below for the measurement and the selection-bias caveat). v6 is now an
+# ELEVEN-symbol strategy and no longer shares v1's universe. Every v6 result
+# recorded before this change cites config digest a27689fbe4ca07ab and was
+# measured on twelve symbols; those numbers and these are not comparable except
+# as an explicit before/after of this one edit.
+# Hypothesis: asset-level confirmation can remove low-quality trend increases with
+# less churn than the rejected portfolio-wide v3/v4 timing rules. Falsification:
+# v6 must beat v1 and its own static-mean/permuted controls after costs, and any
+# learned exit must beat no-exit in training and the later validation slice.
+
+name = "amat-etf-regime-quality"
+version = "6.0.0"
+
+[[universe.clusters]]
+name = "us_equity"
+gross_cap = 0.40
+symbols = ["SPY", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "international"
+gross_cap = 0.25
+symbols = ["EFA", "EEM"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+# TLT removed 2026-08-15 by operator decision. It was the worst sleeve in the
+# combined portfolio on alpaca-sip-2026-08-11 (91 round trips, net -$3,628,
+# profit factor 0.62, driven by whipsaw rather than the 2022 rates shock).
+#
+# Read every v6 number produced after this line with the bias it carries: the
+# symbol was deleted AFTER its loss was observed on the sample the result is
+# measured on, which is hindsight selection. Registered experiment 0004 tested
+# exactly this removal under the split protocol and found the winning margin
+# inside noise (validation Sharpe 1.25 vs 1.19), which is why it earned
+# eligibility only and the frozen v1 universe was left alone. The improvement
+# measured here is an upper bound on what the change is worth, not evidence
+# that it would have helped out of sample.
+#
+# The cluster now holds one symbol, so gross_cap 0.35 no longer binds:
+# constraints.max_symbol_weight (0.20) is the effective rates cap.
+symbols = ["IEF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.20
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.20
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+# The 6% target won the preregistered training ranking and held on validation.
+# It remains a burned-history candidate, not a live-performance claim.
+target_annualized_volatility = 0.06
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252
+
+[asset_regime]
+# Two full-sample variants lost to the static 6% control (Sharpe 0.72 and
+# 1.04 versus 1.14). Regimes remain decision/audit context; enabling their
+# capital multiplier is an explicit new experiment, never the default.
+capital_control_enabled = false
+atr_period = 14
+adx_period = 14
+ema_period = 20
+slope_sessions = 5
+percentile_lookback = 100
+efficiency_lookback = 21
+confirmation_sessions = 3
+low_vol_percentile = 0.30
+high_vol_percentile = 0.70
+range_adx = 20.0
+trend_adx = 25.0
+min_efficiency = 0.20
+cusum_threshold = 3.0
+quiet_trend_scalar = 1.0
+normal_trend_scalar = 0.85
+volatile_trend_scalar = 0.85
+transition_scalar = 1.00
+quiet_range_scalar = 1.00
+volatile_range_scalar = 0.50
+downtrend_scalar = 0.75
+
+[liquidity]
+lookback_sessions = 63
+min_volume_percentile = 0.10
+min_dollar_volume = 10000000.0
+minimum_increase_scalar = 0.75
+
+[risk_learning]
+# Disabled in the canonical v6 backtest until the per-asset action both wins on
+# training and clears the later validation gate. The v6 audit still reports the
+# learned candidates and exact reasons each was activated or rejected.
+enabled = false
+train_end = 2022-12-30
+stop_losses = [0.05, 0.08, 0.10]
+reward_risk_ratios = [1.5, 2.0, 3.0]
+reentry_embargo_sessions = 21
+min_training_episodes = 20
+prior_strength = 20.0
+downside_aversion = 0.50
+min_validation_improvement = 0.001
+# One-sided Bonferroni-style guard, set for 12 per-asset validation decisions.
+# The universe is now 11; the guard is left at its registered value rather than
+# retuned, which makes it very slightly conservative. Loosening it as a side
+# effect of dropping a symbol would be exactly the wrong direction.
+validation_confidence_z = 2.64

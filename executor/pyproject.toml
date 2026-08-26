@@ -1,0 +1,86 @@
+[project]
+name = "amat-executor"
+version = "0.1.0"
+description = "Paper-trading executor for the AMAT strategy: calendar, account, and order submission."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+classifiers = [
+  "Private :: Do Not Upload",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Programming Language :: Python :: 3.12",
+]
+
+# No third-party runtime dependencies, on purpose. This process holds
+# credentials that can place orders, so its supply chain is kept to the
+# standard library: `urllib` for transport, `smtplib` for mail, `zoneinfo` for
+# the exchange calendar. The strategy's own (much larger) dependency tree stays
+# on the far side of the subprocess boundary in `executor.plan_source`.
+dependencies = []
+
+[project.scripts]
+executor = "executor.cli:main"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.14",
+  "pytest>=8.3",
+  "ruff>=0.9",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/executor"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W", "F", "I", "N", "UP", "B", "A", "C4", "DTZ", "T20",
+  "PT", "RET", "SIM", "PTH", "PL", "RUF", "S", "ANN", "ARG",
+]
+ignore = [
+  # The CLI's whole job is to print.
+  "T201",
+  # Trailing-comma formatting is delegated to `ruff format`.
+  "COM812",
+  # Broker JSON is genuinely `Any` until it is parsed. The parsers
+  # (`Account.from_payload`, `_decimal`, `parse_plan`) are precisely where the
+  # untyped wire format becomes typed, so annotating their inputs as anything
+  # narrower would be a lie that hides the validation those functions perform.
+  "ANN401",
+  # Builders here take many *keyword-only* arguments by design
+  # (`build_daily_report`, `submit_plan`, `build_plan`). Collapsing them into a
+  # parameter object would hide, not clarify, what each call site supplies --
+  # and several of them are exactly the account/plan state that must be passed
+  # explicitly rather than fetched.
+  "PLR0913",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# ARG001: a pytest fixture requested purely for its side effect (env setup) is
+# an unused argument by construction. PLC0415: local imports keep a test's
+# dependencies next to the assertion that needs them.
+"tests/*" = ["S101", "ANN", "PLR2004", "S105", "S106", "ARG001", "PLC0415"]
+# Argparse dispatch is a flat sequence of guarded returns; a dict of handlers
+# would move the same branching somewhere less readable. RET503: `parser.error`
+# is NoReturn, so a trailing `return` would be dead code -- mypy rejects it,
+# ruff's flow analysis does not know the annotation.
+"src/executor/cli.py" = ["T201", "PLR0911", "RET503"]
+# Markdown assembly is inherently a long sequence of optional sections.
+"src/executor/report/daily.py" = ["PLR0912"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+files = ["src"]

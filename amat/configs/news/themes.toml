@@ -1,0 +1,56 @@
+# Reviewed event-to-asset taxonomy for news-driven universe discovery.
+#
+# This is deliberately small and explicit. Headlines never supply ticker
+# symbols or instructions; they can only activate a theme whose US companies
+# and vocabulary were reviewed here. Positive news makes these companies
+# eligible for the strategy's normal trend/risk engine -- it does not force a
+# trade and does not set a weight.
+
+[[themes]]
+name = "us_defense"
+keywords = [
+  "defense contract", "defence contract", "military contract", "pentagon",
+  "department of defense", "military", "missile", "munitions", "weapons deal",
+  "arms deal", "fighter jet", "naval contract", "defense spending",
+]
+symbols = ["LMT", "RTX", "NOC", "GD", "LHX", "HII", "BA"]
+positive_terms = [
+  "announces", "award", "awarded", "approves", "approved", "contract",
+  "deal", "funding", "increase", "orders", "selected", "wins",
+]
+negative_terms = [
+  "cancel", "cancelled", "cuts", "delay", "delayed", "loses", "probe",
+  "rejected", "suspend", "suspended",
+]
+
+[[themes]]
+name = "us_semiconductors"
+keywords = [
+  "semiconductor", "chip manufacturing", "chips act", "advanced chips",
+  "ai accelerator", "foundry investment",
+]
+symbols = ["NVDA", "AMD", "INTC", "AVGO", "MU", "QCOM", "TXN"]
+positive_terms = [
+  "announces", "award", "awarded", "approves", "approved", "contract",
+  "deal", "funding", "increase", "investment", "orders", "selected", "wins",
+]
+negative_terms = [
+  "ban", "cancel", "cuts", "delay", "export restriction", "loses", "probe",
+  "rejected", "shortage", "suspend",
+]
+
+[[themes]]
+name = "us_nuclear_energy"
+keywords = [
+  "nuclear power", "nuclear reactor", "small modular reactor", "uranium",
+  "nuclear energy contract",
+]
+symbols = ["CCJ", "CEG", "VST", "BWXT", "GEV", "SMR"]
+positive_terms = [
+  "announces", "award", "awarded", "approves", "approved", "contract",
+  "deal", "funding", "increase", "investment", "selected", "wins",
+]
+negative_terms = [
+  "cancel", "cuts", "delay", "incident", "loses", "rejected", "shutdown",
+  "suspend",
+]

@@ -1,0 +1,11 @@
+symbol,session_date,raw_open,raw_high,raw_low,raw_close,adjusted_close,volume,source,adjustment_mode
+AAA,2024-01-02,100.00,101.00,99.00,100.50,100.50,1000000,synthetic,split_and_dividend
+AAA,2024-01-03,100.50,102.00,100.00,101.75,101.75,1100000,synthetic,split_and_dividend
+AAA,2024-01-04,101.75,101.75,99.50,99.75,99.75,900000,synthetic,split_and_dividend
+AAA,2024-01-05,99.75,100.25,98.00,98.25,98.25,0,synthetic,split_and_dividend
+AAA,2024-01-08,98.25,99.00,98.00,98.75,98.75,1200000,synthetic,split_and_dividend
+BBB,2024-01-02,50.00,50.50,49.50,50.25,25.125,500000,synthetic,split_and_dividend
+BBB,2024-01-03,50.25,51.00,50.00,50.75,25.375,520000,synthetic,split_and_dividend
+BBB,2024-01-04,50.75,51.50,50.50,51.25,25.625,480000,synthetic,split_and_dividend
+BBB,2024-01-05,51.25,52.00,51.00,51.75,25.875,510000,synthetic,split_and_dividend
+BBB,2024-01-08,26.00,26.50,25.75,26.10,26.10,1020000,synthetic,split_and_dividend

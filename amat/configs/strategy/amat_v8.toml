@@ -1,0 +1,153 @@
+# AMAT v8 — v6's universe and core, with the three changes from the 2026-08-20
+# audit of v6. Nothing else differs from `amat_v6.toml`.
+#
+# THIS IS A RESEARCH CANDIDATE ON BURNED HISTORY. It is not promoted and every
+# figure it produces is a sensitivity, not a primary result — see [cash].
+#
+#   1. Cash earns 3.56% instead of 0%.
+#   2. Volatility target 6% -> 10%.
+#   3. A causal risk budget that shifts risk toward the assets the signal has
+#      actually been paid on.
+#
+# The audit that produced these: v6 averaged 56.4% invested, so ~44% of the
+# account sat in cash assumed to earn nothing; the 6% target ran at a third of
+# the market's volatility; and inverse-volatility sizing put the largest weights
+# on the lowest-returning assets (UUP 7.60% weight / +$1,518; IEF 7.09% /
+# -$980; against GLD 5.86% / +$14,803).
+
+name = "amat-etf-risk-budget"
+version = "8.0.0"
+
+[[universe.clusters]]
+name = "us_equity"
+gross_cap = 0.40
+symbols = ["SPY", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "international"
+gross_cap = 0.25
+symbols = ["EFA", "EEM"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+# TLT removed 2026-08-15 by operator decision. It was the worst sleeve in the
+# combined portfolio on alpaca-sip-2026-08-11 (91 round trips, net -$3,628,
+# profit factor 0.62, driven by whipsaw rather than the 2022 rates shock).
+#
+# Read every v6 number produced after this line with the bias it carries: the
+# symbol was deleted AFTER its loss was observed on the sample the result is
+# measured on, which is hindsight selection. Registered experiment 0004 tested
+# exactly this removal under the split protocol and found the winning margin
+# inside noise (validation Sharpe 1.25 vs 1.19), which is why it earned
+# eligibility only and the frozen v1 universe was left alone. The improvement
+# measured here is an upper bound on what the change is worth, not evidence
+# that it would have helped out of sample.
+#
+# The cluster now holds one symbol, so gross_cap 0.35 no longer binds:
+# constraints.max_symbol_weight (0.20) is the effective rates cap.
+symbols = ["IEF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.20
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.20
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+# CHANGE 2 of 3. The audit mapped this dial: 6% -> 10% adds roughly $22k over
+# the sample and costs about 1.2 points of drawdown. Past ~10% it stops working
+# — at a 12% target the 20% symbol cap binds on 90.9% of sessions and asking for
+# 15% still only realises 8.2%. 10% is the top of the useful range, not a fitted
+# optimum, and it is a statement about risk appetite rather than about edge.
+[constraints]
+target_annualized_volatility = 0.10
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+# CHANGE 3 of 3. Concentrate risk in the assets the signal is actually being
+# paid on, measured causally.
+#
+# This does NOT delete a symbol. Each session it ranks every asset on the
+# trailing information ratio of the payoff the strategy's own signal earned on
+# it — reading only sessions at or before that decision — and shifts risk from
+# the bottom of the ranking to the top. If UUP starts paying it gets its weight
+# back with no file edit; if SPY stops paying it loses weight. Deleting the two
+# symbols that happened to lose would be the hindsight selection that got v5
+# rejected and that the rates cluster above carries a written warning about.
+#
+# Multipliers are mean-normalised, so this REALLOCATES risk rather than adding
+# or removing it — the 10% target still sets how much there is. min_multiplier
+# is strictly positive because a budget that can reach zero is a selection rule,
+# and experiments 0006 and 0007 both found selection does not help here.
+[risk_budget]
+enabled = true
+lookback_sessions = 252
+min_periods_sessions = 126
+min_multiplier = 0.35
+max_multiplier = 1.75
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+# CHANGE 1 of 3. Alpaca pays 3.56% APY on uninvested USD cash with no minimum,
+# and this strategy leaves ~44% of the account in cash.
+#
+# is_primary = false is REQUIRED by the contract and is not a formality: a
+# non-zero cash assumption may never be merged into a primary result, because
+# the rate is a fact about a brokerage relationship rather than about the
+# strategy and the broker can change it at any time. Every figure this
+# configuration produces is a SENSITIVITY. Compare it to v6 measured on the same
+# assumption, never to v1's cash-at-zero numbers.
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0356
+is_primary = false
+
+# 252 for the trend horizon PLUS 126 for the risk budget's payoff history. The
+# budget needs scores before it can measure what those scores earned, so its
+# lookback sits on top of the trend's rather than beside it.
+[warmup]
+min_completed_sessions = 378

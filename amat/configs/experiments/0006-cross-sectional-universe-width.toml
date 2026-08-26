@@ -1,0 +1,225 @@
+# =============================================================================
+# REGISTERED EXPERIMENT 0006 — universe width and cross-sectional selection
+#
+# REGISTERED 2026-08-20, BEFORE ANY ARM WAS RUN. Nothing in this file was
+# written after seeing a result. The registered prior below is a prediction on
+# the record, and the verdict rules are fixed here so that a disappointing
+# number cannot be re-described later as a different question.
+#
+# READ THIS FIRST: every arm runs on history through 2026-08-10, which is
+# BURNED — inspected by the v1–v6 full-sample studies before the holdout was
+# declared on 2026-08-13. No number this experiment produces is out-of-sample
+# evidence. The most a winning arm can earn is eligibility and a registry
+# entry, exactly as in experiments 0001–0005. It cannot promote itself.
+# =============================================================================
+
+[registration]
+id = "0006"
+title = "Universe width and cross-sectional selection"
+registered_at = 2026-08-20
+snapshot_primary = "alpaca-sip-2026-08-11"      # 30 symbols, already on disk
+snapshot_extension = "alpaca-sip-wide92-2026-08-20"  # 92 symbols, ingesting at registration
+
+# Both universes are declared HERE, before either was measured, precisely so
+# that running the second is not a second look at the data. Had only the
+# 30-symbol arm been registered and the 92-symbol arm added after seeing it,
+# the pair would be two trials reported as one.
+
+[question]
+# Two separable mechanisms, deliberately not confounded. The repository has
+# been burned before by a change that altered two things at once.
+primary = """
+Does cross-sectional selection — holding the strongest K trends out of N
+candidates rather than every candidate with a live trend — beat holding all
+of them, at the same universe and the same volatility target?
+"""
+secondary = """
+Does widening the universe, with no selection rule at all, beat the narrow
+frozen universe? This is a pure diversification question and is answered by
+the existing `falsify_universe` machinery.
+"""
+
+[hypothesis]
+mechanism = """
+The frozen core measures trend strength per asset in isolation and sizes
+everything that clears the dead-band. With 12 candidates that is nearly
+"hold whatever is trending". With 92 it is a materially different portfolio:
+on 2026-08-10 the four strongest trends in the 30-symbol snapshot (XLV, XLF,
+XLE, VTI) are all outside the v6 universe, and 24 of 30 symbols clear the
+dead-band at once.
+
+Selection is a different axis from every mechanism this repository has
+falsified. v3 news scalars, v4 breadth blending, and experiment 0002's
+volatility-state conditioning all decided HOW MUCH to hold, and all three died
+against the static-mean control — because on this sample "cut size when the
+signal fires" reduces to "hold less on average", which costs turnover to
+achieve. Selection decides WHICH to hold at unchanged total size. Its
+static-mean analogue (hold all N smaller) is a genuinely different portfolio
+rather than an equivalent one, so that control does not trivially kill it.
+"""
+
+[prior]
+# The registered prediction. Recording it makes a null result informative
+# rather than merely disappointing.
+primary_expectation = "fails"
+primary_reasoning = """
+Predicted to FAIL its random-K control. The universe is ETFs, and ETFs are
+dominated by a small number of shared factors — on any given session most of
+the "strongest 10 of 92" will be ten expressions of the same equity or rates
+move. Ranking correlated assets by trend mostly reshuffles the same beta, so
+picking the top K should not beat picking a random K of the same size. Note
+that the four leaders cited above (XLV, XLF, XLE, VTI) are exactly this: three
+US sectors and a total-market fund.
+
+The specific way this is expected to fail is instructive and is why the
+random-K control is the decisive one: selection WILL likely beat the
+hold-everything arm on Sharpe, simply because concentrating into fewer
+positions at a fixed volatility target is a different risk profile. That is not
+evidence the ranking works. Only beating random-K at matched turnover is.
+"""
+secondary_expectation = "modest improvement, inside noise"
+secondary_reasoning = """
+Widening 12 → 30 → 92 adds genuinely new data rather than new parameters, which
+is the one direction that improves an estimate instead of fitting it. Expect a
+small Sharpe gain from diversification, and expect it to sit inside the same
+one-standard-error band that experiments 0001 and 0005 landed in. v5 already
+tested a universe change and was rejected; this is a wider version of a
+question that has failed once.
+"""
+risk_to_watch = """
+Estimation error. A 120-session covariance lookback over 92 assets has fewer
+than two observations per asset — Ledoit-Wolf shrinkage is consistent in that
+regime but is doing nearly all the work. Selection mitigates it (weights are
+non-zero only on K assets, so the quadratic form reads a K x K block), but the
+shrinkage intensity is still estimated from all N columns. The
+wide-without-selection arm at the unchanged 120-session lookback exists to
+MEASURE this cost rather than assume it away.
+"""
+
+# =============================================================================
+# ARMS — fixed here, ranked on training folds only.
+# =============================================================================
+
+[[arm]]
+id = "A1"
+role = "baseline"
+config = "configs/strategy/amat_v1.toml"
+note = "The frozen core. 12 symbols, 8% target. Every comparison is against this."
+
+[[arm]]
+id = "A2"
+role = "baseline"
+config = "configs/strategy/amat_v6.toml"
+note = """
+The live paper-trading configuration. 11 symbols, 6% target. Carries an
+acknowledged hindsight caveat (TLT was removed after its loss was observed on
+this sample), so it is reported as context and is NOT the comparison baseline.
+"""
+
+[[arm]]
+id = "B30"
+role = "width only"
+config = "configs/strategy/amat_v7_wide30.toml"
+note = "30 symbols, 8% target, NO selection. Isolates diversification."
+
+[[arm]]
+id = "C30"
+role = "width + selection"
+config = "configs/strategy/amat_v7_xs30.toml"
+note = "30 symbols, 8% target, top-K selection. K swept over the grid below."
+
+[[arm]]
+id = "B92"
+role = "width only, extension"
+config = "configs/strategy/amat_v7_wide92.toml"
+note = "92 symbols, 8% target, NO selection. Runs when the wide snapshot lands."
+
+[[arm]]
+id = "C92"
+role = "width + selection, extension"
+config = "configs/strategy/amat_v7_xs92.toml"
+note = "92 symbols, 8% target, top-K selection."
+
+[grid]
+# The ONLY parameters swept. Fixed at registration; the multiple-testing
+# discount is computed from this count and no other.
+max_positions = [5, 8, 10, 15, 20]
+min_horizon_agreement = [0, 3]
+# 5 x 2 = 10 candidates per universe. Reported with the count, per protocol.
+candidate_count_per_universe = 10
+
+[grid.notes]
+min_horizon_agreement = """
+0 disables the rule; 3 requires all three trend horizons strictly positive.
+The intermediate value 2 is deliberately EXCLUDED: with three horizons, "at
+least 2 positive" is nearly implied by a positive composite, so it would add a
+trial without adding a distinct hypothesis.
+
+This rule is the v6 audit's hypothesis #2, which measured +0.19% average
+round-trip return for all-three-positive entries against -0.23% and -0.27% for
+the disagreeing groups, and which that audit explicitly declined to promote
+because the split was discovered on the sample it was measured on. Testing it
+under the split protocol is the correct way to settle it; it starts with the
+hindsight caveat attached and must earn its way out.
+"""
+
+[split]
+# FIXED IN ADVANCE. Ranking sees training only; validation is measured
+# ranking-blind, exactly as in experiments 0001 and 0003.
+training_end = 2022-12-30
+validation_start = 2023-01-03
+validation_end = 2026-08-10
+fold_score = "0.5 * median(fold Sharpe) + 0.5 * min(fold Sharpe)"
+fold_score_reasoning = """
+Unchanged from experiment 0001. Aggregate Sharpe cannot distinguish a steady
+result from one lucky year, and the minimum term is what makes a single strong
+fold insufficient.
+"""
+
+[controls]
+# A candidate that beats the baseline but not these has found nothing.
+random_k_matched_turnover = """
+DECISIVE. Select K assets at random from those clearing the dead-band, matched
+on both position count and realised turnover, at the same cost assumption.
+Beating the hold-everything arm proves only that concentration changes the risk
+profile; beating random-K is the only result that shows the RANKING carries
+information. Run with 20 seeds; the candidate must beat the control's MEDIAN
+seed, not its worst.
+"""
+static_mean = """
+Hold all N at a constant multiplier equal to the selection arm's average gross
+exposure. Kept even though the argument in [hypothesis] says it should not
+bind, because that argument is a prediction and three previous mechanisms died
+here.
+"""
+leave_one_out = """
+Over every symbol in the widened universe, via `falsify_universe`. Answers
+whether the result is carried by a handful of listings — the measurable
+survivorship bound.
+"""
+cost_ladder = "0 / 2 / 4 / 6 / 10 bps one-way, per the v1 cost config."
+
+[verdict_rules]
+# Fixed now so that a marginal number cannot be argued into a win later.
+promote = "NOTHING. This is burned history; no arm can promote itself."
+win = """
+An arm 'wins' only if it beats (a) the A1 baseline, (b) the hold-everything arm
+at its own universe, and (c) the MEDIAN random-K control seed — all on Sharpe,
+net of the baseline cost assumption, on the ranking-blind validation window.
+A win earns a registry entry and eligibility for the full protocol. Nothing else.
+"""
+tie = """
+Training fold scores within 1e-09 are a tie and produce an explicit no-winner
+verdict, as in experiment 0003. Ties are not broken by validation — that would
+be ranking on the window that is supposed to be blind.
+"""
+loss = """
+Recorded in the registry with the prior that predicted it. A falsified
+mechanism is a result; three of them are why this protocol exists.
+"""
+multiple_testing = """
+Report the deflated Sharpe ratio (Bailey & Lopez de Prado 2014) against
+candidate_count_per_universe, and state the trial count beside every headline
+figure. A raw Sharpe from the best of ten trials is not comparable to the
+baseline's single Sharpe and must never be printed as though it were.
+"""

@@ -1,0 +1,82 @@
+# VPS deployment.
+#
+#   cp .env.example .env && chmod 600 .env    # fill it in first
+#   docker compose up -d
+#   docker compose logs -f
+#
+# `restart: unless-stopped` survives crashes and host reboots but honours a
+# deliberate `docker compose stop`, which is the behaviour you want for a
+# process that places orders: an operator who stops it means it.
+
+services:
+  executor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: amat-executor:0.1.0
+    container_name: amat-executor
+    restart: unless-stopped
+    # Let SIGTERM finish an in-flight broker observation/submission and flush
+    # its journal before Docker escalates to SIGKILL during a recreate.
+    stop_grace_period: 2m
+
+    env_file:
+      - .env
+
+    # The container's own clock stays UTC. Session times come from Alpaca's
+    # calendar in exchange-local time and are converted explicitly, so the
+    # host's timezone never enters the decision.
+    environment:
+      TZ: UTC
+      AMAT_ROOT: /opt/amat
+      STATE_ROOT: /var/lib/amat-executor
+      # The strategy checkout is mounted read-only, so `uv` must not try to
+      # create its virtualenv inside it. Both of these point uv's writable
+      # state outside the mount; `--locked` (in the default plan command) keeps
+      # it from rewriting the lockfile there either.
+      UV_PROJECT_ENVIRONMENT: /home/executor/amat-venv
+      UV_CACHE_DIR: /home/executor/.cache/uv
+
+    volumes:
+      # The strategy checkout, READ-ONLY. The executor forms plans from it and
+      # must never write to it -- `amat`'s snapshots and validated outputs are
+      # append-only evidence.
+      - ../amat:/opt/amat:ro
+      # Journal, equity curve, plans, and reports. A named volume so state
+      # survives image rebuilds and `docker compose down`.
+      - executor-state:/var/lib/amat-executor
+      # `uv` builds the strategy's environment here, outside the read-only
+      # mount, and caches wheels. A named volume so the first plan of the day
+      # does not re-resolve the whole dependency tree after every restart.
+      - uv-cache:/home/executor/.cache/uv
+      - amat-venv:/home/executor/amat-venv
+
+    tmpfs:
+      - /tmp:size=512m
+
+    # Bounded logs. Without this, a daemon that logs every few minutes for a
+    # year will quietly fill the VPS disk -- the same failure the report
+    # retention window exists to prevent.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+    # `executor check` contacts the broker and exits non-zero on any
+    # misconfiguration, so it doubles as a liveness probe. The long start
+    # period covers the first `uv sync` of the strategy's dependency tree.
+    healthcheck:
+      test: ["CMD", "executor", "account"]
+      interval: 15m
+      timeout: 2m
+      retries: 3
+      start_period: 10m
+
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  executor-state:
+  uv-cache:
+  amat-venv:

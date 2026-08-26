@@ -1,0 +1,139 @@
+# AMAT v7-wide92: the frozen v1 core over all 92 symbols of the wide snapshot.
+#
+# REGISTERED EXPERIMENT 0006, arm B92. Research candidate on burned history.
+# Both universes were registered on 2026-08-20 BEFORE either was measured, so
+# running this one is not a second look at the data.
+#
+# EXACTLY ONE THING CHANGES from configs/strategy/amat_v1.toml: the universe.
+# Signal, volatility estimator, 8% target, covariance estimator AND its
+# 120-session lookback, caps, rebalance band, execution window, costs, and
+# warm-up are byte-for-byte v1's.
+#
+# INCLUSION RULE, fixed before any return was measured: every symbol with
+# continuous Alpaca SIP daily coverage from 2016-01-04. 65 candidates were
+# probed against that test and 64 passed; IGSB returned nothing for January 2016
+# and is absent. No symbol was included or excluded on its performance.
+#
+# CLUSTER CAP RULE, also fixed in advance, from cluster SIZE alone:
+#     gross_cap = min(0.40, max(0.10, 0.05 * symbols_in_cluster))
+# Clusters group redundant exposures (SPY/VTI, EFA/VEA/IEFA, EEM/VWO/IEMG,
+# VNQ/IYR/SCHH) so a cap stops the allocator buying one exposure under several
+# tickers. That grouping reads fund structure, never returns.
+#
+# THE KNOWN COST, MEASURED NOT ASSUMED: a 120-session covariance lookback over
+# 92 assets is 1.3 observations per asset. Ledoit-Wolf shrinkage is consistent
+# in that regime but is doing nearly all the work. The lookback was deliberately
+# NOT widened to compensate, because that would confound the universe change
+# with an estimator change; this arm carries the cost so it can be seen.
+
+name = "amat-etf-wide92"
+version = "7.2.0"
+[[universe.clusters]]
+name = "us_equity_broad"
+gross_cap = 0.40
+symbols = ["SPY", "VTI", "QQQ", "IWM", "IJH", "IJR", "MDY", "RSP"]
+
+[[universe.clusters]]
+name = "us_equity_style"
+gross_cap = 0.35
+symbols = ["IWD", "IWF", "MTUM", "QUAL", "USMV", "VLUE", "SPLV"]
+
+[[universe.clusters]]
+name = "us_equity_sector"
+gross_cap = 0.40
+symbols = ["XLK", "XLF", "XLE", "XLV", "XLI", "XLP", "XLY", "XLU", "XLB"]
+
+[[universe.clusters]]
+name = "intl_developed"
+gross_cap = 0.40
+symbols = ["EFA", "VEA", "EWJ", "EWG", "EWU", "EWC", "EWA", "IEV", "EZU", "IEFA", "ACWI"]
+
+[[universe.clusters]]
+name = "intl_emerging"
+gross_cap = 0.40
+symbols = ["EEM", "VWO", "FXI", "EWY", "EWT", "EWZ", "EWH", "EWW", "INDA", "IEMG"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.40
+symbols = ["TLT", "IEF", "SHY", "TIP", "IEI", "TLH", "SHV", "BIL", "STIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.40
+symbols = ["AGG", "LQD", "HYG", "EMB", "BND", "BNDX", "MBB", "JNK", "VCIT", "VCSH", "MUB", "PFF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.15
+symbols = ["GLD", "SLV", "PPLT"]
+
+[[universe.clusters]]
+name = "real_asset_equity"
+gross_cap = 0.30
+symbols = ["GDX", "GDXJ", "SLX", "XME", "XOP", "WOOD"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.25
+symbols = ["DBC", "USO", "DBA", "DBB", "UNG"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.25
+symbols = ["VNQ", "IYR", "XLRE", "REM", "SCHH"]
+
+[[universe.clusters]]
+name = "currencies"
+gross_cap = 0.35
+symbols = ["UUP", "FXE", "FXY", "FXB", "FXF", "FXA", "FXC"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252

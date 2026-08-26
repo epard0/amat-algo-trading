@@ -1,0 +1,76 @@
+# Registered BEFORE any variant was run, per the registry rules.
+# Motivated by the TLT sleeve audit finding (the only losing sleeve, -7.04%
+# per 100k) and the standing v6-audit observation that the rates sleeve is
+# structurally mismatched in this sample. The split date matches experiments
+# 0001 and 0003 and never moves.
+
+id = "0004-tlt-risk-reward-variants"
+registered_at = 2026-08-15T06:45:00Z
+hypothesis = """
+Some reduction of the rates sleeve's risk budget -- excluding TLT, excluding
+the whole rates cluster, or tightening the rates cluster's gross cap --
+ranks above the frozen v1 configuration on training-window fold consistency
+AND holds that advantage on the validation window the ranking never used.
+
+Prior, stated in advance: EXPECTED TO FAIL the honesty bar even if it "wins".
+TLT's loss is concentrated in the 2022 rates shock, which the training
+window contains; a variant that removes TLT is therefore selecting against
+a known historical episode, which is exactly the hindsight universe surgery
+the v6 audit refused ("Removing rates after seeing this would be hindsight
+universe selection"). The pre-registered reading: (a) if exclusion variants
+win training but not validation, the frozen core stands, as with 0003;
+(b) if a variant wins BOTH, it still earns only a registered new version
+and the full protocol, with the hindsight-selection caveat attached
+permanently -- the diversification an unloved sleeve provides is exactly
+the property a 2016-2026 sample cannot price; (c) cluster-cap tightening is
+the a-priori-preferred expression because it reduces rather than deletes.
+
+Falsification: the frozen v1 row ranks first on training, or the training
+winner's validation Sharpe does not exceed frozen v1's validation Sharpe.
+"""
+base_config = "configs/strategy/amat_v1.toml"
+changes = [
+  "variant A: universe without TLT (rates cluster becomes IEF-only; cap unchanged)",
+  "variant B: universe without TLT and IEF (no rates cluster at all)",
+  "variant C: rates cluster gross_cap 0.35 -> 0.20",
+  "variant D: rates cluster gross_cap 0.35 -> 0.10",
+  "control:  universe without IEF (the PROFITABLE rates sleeve removed; if this 'improves' similarly, the improvement is about deleting rates duration generally, not about TLT)",
+]
+sample = "snapshot alpaca-sip-2026-08-11, full window; training through 2022-12-30 (ranking only), validation 2023-01-02..2026-08-10 (measured for every variant, ranking-blind); $100,000; 2 bps one-way"
+benchmarks = ["frozen amat_v1.toml under identical data, costs, funding, and split"]
+status = "complete"
+
+# Multiple-testing note, recorded at registration: 5 variants + baseline
+# consume surprise capacity; the verdict must restate the count. Known bias:
+# the whole history is burned, so even validation is only ranking-blind.
+# The 2022 rates shock sits INSIDE the training window, which mechanically
+# favors TLT-removal variants on training -- that is the trap the split is
+# expected to expose, not a discovery.
+
+# ---------------------------------------------------------------------------
+# Outcome, recorded 2026-08-15 after the variants ran once.
+# Artifact: outputs/experiments/0004-tlt-variants-20260815T063354Z.json
+#
+# Verdict, verbatim: "6 variants evaluated. A: without TLT outranks frozen v1
+# on training AND holds on validation. Per registration this earns only
+# eligibility for a registered new version, with the hindsight-selection
+# caveat permanently attached (the 2022 rates shock sits inside the training
+# window). It changes nothing in place."
+#
+# The table (validation Sharpe / validation ann): frozen 1.19 / +8.41%;
+# A without-TLT 1.25 / +8.88% (training fold 0.706 vs 0.652); B no-rates
+# 1.24 / +9.20%; C rates cap 0.20: 1.24 / +8.78%; D rates cap 0.10:
+# 1.29 / +9.24%; control without-IEF 1.13 / +8.32% (LAST).
+#
+# Reading, per the pre-registered priors: (1) the control did its job --
+# deleting the PROFITABLE rates sleeve hurts, so the effect is TLT-specific
+# (long duration), not "rates are bad"; (2) the winning margin (1.25 vs 1.19
+# validation Sharpe) is well inside one standard error of a 3.6-year window;
+# (3) D has the best validation Sharpe but ranked fifth on training -- the
+# ranking discipline exists precisely so that number cannot be cherry-picked.
+# Disposition: variant A earns ELIGIBILITY ONLY, hindsight caveat attached;
+# the frozen v1 universe is unchanged. The independent stress battery's
+# leave-one-out row ("without TLT": Sharpe 1.04 vs 1.01 full-sample) bounds
+# the same effect on the whole history at noise level.
+outcome = "winner_earns_eligibility_only"
+run_artifact = "outputs/experiments/0004-tlt-variants-20260815T063354Z.json"

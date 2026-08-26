@@ -1,0 +1,68 @@
+# Registered BEFORE any result was inspected, per the registry rules.
+# The split date matches experiment 0001 and never moves. The embargo length
+# was fixed here, at registration, and is not part of the search grid.
+
+id = "0003-exit-rules-sweep"
+registered_at = 2026-08-13T18:55:00Z
+hypothesis = """
+Some explicit per-position exit overlay -- a stop-loss and/or take-profit on
+the adjusted entry basis, with a fixed 21-session re-entry embargo -- ranks
+above the frozen no-exit core on training-window fold consistency
+(fold_score: 0.5*median + 0.5*minimum of four contiguous fold Sharpes) AND
+holds that advantage on the validation window the ranking never used.
+
+Prior, stated in advance: for a volatility-targeted long-or-cash trend
+design the expectation is FAILURE. A stop realizes losses the position
+sizing already sized for and interrupts exactly the multi-month trends the
+signal exists to ride; a take-profit truncates the right tail that trend
+following's positive skew depends on. The frozen core's exits (signal
+deadband, volatility target, caps) are the null hypothesis.
+
+Falsification: the no-exit row ranks first on training, or the training
+winner's validation Sharpe does not exceed the no-exit row's validation
+Sharpe. Either outcome keeps the frozen core; a surviving winner earns only
+a NEW registered version and the full protocol, never an in-place change.
+"""
+base_config = "configs/strategy/amat_v1.toml"
+changes = [
+  "runner overlay only (amat.backtest.exits.ExitRules); the frozen configuration is untouched",
+  "grid: stop_loss in {none, 5%, 10%, 15%} x take_profit in {none, 10%, 20%} = 12 combinations including the no-exit baseline",
+  "re-entry embargo fixed at 21 sessions (the shortest signal horizon); breach basis is the adjusted price of the flat-to-long entry fill",
+]
+sample = "snapshot alpaca-sip-2026-08-11, full window; training through 2022-12-30 (ranking only), validation 2023-01-02..2026-08-10 (measured for every candidate, ranking-blind); $100,000; 2 bps one-way"
+benchmarks = ["the no-exit (frozen v1) row under identical data, costs, funding, and split"]
+status = "complete"
+
+# Multiple-testing note, recorded at registration: 12 candidates consume
+# sample surprise capacity; the verdict text must restate the candidate
+# count. Known bias, stated in advance: this history was fully inspected by
+# the v1-v5 studies, so even the "validation" window is only ranking-blind,
+# not analyst-blind. The overfitting surface of a stop/take-profit grid is
+# the reason the grid is small, the embargo is frozen here, and the verdict
+# machinery refuses unmeasured or tied rankings.
+
+# ---------------------------------------------------------------------------
+# Outcome, recorded 2026-08-14 after the sweep ran once.
+# Run record: outputs/runs/sweep-exit-rules-amat-etf-20260814T014415.823351Z
+#
+# Verdict, verbatim from the run:
+#   "12 candidates evaluated (multiple-testing risk rises with each). The top
+#    training fold scores are indistinguishable (within 1e-09); no winner is
+#    declared and the frozen no-exit core stands."
+#
+# What the table showed: sl15%+tp20% and tp20% tied the top training
+# fold_score at 0.812 (the tie guard refuses to pick between them); every
+# take-profit overlay beat the no-exit core on training Sharpe (1.18 vs
+# 0.89) by cutting volatility and drawdown -- and every one of them LOST to
+# the no-exit core on the ranking-blind validation window (best overlay
+# +6.94% ann / 1.13 Sharpe vs no-exit +8.41% ann / 1.19 Sharpe). That is the
+# registered failure prior realized: take-profits truncate the right tail
+# the strategy's positive skew depends on, and the truncation cost only
+# shows up out of the ranking window. Stop-loss-only rows are near no-ops
+# (the volatility target de-risks before a 5-15% stop is reached).
+#
+# Disposition: falsified per the pre-registered falsification clause (tied
+# ranking AND no validation edge). The frozen v1 core stands; no exit
+# overlay is promoted, nothing earns a registered version.
+outcome = "falsified"
+run_record = "outputs/runs/sweep-exit-rules-amat-etf-20260814T014415.823351Z"

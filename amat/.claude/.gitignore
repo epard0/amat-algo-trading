@@ -1,0 +1,8 @@
+settings.local.json
+agent-memory-local/
+worktrees/
+.cache/
+logs/
+__pycache__/
+*.py[cod]
+*.tmp

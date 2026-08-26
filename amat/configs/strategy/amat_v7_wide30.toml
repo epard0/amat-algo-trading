@@ -1,0 +1,146 @@
+# AMAT v7-wide30: the frozen v1 core over every symbol the snapshot carries.
+#
+# REGISTERED EXPERIMENT 0006, arm B30. Research candidate. Not promoted, not
+# promotable: every session it is measured on is burned history.
+#
+# EXACTLY ONE THING CHANGES from configs/strategy/amat_v1.toml: the universe
+# grows from 12 symbols in 5 clusters to 30 in 10. The signal, the volatility
+# estimator, the 8% target, the covariance estimator and its 120-session
+# lookback, the caps, the rebalance band, the execution window, the cost
+# assumption, and the warm-up are byte-for-byte v1's. That isolation is the
+# whole design: this arm answers "is a wider universe better", and the
+# selection arm (amat_v7_xs30.toml) answers "does ranking within it help".
+# Changing both at once is how v4 and v5 became uninterpretable.
+#
+# Known cost, measured rather than assumed: a 120-session covariance lookback
+# over 30 assets gives four observations per asset, against ten for v1's 12.
+# Ledoit-Wolf shrinkage absorbs it, but this arm carries whatever that costs
+# and is the reason the lookback was NOT quietly widened to compensate.
+
+name = "amat-etf-wide30"
+version = "7.0.0"
+# -----------------------------------------------------------------------------
+# Universe: every symbol in the 30-symbol snapshot.
+#
+# INCLUSION RULE, fixed before any result was measured: every symbol the
+# snapshot carries with continuous coverage over the study window. All 30 have
+# 2,665 of 2,665 sessions, so the rule selects all of them and no judgement --
+# and therefore no hindsight -- enters the membership decision. This is the
+# point: v5 was rejected partly because choosing WHICH symbols to add is a
+# decision made with knowledge of how they performed. "All of them" is not.
+#
+# CLUSTER CAP RULE, also fixed in advance and computed from cluster SIZE alone,
+# never from returns:
+#
+#     gross_cap = min(0.40, max(0.10, 0.05 * symbols_in_cluster))
+#
+# Clusters group redundant exposures together on purpose. SPY and VTI, EFA and
+# VEA, EEM and VWO, VNQ and IYR are near-duplicates; putting each pair inside
+# one cluster means the cap stops the allocator from buying the same exposure
+# twice under two tickers. That grouping is a judgement about what each fund
+# HOLDS, taken from fund structure, not from performance.
+#
+# The caps sum to 1.55 against a 1.00 gross cap, so gross and the 20% symbol
+# cap remain the binding constraints; the cluster caps exist to stop one factor
+# owning the whole book.
+# -----------------------------------------------------------------------------
+
+[[universe.clusters]]
+name = "us_equity_broad"
+gross_cap = 0.20
+symbols = ["SPY", "VTI", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "us_equity_sector"
+gross_cap = 0.25
+symbols = ["XLK", "XLF", "XLE", "XLV", "XLI"]
+
+[[universe.clusters]]
+name = "intl_developed"
+gross_cap = 0.15
+symbols = ["EFA", "VEA", "EWJ"]
+
+[[universe.clusters]]
+name = "intl_emerging"
+gross_cap = 0.15
+symbols = ["EEM", "VWO", "FXI"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.20
+symbols = ["TLT", "IEF", "SHY", "TIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.20
+symbols = ["AGG", "LQD", "HYG", "EMB"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.10
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.10
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.10
+symbols = ["VNQ", "IYR"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.10
+symbols = ["UUP"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252

@@ -1,0 +1,43 @@
+# Registered BEFORE any result was inspected, per the registry rules.
+# The split date below was chosen while writing this entry and never moves.
+
+id = "0001-target-volatility-sweep"
+registered_at = 2026-08-13T00:30:58Z
+hypothesis = """
+Some nearby annualized volatility target ranks above the frozen 8% on
+training-window fold consistency (fold_score: 0.5*median + 0.5*minimum of
+four contiguous fold Sharpes) AND holds that advantage on the validation
+window the ranking never used. Falsification: the frozen 8% ranks first on
+training, or the training winner's validation Sharpe does not exceed the 8%
+row's validation Sharpe. Either outcome keeps the frozen target; a surviving
+non-8% winner earns only a NEW registered version and the full protocol,
+never an in-place change.
+"""
+base_config = "configs/strategy/amat_v1.toml"
+changes = [
+  "constraints.target_annualized_volatility swept over {0.05, 0.06, 0.10, 0.12}; the frozen 0.08 is always included as the baseline row",
+]
+sample = "snapshot alpaca-sip-2026-08-11, full window; training through 2022-12-30 (ranking only), validation 2023-01-02..2026-08-10 (measured for every candidate, ranking-blind); $100,000; 2 bps one-way"
+benchmarks = ["the frozen 0.08 row under identical data, costs, funding, and split"]
+status = "complete"
+run_id = "sweep-target-vol-amat-etf-20260813T003400.396140Z"
+outcome = """
+The 6% target ranks first on training fold consistency (fold_score 0.813 vs
+the frozen 8%'s 0.652) and holds on the ranking-blind validation window
+(Sharpe 1.268 vs 1.190). The neighbourhood is smooth and monotone -- fold
+scores 0.813/0.789/0.652/0.558/0.506 for 6/5/8/10/12% -- a plateau, not an
+isolated optimum. Validation Sharpes cluster tightly (1.19-1.27 across all
+five), so the risk-adjusted advantage is small; the unambiguous structure is
+the frontier itself: annualized return rises with the target (validation
++5.95% at 5% -> +10.37% at 12%) while drawdown worsens (-4.28% -> -7.57%)
+and consistency falls. Per the registered rule, 6% earns eligibility as a
+future registered version requiring the full protocol; the frozen 8%
+configuration is unchanged.
+"""
+notes = "Full table in the run record. History fully burned (see registration); validation was ranking-blind only."
+
+# Multiple-testing note, recorded at registration: 5 candidates (4 sweep
+# values plus the baseline) consume sample surprise capacity; the verdict
+# text must restate the candidate count. Known bias, stated in advance: this
+# history was fully inspected by the v1-v5 studies, so even the "validation"
+# window is only ranking-blind, not analyst-blind.

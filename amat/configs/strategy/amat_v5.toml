@@ -1,0 +1,144 @@
+# =============================================================================
+# AMAT ETF v5 -- breadth expansion of the frozen v1 core
+#
+# HYPOTHESIS (stated before measurement, 2026-08-11): adding five weakly
+# correlated trend sleeves -- China equity (FXI), inflation-linked Treasuries
+# (TIP), US high-yield credit (HYG), EM sovereign USD debt (EMB), and US real
+# estate (VNQ) -- to the UNCHANGED v1 core increases the number of independent
+# trend bets competing under the same 8% volatility target and caps. The claim
+# is breadth, not timing: there is no per-session series here whose mean could
+# reproduce the effect, which is how every prior conditioning candidate died
+# (v2, v3-regime, v4 -- see docs/experiment-registry.md).
+#
+# What would falsify it, measured by `amat study --falsify-universe`:
+#   * v5 fails to beat v1 on Sharpe on identical data/costs/funding; or
+#   * a leave-one-out variant (drop one added symbol) matches or beats v5,
+#     meaning an addition is not pulling its weight; or
+#   * removing one added symbol collapses v5 to v1, meaning the improvement is
+#     one lucky symbol wearing a diversification claim.
+#
+# ONLY the universe differs from amat_v1.toml. Every other section is
+# byte-identical, the falsification harness refuses to run otherwise, and the
+# null case (this file restricted to the v1 symbol list) must reproduce v1
+# bit-for-bit -- pinned by tests/unit/test_v5_universe.py.
+#
+# Exclusions, with evidence (registry + data audit 2026-08-11):
+#   SHY  -- two genuine distributions share ex-date 2021-12-01, which the
+#           (symbol, ex_date, kind) schema cannot represent; the loader fails
+#           closed, and re-ingest returns the same rows. Also: 1.55% realized
+#           vol sits under the 5% volatility floor, so its signal is an
+#           artifact of the floor.
+#   VTI/VEA/VWO/IYR/AGG/XLK -- near-duplicate twins of held symbols
+#           (corr 0.97-0.99 with SPY/EFA/EEM/VNQ/IEF/QQQ): redundancy, not
+#           breadth.
+#   XLF/XLV/XLI/XLE/EWJ/LQD -- sector rotation and residual overlaps are not
+#           part of this design; every extra symbol must buy diversification.
+#
+# Freezing rule: changing any value below is a NEW strategy version with a new
+# registry entry. Editing values in place invalidates every prior result.
+# Unknown keys are rejected by the loader (extra = "forbid").
+# =============================================================================
+
+name = "amat-etf-breadth"
+version = "5.0.0"
+
+# -----------------------------------------------------------------------------
+# Universe
+#
+# Cluster declaration order fixes the symbol order used by every downstream
+# matrix (covariance, weights, targets). It is part of the frozen definition.
+# v1's six clusters keep their caps and symbols; international and rates each
+# gain one symbol; credit and real_estate are new clusters. Long or cash only.
+# -----------------------------------------------------------------------------
+[[universe.clusters]]
+name = "us_equity"
+gross_cap = 0.40
+symbols = ["SPY", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "international"
+gross_cap = 0.25
+symbols = ["EFA", "EEM", "FXI"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+symbols = ["TLT", "IEF", "TIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.20
+symbols = ["HYG", "EMB"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.20
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.20
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.15
+symbols = ["VNQ"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+# -----------------------------------------------------------------------------
+# Everything below this line is byte-identical to amat_v1.toml, deliberately.
+# -----------------------------------------------------------------------------
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252

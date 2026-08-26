@@ -1,0 +1,169 @@
+# AMAT v7-xs30: the v1 core, the wide 30-symbol universe, and cross-sectional
+# selection.
+#
+# REGISTERED EXPERIMENT 0006, arm C30. Research candidate. Burned history.
+#
+# Differs from amat_v7_wide30.toml by the [cross_sectional] section ALONE, so
+# the pair isolates selection from width. Differs from amat_v1.toml by both.
+#
+# max_positions is the swept parameter: the registered grid is {5, 8, 10, 15,
+# 20} crossed with min_horizon_agreement {0, 3}, ten candidates, ranked on
+# training folds only. The value checked in here is the grid's midpoint and
+# carries no claim of being best -- the sweep decides, and the registration
+# fixed the grid before any of it ran.
+#
+# The decisive control is random-K at matched turnover, NOT the wide30 arm.
+# Beating wide30 would show only that holding fewer things at a fixed
+# volatility target is a different risk profile. Beating a coin flip that picks
+# the same number of assets is the only outcome that shows the RANK carries
+# information.
+
+name = "amat-etf-xs30"
+version = "7.1.0"
+# -----------------------------------------------------------------------------
+# Universe: every symbol in the 30-symbol snapshot.
+#
+# INCLUSION RULE, fixed before any result was measured: every symbol the
+# snapshot carries with continuous coverage over the study window. All 30 have
+# 2,665 of 2,665 sessions, so the rule selects all of them and no judgement --
+# and therefore no hindsight -- enters the membership decision. This is the
+# point: v5 was rejected partly because choosing WHICH symbols to add is a
+# decision made with knowledge of how they performed. "All of them" is not.
+#
+# CLUSTER CAP RULE, also fixed in advance and computed from cluster SIZE alone,
+# never from returns:
+#
+#     gross_cap = min(0.40, max(0.10, 0.05 * symbols_in_cluster))
+#
+# Clusters group redundant exposures together on purpose. SPY and VTI, EFA and
+# VEA, EEM and VWO, VNQ and IYR are near-duplicates; putting each pair inside
+# one cluster means the cap stops the allocator from buying the same exposure
+# twice under two tickers. That grouping is a judgement about what each fund
+# HOLDS, taken from fund structure, not from performance.
+#
+# The caps sum to 1.55 against a 1.00 gross cap, so gross and the 20% symbol
+# cap remain the binding constraints; the cluster caps exist to stop one factor
+# owning the whole book.
+# -----------------------------------------------------------------------------
+
+[[universe.clusters]]
+name = "us_equity_broad"
+gross_cap = 0.20
+symbols = ["SPY", "VTI", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "us_equity_sector"
+gross_cap = 0.25
+symbols = ["XLK", "XLF", "XLE", "XLV", "XLI"]
+
+[[universe.clusters]]
+name = "intl_developed"
+gross_cap = 0.15
+symbols = ["EFA", "VEA", "EWJ"]
+
+[[universe.clusters]]
+name = "intl_emerging"
+gross_cap = 0.15
+symbols = ["EEM", "VWO", "FXI"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.20
+symbols = ["TLT", "IEF", "SHY", "TIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.20
+symbols = ["AGG", "LQD", "HYG", "EMB"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.10
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.10
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.10
+symbols = ["VNQ", "IYR"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.10
+symbols = ["UUP"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252
+
+# -----------------------------------------------------------------------------
+# Cross-sectional selection
+#
+# Applied to the dead-banded long scores, after the dead-band and before any
+# sizing. It selects among assets that already have a trend and never
+# manufactures one to reach the count; if fewer than max_positions clear the
+# band, fewer are held. Every cap, the volatility target, and the cash residual
+# then apply to the survivors exactly as they apply to the full set when
+# selection is off.
+#
+# min_horizon_agreement = 0 leaves the confirmation rule off in the checked-in
+# file. It is swept to 3 (all three horizons strictly positive) by experiment
+# 0006. That rule is the v6 audit's hypothesis #2, which was measured on this
+# same burned sample and deliberately NOT promoted for that reason; it starts
+# with the hindsight caveat attached and has to earn its way out under the
+# split protocol.
+# -----------------------------------------------------------------------------
+[cross_sectional]
+enabled = true
+max_positions = 10
+min_horizon_agreement = 0
