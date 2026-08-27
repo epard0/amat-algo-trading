@@ -1,0 +1,386 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Live Trade Throughput and Runtime Reachability Audit",
+    "description": "A source-backed diagnosis of why the Kalshi live bot is trading less, how order-book capture behaves, and which code paths are active, dormant, shadow-only, or unreachable.",
+    "generatedAt": "2026-08-25T17:03:12Z",
+    "sources": [
+      {
+        "id": "live_ledger",
+        "label": "Normalized live ledger",
+        "path": "trade_ledger.db",
+        "query": {
+          "engine": "SQLite",
+          "language": "sql",
+          "executed_at": "2026-08-25T17:03:12Z",
+          "tables_used": ["data_runs", "orders", "order_transitions", "signal_evaluations", "market_snapshots", "orderbook_levels", "book_events", "persistent_risk_state"],
+          "filters": ["mode = live", "baseline runs started 2026-08-24 21:12:49 UTC through 2026-08-25 06:09:40 UTC", "post-change runs started at or after 2026-08-25 06:52:00 UTC", "current run id 8e1c44d9-9c3a-4364-bc59-4f2355fd1010"],
+          "metric_definitions": ["Filled-entry throughput is the count of entry orders whose latest normalized transition is filled divided by summed observed run hours.", "A stale-book mismatch is the larger absolute difference between discovery yes bid/ask and the touch derived from same-row full-depth YES/NO bid levels."],
+          "sql": "WITH last_state AS (SELECT ot.* FROM order_transitions ot JOIN (SELECT order_record_id,max(observed_at) mx FROM order_transitions GROUP BY order_record_id) q ON q.order_record_id=ot.order_record_id AND q.mx=ot.observed_at) SELECT r.run_id,r.started_at,r.ended_at,o.strategy,o.intent,last_state.state,last_state.error_code FROM data_runs r LEFT JOIN orders o ON o.run_id=r.run_id LEFT JOIN last_state ON last_state.order_record_id=o.order_record_id WHERE r.mode='live';"
+        }
+      },
+      {
+        "id": "decision_log",
+        "label": "Live decision traces and scalp funnels",
+        "path": "decisions.jsonl",
+        "query": {
+          "engine": "DuckDB",
+          "language": "sql",
+          "executed_at": "2026-08-25T17:03:12Z",
+          "filters": ["record_type = decision", "mode = live", "timestamp >= 2026-08-25T15:58:06Z"],
+          "sql": "WITH logs AS (SELECT * FROM read_json_auto('decisions.jsonl', format='newline_delimited')) SELECT 'predictor' AS population, coalesce(blocked_by, decision) AS gate, count(*) AS n FROM logs WHERE record_type='decision' AND mode='live' AND timestamp >= '2026-08-25T15:58:06Z' GROUP BY 1,2 UNION ALL SELECT 'scalper' AS population, gate.key AS gate, CAST(gate.value AS BIGINT) AS n FROM logs, json_each(gate_blocks) gate WHERE record_type='scalp_funnel' AND mode='live' AND timestamp='2026-08-25T15:57:09.181057+00:00';"
+        }
+      },
+      {
+        "id": "runtime_source",
+        "label": "Production runtime source and active configuration",
+        "query": {
+          "engine": "workspace",
+          "language": "python/source",
+          "executed_at": "2026-08-25T17:03:12Z",
+          "tables_used": ["bot.py", "config.py", "execution/kalshi_book_stream.py", "execution/trade_ledger.py", "execution/scalp_engine.py", "execution/pair_arb_engine.py", ".env"],
+          "description": "Direct source trace from CLI strategy selection through market discovery, depth capture, predictor/scalper gates, WebSocket callbacks, order placement, and strict persistence.",
+          "sql": "SELECT * FROM (VALUES (1,'Predictor','Active','Can place live IOC entries'),(2,'Scalper','Active','Can place live taker entries'),(3,'Take-profit / confirmed reversal','Active','Can place live exits'),(4,'Kalshi book stream','Enabled but failed','Would trigger entry/exit reassessment'),(5,'Pair-arb','Active shadow','No order method'),(6,'Strategy lab','Paper-only','None in live process'),(7,'Safe mode','Armed, currently inactive','Conditional'),(8,'Salvage / oversight','Disabled','None'),(9,'Ladder arb','Unwired','None'),(10,'Maker scalp path','Dormant','None under taker style')) AS runtime_paths(priority,component,state,live_order_effect);"
+        }
+      },
+      {
+        "id": "static_audit",
+        "label": "Static import and identifier reachability audit",
+        "query": {
+          "engine": "Python AST plus Ruff",
+          "language": "python",
+          "executed_at": "2026-08-25T17:03:12Z",
+          "filters": ["Production reachability rooted at bot.py", "Tests and explicit research/reporting entry points classified separately", "No files changed"],
+          "description": "AST import graph, exact identifier scans for KalshiSettings fields, and Ruff F401/F841 checks.",
+          "sql": "SELECT * FROM (VALUES ('dead_code','core/ingestion/**','Legacy/unreachable','9 files'),('dead_code','core/nautilus_core/**','Legacy/unreachable','9 files'),('dead_code','fusion_engine + signal_processors','Legacy monolith','11 files'),('dead_code','btc_15min_strategy.py','Superseded strategy','1 file'),('dead_code','legacy venue adapters','Out-of-scope legacy','12 files'),('dead_code','risk_engine + learning_engine','Superseded/unreachable','2 files'),('dead_code','ladder_arb.py','Unwired feature','1 file'),('unused_setting','kelly_fraction','Superseded','No production consumer'),('unused_setting','kalshi_websocket_stale_seconds','Unused','No production consumer'),('unused_setting','ladder_arb_enabled','Unwired','No production consumer')) AS static_audit(record_type,item,classification,effect);"
+        }
+      }
+    ],
+    "cards": [
+      {
+        "id": "fill_rate",
+        "dataset": "headline",
+        "sourceId": "live_ledger",
+        "description": "Actual live entry fills per observed process-hour, controlling for rejected and expired orders.",
+        "metrics": [
+          {"label": "Post-change fills/hour", "field": "post_fill_rate", "format": "number"},
+          {"label": "Baseline fills/hour", "field": "baseline_fill_rate", "format": "number"},
+          {"label": "Change", "field": "fill_rate_change", "format": "percent", "signed": true}
+        ]
+      },
+      {
+        "id": "cycle_time",
+        "dataset": "headline",
+        "sourceId": "live_ledger",
+        "description": "Observed wall-clock time per completed all-asset cycle versus the configured five-second wait.",
+        "metrics": [
+          {"label": "Current seconds/cycle", "field": "current_cycle_seconds", "format": "number"},
+          {"label": "Configured wait", "field": "configured_wait_seconds", "format": "number"}
+        ]
+      },
+      {
+        "id": "book_mismatch",
+        "dataset": "headline",
+        "sourceId": "live_ledger",
+        "description": "Current full-depth snapshots where discovery touch and depth-derived touch disagree by more than one cent.",
+        "metrics": [
+          {"label": "Touch mismatch rate", "field": "touch_mismatch_rate", "format": "percent"},
+          {"label": "Mismatch >5¢", "field": "touch_mismatch_gt5_rate", "format": "percent"}
+        ]
+      },
+      {
+        "id": "book_events",
+        "dataset": "headline",
+        "sourceId": "live_ledger",
+        "description": "Sequenced WebSocket book events persisted in the current run despite event-driven entry being enabled.",
+        "metrics": [
+          {"label": "WebSocket book events", "field": "book_events", "format": "number"},
+          {"label": "Event-driven evaluations", "field": "event_evaluations", "format": "number"}
+        ]
+      }
+    ],
+    "charts": [
+      {
+        "id": "throughput_chart",
+        "title": "Live filled-entry throughput",
+        "subtitle": "Actual fills per observed process-hour; baseline 8.89h versus post-change 10.16h",
+        "type": "horizontalBar",
+        "dataset": "throughput",
+        "sourceId": "live_ledger",
+        "encodings": {
+          "x": {"field": "period", "type": "nominal", "label": "Cohort"},
+          "y": {"field": "filled_per_hour", "type": "quantitative", "label": "Filled entries per hour"},
+          "tooltip": [
+            {"field": "observed_hours", "type": "quantitative", "label": "Observed hours"},
+            {"field": "entry_attempts", "type": "quantitative", "label": "Entry attempts"},
+            {"field": "filled_entries", "type": "quantitative", "label": "Filled entries"},
+            {"field": "rejected_entries", "type": "quantitative", "label": "Rejected entries"}
+          ]
+        },
+        "xAxisTitle": "Cohort",
+        "yAxisTitle": "Filled entries per observed hour",
+        "layout": "full"
+      },
+      {
+        "id": "predictor_gate_chart",
+        "title": "Current live first-blocking gates",
+        "subtitle": "5,038 market decisions from run start through 1:03 PM ET; each decision appears once",
+        "type": "horizontalBar",
+        "dataset": "predictor_gates",
+        "sourceId": "decision_log",
+        "encodings": {
+          "x": {"field": "gate", "type": "nominal", "label": "First blocking gate"},
+          "y": {"field": "count", "type": "quantitative", "label": "Blocked decisions"},
+          "tooltip": [
+            {"field": "share", "type": "quantitative", "format": "percent", "label": "Share"},
+            {"field": "stage", "type": "nominal", "label": "Stage"}
+          ]
+        },
+        "xAxisTitle": "First blocking gate",
+        "yAxisTitle": "Decisions blocked",
+        "layout": "full"
+      },
+      {
+        "id": "stale_book_chart",
+        "title": "Discovery-to-depth touch mismatch by asset",
+        "subtitle": "Share of current-run snapshots with more than a one-cent discrepancy; n=5,094 full-depth snapshots",
+        "type": "horizontalBar",
+        "dataset": "book_mismatch_by_asset",
+        "sourceId": "live_ledger",
+        "encodings": {
+          "x": {"field": "asset", "type": "nominal", "label": "Asset"},
+          "y": {"field": "pct_gt_1c", "type": "quantitative", "format": "percent", "label": "Mismatch share"},
+          "tooltip": [
+            {"field": "snapshots", "type": "quantitative", "label": "Snapshots"},
+            {"field": "pct_gt_5c", "type": "quantitative", "format": "percent", "label": "Share >5¢"},
+            {"field": "avg_diff", "type": "quantitative", "label": "Average max difference, $"},
+            {"field": "worst_diff", "type": "quantitative", "label": "Worst difference, $"}
+          ]
+        },
+        "xAxisTitle": "Asset",
+        "yAxisTitle": "Share mismatched by more than 1¢",
+        "layout": "full"
+      },
+      {
+        "id": "scalp_gate_chart",
+        "title": "Scalper refusal funnel after the 100-contract depth change",
+        "subtitle": "First blocking gate across 2,072 classified assessments in the 28-minute stopped live run",
+        "type": "horizontalBar",
+        "dataset": "scalp_gates",
+        "sourceId": "decision_log",
+        "encodings": {
+          "x": {"field": "gate", "type": "nominal", "label": "First blocking gate"},
+          "y": {"field": "count", "type": "quantitative", "label": "Assessments blocked"},
+          "tooltip": [
+            {"field": "share", "type": "quantitative", "format": "percent", "label": "Share"}
+          ]
+        },
+        "xAxisTitle": "First blocking gate",
+        "yAxisTitle": "Assessments blocked",
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "depth_coverage_table",
+        "title": "Current full-depth capture coverage",
+        "subtitle": "All 12 enabled assets are already receiving depth because pair-arb shadow overrides the BTC tuple",
+        "dataset": "depth_coverage",
+        "sourceId": "live_ledger",
+        "defaultSort": {"field": "asset", "direction": "asc"},
+        "density": "dense",
+        "layout": "full",
+        "columns": [
+          {"field": "asset", "label": "Asset", "type": "text"},
+          {"field": "snapshots", "label": "Snapshots", "format": "number"},
+          {"field": "full_depth", "label": "With depth", "format": "number"},
+          {"field": "avg_levels", "label": "Avg. levels", "format": "number"}
+        ]
+      },
+      {
+        "id": "runtime_paths_table",
+        "title": "Runtime strategy and feature reachability",
+        "subtitle": "What the default live command actually executes",
+        "dataset": "runtime_paths",
+        "sourceId": "runtime_source",
+        "defaultSort": {"field": "component", "direction": "asc"},
+        "density": "dense",
+        "layout": "full",
+        "columns": [
+          {"field": "component", "label": "Component", "type": "text"},
+          {"field": "state", "label": "Runtime state", "type": "text"},
+          {"field": "live_order_effect", "label": "Live order effect", "type": "text"}
+        ]
+      },
+      {
+        "id": "dead_code_table",
+        "title": "Dead, legacy, and unwired code map",
+        "subtitle": "Production reachability rooted at bot.py; explicit tools and tests are not labeled dead merely because live does not import them",
+        "dataset": "dead_code",
+        "sourceId": "static_audit",
+        "defaultSort": {"field": "file_count", "direction": "desc"},
+        "density": "dense",
+        "layout": "full",
+        "columns": [
+          {"field": "paths", "label": "Path cluster", "type": "text"},
+          {"field": "file_count", "label": "Python files", "format": "number"},
+          {"field": "classification", "label": "Classification", "type": "text"}
+        ]
+      },
+      {
+        "id": "unused_settings_table",
+        "title": "Parsed settings with no production consumer",
+        "subtitle": "Exact-name scan outside config.py and tests; superseded trading controls are included separately",
+        "dataset": "unused_settings",
+        "sourceId": "static_audit",
+        "defaultSort": {"field": "setting", "direction": "asc"},
+        "density": "dense",
+        "layout": "full",
+        "columns": [
+          {"field": "setting", "label": "Setting", "type": "text"},
+          {"field": "classification", "label": "Classification", "type": "text"},
+          {"field": "effect", "label": "Current effect", "type": "text"}
+        ]
+      }
+    ],
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# Live Trade Throughput and Runtime Reachability Audit"},
+      {"id": "technical_summary", "type": "markdown", "body": "## Technical summary\n\nLive filled-entry throughput fell from **1.58 to 0.20 fills per observed hour**, an 87% reduction. The drop is real even after excluding rejected and expired orders. It is not caused by safe mode or the previously fixed market-routing error.\n\nThe strongest implementation drivers are: **(1)** fresh full-depth data is fetched but predictor/scalper decisions use stale discovery touch fields; **(2)** the enabled Kalshi WebSocket task terminates on a strict-schema logging error, leaving zero book events and zero event-driven evaluations; **(3)** pair-arb shadow forces 12 extra rate-limited REST depth reads per cycle, stretching a configured five-second loop to roughly nine seconds now and 12.4 seconds in the previous long run; and **(4)** the scalper's fixed $1.18 modeled-exit-loss ceiling is applied after sizing toward the new $50 budget, making much of the 70–92¢ band mechanically untradeable.\n\n`ORDERBOOK_RECORDING_ASSETS=(\"BTC\")` is misleading under the default command: **all 12 assets already have full depth** because `--strategy all` enables pair-arb shadow, which overrides the tuple. All-asset depth is appropriate for multi-asset analysis, but it should come from one canonical cached/streamed book with bounded REST recovery, not a second rate-limited request per asset inside the trade loop.", "sourceId": "live_ledger"},
+      {"id": "headline_metrics", "type": "metric-strip", "cardIds": ["fill_rate", "cycle_time", "book_mismatch", "book_events"]},
+      {"id": "throughput_finding", "type": "markdown", "body": "## The live fill rate is down 87%, not merely hidden by failed orders\n\nThe earlier period generated many attempts that never became trades, including 70 expired maker orders and 37 rejected entries. Using only normalized entry orders whose final state is `filled` still shows a material decline: 14 fills over 8.89 observed hours versus 2 fills over 10.16 post-change hours. The two post-change fills both won and earned $50.11 combined, but two trades are far too few to establish strategy quality; the chart diagnoses opportunity throughput, not profitability.", "sourceId": "live_ledger"},
+      {"id": "throughput_chart_block", "type": "chart", "chartId": "throughput_chart", "layout": "full"},
+      {"id": "predictor_finding", "type": "markdown", "body": "## The predictor intentionally sees only a narrow window, then rejects almost every priced decision\n\nOf 5,038 current live market decisions, 3,888 (77.2%) stop at the three-minute entry window before a model is computed. Among decisions that reach strict signal recording, 71.6% fail the 62% outcome-probability floor and 26.2% fail the 12.5-point model/market divergence guard. Only two candidates reached the final quote check; both were rejected because the executable book no longer supported the apparent edge. The complement is already evaluated: the bot chooses YES or NO by whichever side has better modeled edge, so a low-probability refusal does not imply the high-probability complement is cheap enough to buy.", "sourceId": "decision_log"},
+      {"id": "book_finding", "type": "markdown", "body": "## Fresh depth is available but decisions and stored top-of-book fields remain stale\n\nThe market-discovery endpoint and the order-book endpoint disagree by more than one cent in 75.3% of current full-depth snapshots and by more than five cents in 30.2%. This is not a harmless recording issue: predictor divergence, edge, scalp spread, scalp depth, and scalp price-band checks all read the discovery object. The fresh depth snapshot is passed only as microstructure analysis. In a GOLD example, discovery held a 39¢ YES bid while the fresh YES book had moved to 25¢ and then 5.6¢; the final quote check correctly killed two phantom NO edges. The strict dataset currently places stale touch and fresh levels in one row, so downstream training can learn contradictory features unless the touch is derived from those same levels.", "sourceId": "live_ledger"},
+      {"id": "websocket_finding", "type": "markdown", "body": "## The event-driven path is enabled in configuration but dead at runtime\n\nAfter subscribing, the WebSocket worker records `websocket_connected` through `record_data_quality_event`. The strict table allows only `sequence_gap`, `stale_feed`, `reconnect`, `rest_mismatch`, `http_error`, `decode_error`, and `clock_skew`, so SQLite raises an integrity error. The worker's exception handler then tries to record `websocket_error`, which is also disallowed, and the background task terminates before reading a frame. Existing tests use a permissive fake ledger, which is why 36 targeted tests and the broader suite did not catch the contract mismatch. The current run therefore has zero `book_events`, zero public trades, and zero `event-*` signal cycles.", "sourceId": "runtime_source"},
+      {"id": "scalp_finding", "type": "markdown", "body": "## The scalper is active, but its gates and $50 sizing make fills rare\n\nThe most recent completed 28-minute live run placed no scalp orders. Pattern classification blocked 45.1% of classified assessments and the 100-contract two-sided depth floor blocked 25.9%. Lowering the old 500-contract floor helped, but it did not make the funnel permissive. More importantly, the engine sizes toward $50 and then rejects the whole trade if immediate round-trip loss exceeds a fixed $1.18. Around 70–85¢, two taker fees plus even a one-cent spread can exceed that absolute cap at $50 size even when the same setup would pass at $10. This should be expressed as risk-bounded sizing—spend up to $50 while clipping contracts to the $1.18 exit-loss limit—rather than rejecting the opportunity or simply raising the loss cap fivefold.", "sourceId": "decision_log"},
+      {"id": "depth_finding", "type": "markdown", "body": "## All-asset depth is the right analytical target, but capture must be decoupled from trading cadence\n\nEvery asset already has near-complete full-depth coverage in the current run because pair-arb shadow forces a snapshot for every market. With a 0.35-second global request pace, 12 depth requests impose at least 4.2 seconds of request spacing each cycle before other work. The observed cycle is nine seconds rather than the configured five. Keep all-asset depth, but source it from a supervised WebSocket cache, record REST recovery snapshots on a slower independent cadence (for example 15–30 seconds), and always refresh the exact candidate book at placement. `ORDERBOOK_RECORDING_ASSETS` should support `ALL` or default to configured assets only after that architecture is in place.", "sourceId": "live_ledger"},
+      {"id": "scope_definitions", "type": "markdown", "body": "## Scope, data, and metric definitions\n\n**Live throughput** counts only entry orders whose latest normalized order transition is filled. The baseline covers three live runs from 5:12 PM ET on August 24 through 2:06 AM ET on August 25 (8.89 observed hours). The post-change cohort covers live runs beginning at 2:52 AM ET through the 1:03 PM ET snapshot (10.16 observed hours).\n\n**Current decision funnel** uses the running live process started at 11:58 AM ET and counts each first blocking gate once. **Full depth** means at least one normalized YES or NO level was stored with the market snapshot. **Touch mismatch** compares discovery bid/ask with the executable touch derived from the same snapshot's full-depth levels.\n\nThe current process uses all 12 configured assets, a $50 maximum trade budget, a 62% normal predictor probability floor, a 5% normal edge floor, a three-minute entry window, taker scalping, a 100-contract scalp depth floor, and default `--strategy all` routing.", "sourceId": "live_ledger"},
+      {"id": "runtime_map_intro", "type": "markdown", "body": "## Default `all` mode exposes only two live entry strategies\n\nThe startup banner overstates the number of live trading strategies. Predictor and scalper can place live entries. Pair-arb is observation-only, the strategy lab is not instantiated in live mode, salvage is disabled, and ladder arb has no runtime wiring. This distinction matters when interpreting 'few trades': adding shadow policies increases telemetry and API load without adding live order opportunities.", "sourceId": "runtime_source"},
+      {"id": "dead_code_intro", "type": "markdown", "body": "## Forty-five legacy Python files are outside the production import graph\n\nThe production import graph rooted at `bot.py` reaches 41 modules. A separate 45-file legacy cluster is not reachable from that entry point: the old ingestion/Nautilus stack, fusion and signal-processor monolith, deprecated exchange adapters, old risk/learning engines, and the unwired ladder-arb module. Some have standalone demo scripts or legacy tests, so they should be quarantined or removed only after ownership review—not deleted mechanically. Ruff also reports 34 unused imports, concentrated in these legacy areas rather than the active live path.", "sourceId": "static_audit"},
+      {"id": "unused_settings_intro", "type": "markdown", "body": "## Configuration contains controls that do nothing in production\n\nTwelve `KalshiSettings` fields have no non-test production consumer. In addition, `POSITION_FRACTION` is no longer used by trading, `LIVE_CAPITAL_LIMIT_USD` survives only as an unreachable fallback behind the always-present fixed trade budget, and `SCALP_ENABLED`/pair-arb defaults are overwritten by CLI strategy selection. These are operational hazards: an operator can change a documented setting and reasonably expect behavior that cannot occur.", "sourceId": "static_audit"},
+      {"id": "methodology", "type": "markdown", "body": "## Methodology\n\nThe review traced the default `python bot.py --live --continuous` command from CLI replacement through discovery, concurrent evaluation, all-asset depth capture, scalp servicing, final live quote checks, normalized orders, and settlement. SQLite queries reconciled run duration, latest order state, strict signal gates, depth coverage, derived book touch, risk state, and WebSocket event counts. The decision log supplied first-blocking gates and stopped-run scalp counters. A Python AST import graph and exact identifier scan classified production reachability; Ruff checked unused imports. A direct strict-ledger reproduction confirmed that `websocket_connected` raises SQLite `IntegrityError`. No settings, code, process, or live order state was changed.", "sourceId": "static_audit"},
+      {"id": "limitations", "type": "markdown", "body": "## Limitations and robustness checks\n\nThe baseline stores configuration and source fingerprints but not the canonical configuration payload, so the exact historical threshold delta cannot be reconstructed from the hash alone. The diagnosis therefore separates verified runtime defects from inferred change attribution. The baseline also contains rejected `market_not_found` attempts and expired maker quotes; using final filled entries avoids treating those as trades. The current run is still running, so its counts are a snapshot at 1:03 PM ET.\n\nSafe mode is verified inactive: the persisted current-day loss streak is zero and the bot is not halted. The current/post-routing cohort has no `market_not_found` rejection. The two post-change winners are insufficient for win-rate or PnL inference. Pair-arb decision-log records deliberately claim `mode=paper` even when invoked by live `all` mode and omit `run_id`; pair-arb attribution therefore uses the strict ledger, not the shared JSONL stream.", "sourceId": "live_ledger"},
+      {"id": "recommendations", "type": "markdown", "body": "## Recommended next steps\n\n1. **Fix the canonical book path first.** Await or consume one fresh book snapshot, derive touch and depth from it, and pass that same normalized market object to predictor, scalper, pair-arb, persistence, and final validation. Add source timestamp, age, sequence, and source type to the schema.\n\n2. **Repair and supervise the WebSocket worker.** Map connection states to allowed quality-event enums (or extend the enum), guard failure reporting so telemetry cannot kill recovery, expose task health, and add an integration test using the real strict ledger rather than only a fake.\n\n3. **Decouple capture cadence from the order loop.** Keep all-asset depth for analysis, but use the stream cache plus periodic REST reconciliation. Until that is fixed, `--strategy both` avoids the pair-arb all-asset REST override, though it also reduces full-depth training coverage.\n\n4. **Make scalp size respect the risk cap.** Solve for the largest contract count whose immediate modeled exit loss is at most $1.18, capped by the $50 budget and two-sided depth. Do not simply multiply the loss cap by five.\n\n5. **Persist actual run configuration.** Store a secret-free canonical config JSON next to the hash so future comparisons can attribute throughput changes exactly.\n\n6. **Quarantine legacy code and delete in a separate reviewed change.** Move the 45-file legacy graph behind an `archive/legacy` boundary or remove it after confirming no standalone workflow depends on it; delete dead settings and test-only Kelly sizing in the same cleanup.\n\n7. **Only then tune thresholds.** Replay fresh canonical books and report counterfactual fills by gate, asset, spread, depth, and outcome. Loosening 62% probability or 12.5-point divergence before fixing book freshness would trade more stale signals, not more valid edge.", "sourceId": "runtime_source"},
+      {"id": "further_questions", "type": "markdown", "body": "## Further questions\n\n- After canonical-book replay, which blocked setups remain profitable after fees, slippage, and missed-leg assumptions?\n- Should all-asset depth be recorded on every stream update, a fixed cadence, or an adaptive cadence near the three-minute entry window?\n- Is the $1.18 scalp exit-loss limit intended as an account-level dollar invariant or a fraction of stake? The safer implementation can preserve it as a dollar invariant by clipping size.\n- Should pair-arb shadow run continuously in the live process, or in a separate data collector so its requests cannot delay directional execution?"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-25T17:03:12Z",
+    "status": "ready",
+    "datasets": {
+      "headline": [
+        {
+          "post_fill_rate": 0.20,
+          "baseline_fill_rate": 1.58,
+          "fill_rate_change": -0.873,
+          "current_cycle_seconds": 9.00,
+          "configured_wait_seconds": 5.00,
+          "touch_mismatch_rate": 0.753,
+          "touch_mismatch_gt5_rate": 0.302,
+          "book_events": 0,
+          "event_evaluations": 0
+        }
+      ],
+      "throughput": [
+        {"period": "Baseline", "observed_hours": 8.89, "entry_attempts": 122, "filled_entries": 14, "filled_per_hour": 1.58, "rejected_entries": 37},
+        {"period": "Post-change", "observed_hours": 10.16, "entry_attempts": 4, "filled_entries": 2, "filled_per_hour": 0.20, "rejected_entries": 2}
+      ],
+      "predictor_gates": [
+        {"gate": "Entry window", "count": 3888, "share": 0.7717, "stage": "Pre-model"},
+        {"gate": "Minimum probability", "count": 693, "share": 0.1376, "stage": "Signal"},
+        {"gate": "Model/market divergence", "count": 254, "share": 0.0504, "stage": "Signal"},
+        {"gate": "Minimum time to close", "count": 154, "share": 0.0306, "stage": "Pre-model"},
+        {"gate": "Candle freshness", "count": 28, "share": 0.0056, "stage": "Data"},
+        {"gate": "Minimum edge", "count": 11, "share": 0.0022, "stage": "Signal"},
+        {"gate": "Settlement margin", "count": 8, "share": 0.0016, "stage": "Signal"},
+        {"gate": "Final live edge", "count": 2, "share": 0.0004, "stage": "Execution"}
+      ],
+      "book_mismatch_by_asset": [
+        {"asset": "WTI", "snapshots": 412, "pct_gt_1c": 0.891, "pct_gt_5c": 0.403, "avg_diff": 0.061, "worst_diff": 0.488},
+        {"asset": "SILVER", "snapshots": 422, "pct_gt_1c": 0.863, "pct_gt_5c": 0.322, "avg_diff": 0.049, "worst_diff": 0.280},
+        {"asset": "XRP", "snapshots": 431, "pct_gt_1c": 0.782, "pct_gt_5c": 0.334, "avg_diff": 0.045, "worst_diff": 0.240},
+        {"asset": "BNB", "snapshots": 429, "pct_gt_1c": 0.758, "pct_gt_5c": 0.298, "avg_diff": 0.043, "worst_diff": 0.380},
+        {"asset": "NEAR", "snapshots": 423, "pct_gt_1c": 0.749, "pct_gt_5c": 0.352, "avg_diff": 0.053, "worst_diff": 0.500},
+        {"asset": "HYPE", "snapshots": 429, "pct_gt_1c": 0.748, "pct_gt_5c": 0.308, "avg_diff": 0.048, "worst_diff": 0.569},
+        {"asset": "DOGE", "snapshots": 429, "pct_gt_1c": 0.748, "pct_gt_5c": 0.268, "avg_diff": 0.044, "worst_diff": 0.559},
+        {"asset": "BTC", "snapshots": 427, "pct_gt_1c": 0.735, "pct_gt_5c": 0.314, "avg_diff": 0.043, "worst_diff": 0.328},
+        {"asset": "GOLD", "snapshots": 417, "pct_gt_1c": 0.734, "pct_gt_5c": 0.259, "avg_diff": 0.040, "worst_diff": 0.400},
+        {"asset": "SOL", "snapshots": 426, "pct_gt_1c": 0.711, "pct_gt_5c": 0.303, "avg_diff": 0.039, "worst_diff": 0.250},
+        {"asset": "ETH", "snapshots": 427, "pct_gt_1c": 0.696, "pct_gt_5c": 0.227, "avg_diff": 0.036, "worst_diff": 0.250},
+        {"asset": "ZEC", "snapshots": 422, "pct_gt_1c": 0.628, "pct_gt_5c": 0.237, "avg_diff": 0.036, "worst_diff": 0.230}
+      ],
+      "scalp_gates": [
+        {"gate": "Pattern", "count": 934, "share": 0.4508},
+        {"gate": "Book depth", "count": 536, "share": 0.2587},
+        {"gate": "Quote window", "count": 182, "share": 0.0878},
+        {"gate": "Price band", "count": 134, "share": 0.0647},
+        {"gate": "Spread", "count": 130, "share": 0.0627},
+        {"gate": "Minimum EV", "count": 124, "share": 0.0598},
+        {"gate": "Exitability", "count": 31, "share": 0.0150},
+        {"gate": "Toxicity", "count": 1, "share": 0.0005}
+      ],
+      "depth_coverage": [
+        {"asset": "BNB", "snapshots": 429, "full_depth": 429, "avg_levels": 35.7},
+        {"asset": "BTC", "snapshots": 427, "full_depth": 427, "avg_levels": 36.5},
+        {"asset": "DOGE", "snapshots": 429, "full_depth": 429, "avg_levels": 35.7},
+        {"asset": "ETH", "snapshots": 427, "full_depth": 427, "avg_levels": 35.5},
+        {"asset": "GOLD", "snapshots": 417, "full_depth": 415, "avg_levels": 36.9},
+        {"asset": "HYPE", "snapshots": 429, "full_depth": 429, "avg_levels": 36.0},
+        {"asset": "NEAR", "snapshots": 423, "full_depth": 423, "avg_levels": 35.4},
+        {"asset": "SILVER", "snapshots": 422, "full_depth": 421, "avg_levels": 37.3},
+        {"asset": "SOL", "snapshots": 426, "full_depth": 426, "avg_levels": 35.6},
+        {"asset": "WTI", "snapshots": 412, "full_depth": 411, "avg_levels": 38.3},
+        {"asset": "XRP", "snapshots": 431, "full_depth": 431, "avg_levels": 36.7},
+        {"asset": "ZEC", "snapshots": 422, "full_depth": 422, "avg_levels": 31.3}
+      ],
+      "runtime_paths": [
+        {"priority": 1, "component": "Predictor", "state": "Active", "live_order_effect": "Can place live IOC entries", "finding": "Three-minute window; 62% probability, 5% edge, divergence, settlement, cluster, and final-book gates"},
+        {"priority": 2, "component": "Scalper", "state": "Active", "live_order_effect": "Can place live taker entries", "finding": "No orders in the two latest completed live runs; stale touch and fixed $1.18 exit-loss cap constrain it"},
+        {"priority": 3, "component": "Take-profit / confirmed reversal", "state": "Active", "live_order_effect": "Can place live exits", "finding": "Timer path works; event path is disabled by dead WebSocket worker"},
+        {"priority": 4, "component": "Kalshi book stream", "state": "Enabled but failed", "live_order_effect": "Would trigger entry/exit reassessment", "finding": "Strict data-quality enum rejects connection telemetry and terminates the worker"},
+        {"priority": 5, "component": "Pair-arb", "state": "Active shadow", "live_order_effect": "No order method", "finding": "Forces all-asset full-depth REST and logged 4,930 current scans with zero opportunities"},
+        {"priority": 6, "component": "Strategy lab", "state": "Paper-only", "live_order_effect": "None in live process", "finding": "Constructor is guarded by `if not live`"},
+        {"priority": 7, "component": "Safe mode", "state": "Armed, currently inactive", "live_order_effect": "Would disable scalps and raise predictor floors", "finding": "Current loss streak 0; not the cause of low throughput"},
+        {"priority": 8, "component": "Salvage / oversight", "state": "Disabled", "live_order_effect": "None", "finding": "Oversight has no runtime independent of salvage"},
+        {"priority": 9, "component": "Ladder arb", "state": "Unwired", "live_order_effect": "None", "finding": "Settings parse, but bot.py never imports or instantiates the module"},
+        {"priority": 10, "component": "Maker scalp path", "state": "Dormant", "live_order_effect": "None under current taker style", "finding": "Code remains for GTC, TTL, requote, queue, and fallback behavior"}
+      ],
+      "dead_code": [
+        {"paths": "core/ingestion/**", "file_count": 9, "classification": "Legacy/unreachable", "evidence": "No production import from bot.py; contains its own old test harness"},
+        {"paths": "core/nautilus_core/**", "file_count": 9, "classification": "Legacy/unreachable", "evidence": "No production import; optional Nautilus stack is absent from runtime dependencies"},
+        {"paths": "fusion_engine/** + signal_processors/**", "file_count": 11, "classification": "Legacy monolith", "evidence": "Only the old btc_15min_strategy prototype consumes it"},
+        {"paths": "core/strategy_brain/strategies/btc_15min_strategy.py", "file_count": 1, "classification": "Superseded strategy", "evidence": "Not imported by bot.py; replaced by crypto_15min_predictor.py"},
+        {"paths": "binance/coinbase/news_social/solana/polymarket/venues adapters", "file_count": 12, "classification": "Out-of-scope legacy adapters", "evidence": "Not in Kalshi runtime graph; several are referenced only by standalone demo scripts"},
+        {"paths": "execution/risk_engine.py + feedback/learning_engine.py", "file_count": 2, "classification": "Superseded/unreachable", "evidence": "No non-test production import; live bot uses risk_gate.py and offline model artifacts"},
+        {"paths": "core/strategy_brain/strategies/ladder_arb.py", "file_count": 1, "classification": "Unwired feature", "evidence": "Pure implementation and four parsed settings exist, but no engine/import path from bot.py"}
+      ],
+      "unused_settings": [
+        {"setting": "public_key_path", "classification": "No production consumer", "effect": "Parsed/stored only"},
+        {"setting": "kelly_fraction", "classification": "Superseded", "effect": "Fixed-dollar sizing ignores it; Kelly helper is test-only"},
+        {"setting": "kalshi_websocket_stale_seconds", "classification": "No production consumer", "effect": "No stream-staleness health check occurs"},
+        {"setting": "scalp_session_tail_seconds", "classification": "No production consumer", "effect": "Session-tail behavior uses the paper deadline directly"},
+        {"setting": "sizing_confidence_gain", "classification": "Superseded", "effect": "Confidence no longer changes order size"},
+        {"setting": "sizing_confidence_floor", "classification": "Superseded", "effect": "Confidence no longer changes order size"},
+        {"setting": "sizing_confidence_full", "classification": "Superseded", "effect": "Confidence no longer changes order size"},
+        {"setting": "sizing_max_fraction", "classification": "Superseded", "effect": "Fixed-dollar sizing ignores it"},
+        {"setting": "ladder_arb_enabled", "classification": "Unwired", "effect": "Cannot activate a runtime path"},
+        {"setting": "ladder_arb_series", "classification": "Unwired", "effect": "Cannot affect a runtime path"},
+        {"setting": "ladder_arb_buffer", "classification": "Unwired", "effect": "Cannot affect a runtime path"},
+        {"setting": "ladder_arb_max_contracts", "classification": "Unwired", "effect": "Cannot affect a runtime path"},
+        {"setting": "position_fraction", "classification": "Superseded in trading", "effect": "Used outside trading only; live/paper entries use TRADE_BUDGET_USD"},
+        {"setting": "live_capital_limit_usd", "classification": "Unreachable fallback", "effect": "Nested behind the always-present trade_budget_usd field"},
+        {"setting": "SCALP_ENABLED env value", "classification": "CLI-overridden", "effect": "Default --strategy all forces it on regardless of env"}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "live_ledger", "label": "Normalized live ledger", "path": "trade_ledger.db"},
+    {"id": "decision_log", "label": "Live decision traces and scalp funnels", "path": "decisions.jsonl"},
+    {"id": "runtime_source", "label": "Production runtime source and active configuration"},
+    {"id": "static_audit", "label": "Static import and identifier reachability audit"}
+  ]
+}

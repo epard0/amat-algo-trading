@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalshi 15m Bot — Performance</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 64 64" width="30" height="30" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M32 7 A25 25 0 1 0 57 32" stroke-width="5" opacity=".9"/><g stroke-width="3.5" opacity=".5"><path d="M21 41 L21 27"/><path d="M32 46 L32 21"/><path d="M43 37 L43 15"/></g><g stroke-width="9"><path d="M21 38.5 L21 33.5" opacity=".45"/><path d="M32 42 L32 27" opacity=".75"/><path d="M43 32 L43 20"/></g></svg>
+    <div>
+      <h1>Kalshi 15-Minute Crypto Bot</h1>
+      <p class="sub" id="generated">loading…</p>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="mode-control" id="mode-control" hidden>
+      <span class="mode-label">Trading</span>
+      <div class="segmented" id="trading-switch">
+        <button data-trading="paper" type="button">Paper</button>
+        <button data-trading="live" type="button">Live</button>
+      </div>
+      <span class="mode-state" id="trading-state">…</span>
+    </div>
+    <div id="health-pill" class="pill pill-unknown">checking…</div>
+    <label class="toggle">
+      <input type="checkbox" id="autorefresh" checked>
+      <span>auto-refresh</span>
+    </label>
+    <button id="refresh" class="btn">Refresh</button>
+  </div>
+</header>
+
+<div id="issues" class="issues" hidden></div>
+<div id="mode-error" class="issues issues-error" hidden></div>
+
+<!-- Going live is two deliberate acts: choosing it, and typing the word. A
+     toggle sitting beside a chart is too easy to catch with a stray click when
+     what is on the other side of it is real money. -->
+<dialog id="live-dialog" class="dialog">
+  <form method="dialog" id="live-form">
+    <h2>Switch to live trading</h2>
+    <p class="dialog-body">
+      The bot will place <b>real orders</b> with <b>real money</b> on your
+      Kalshi account from its next scan. Any position open right now settles on
+      the current book first.
+    </p>
+    <p class="dialog-body dim" id="live-dialog-detail"></p>
+    <label class="dialog-label" for="live-confirm">Type <b>LIVE</b> to confirm</label>
+    <input id="live-confirm" class="dialog-input" autocomplete="off"
+           spellcheck="false" placeholder="LIVE">
+    <div class="dialog-actions">
+      <button value="cancel" class="btn" type="submit">Cancel</button>
+      <button value="go" class="btn btn-danger" type="submit" id="live-go" disabled>
+        Go live
+      </button>
+    </div>
+  </form>
+</dialog>
+
+<main>
+  <!-- ============================ KPI tiles ============================ -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>All-time performance</h2>
+      <div class="segmented" id="mode-switch" aria-label="which book to display">
+        <button data-mode="live">Live book</button>
+        <button data-mode="paper" class="active">Paper book</button>
+      </div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <p class="note" id="mode-note"></p>
+  </section>
+
+  <!-- ============================ the chart ============================ -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Price, indicators &amp; every bet placed</h2>
+      <div class="controls">
+        <select id="chart-asset" class="select" aria-label="asset"></select>
+        <select id="chart-hours" class="select" aria-label="time range">
+          <option value="6">6 hours</option>
+          <option value="12" selected>12 hours</option>
+          <option value="24">24 hours</option>
+          <option value="48">48 hours</option>
+          <option value="168">7 days</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="legend" id="chart-legend">
+      <span class="lg"><i class="swatch up"></i>up candle</span>
+      <span class="lg"><i class="swatch down"></i>down candle</span>
+      <span class="lg"><i class="swatch band"></i>15-minute market</span>
+      <span class="lg"><i class="dot win"></i>bet won</span>
+      <span class="lg"><i class="dot loss"></i>bet lost</span>
+      <span class="lg"><i class="dot open"></i>bet open</span>
+      <span class="lg"><i class="dot nearmiss"></i>evaluated, not taken</span>
+      <span class="lg"><i class="swatch strike"></i>settlement strike</span>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="chart" height="620"></canvas>
+      <div id="tooltip" class="tooltip" hidden></div>
+    </div>
+    <p class="note" id="chart-note"></p>
+  </section>
+
+  <div class="grid-2">
+    <!-- ========================= calibration ========================== -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Model calibration</h2>
+        <span class="badge" id="brier-badge">—</span>
+      </div>
+      <p class="note">
+        Predicted probability versus what actually happened. Bars below the
+        diagonal mean the model is overconfident in that band — the single most
+        important signal for whether its edge is real.
+      </p>
+      <canvas id="calibration" height="240"></canvas>
+      <div id="calibration-table"></div>
+    </section>
+
+    <!-- =========================== funnel ============================= -->
+    <section class="panel">
+      <div class="panel-head"><h2>Decision funnel</h2></div>
+      <p class="note">
+        Where evaluations stop. Turns “the bot isn’t trading” into a specific
+        gate you can point at.
+      </p>
+      <div id="funnel"></div>
+    </section>
+  </div>
+
+  <div class="grid-2">
+    <section class="panel">
+      <div class="panel-head"><h2>Realised P&amp;L curve</h2></div>
+      <canvas id="equity" height="260"></canvas>
+      <p class="note" id="equity-note"></p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>Breakdown</h2>
+        <div class="segmented" id="breakdown-switch">
+          <button data-dim="asset" class="active">Asset</button>
+          <button data-dim="regime">Regime</button>
+          <button data-dim="outcome">Side</button>
+        </div>
+      </div>
+      <div id="breakdown"></div>
+    </section>
+  </div>
+
+  <!-- ============================ trades ============================= -->
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Trade log</h2>
+      <input type="search" id="trade-filter" class="select" placeholder="filter by asset, ticker, status…">
+    </div>
+    <div class="table-scroll">
+      <table id="trades">
+        <thead>
+          <tr>
+            <th>Placed</th><th>Mode</th><th>Asset</th><th>Side</th>
+            <th class="num">Model P</th><th class="num">Edge</th>
+            <th class="num">Entry</th><th class="num">Size</th>
+            <th class="num">Staked</th><th class="num">Fees</th>
+            <th>Regime</th><th>Result</th><th class="num">P&amp;L</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>Read-only view of <code>trade_ledger.db</code> and <code>decisions.jsonl</code>.</span>
+  <span>Prometheus metrics at <a href="/metrics">/metrics</a></span>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>

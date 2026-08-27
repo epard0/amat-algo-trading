@@ -1,0 +1,117 @@
+{
+  "assets": {
+    "BNB": {
+      "end": "2026-08-24T20:36:00+00:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/BNB_1m.csv",
+      "rows": 9867,
+      "sha256": "c0432313e7aa400c9a753e7af332446135c7488f0cb0efb1706b5577115cd447",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-18T00:00:00+00:00",
+      "symbol": "BNB-USD"
+    },
+    "DOGE": {
+      "end": "2026-08-24T20:37:00+00:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/DOGE_1m.csv",
+      "rows": 9869,
+      "sha256": "749519d5f3af31ae0092787379efbbd78966e6500062ff40959d5d149670baac",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-18T00:00:00+00:00",
+      "symbol": "DOGE-USD"
+    },
+    "GOLD": {
+      "end": "2026-08-24T16:27:00-04:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/GOLD_1m.csv",
+      "rows": 7813,
+      "sha256": "b2aa72dffd729228557c6b8e5911941792847e0a661808f6f10607bed0f64b42",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-17T00:00:00-04:00",
+      "symbol": "GC=F"
+    },
+    "HYPE": {
+      "end": "2026-08-24T20:37:00+00:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/HYPE_1m.csv",
+      "rows": 9872,
+      "sha256": "67254e836a0981ba67b8ef98d5e36a401b96af548098b3231493624ce22c7dbf",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-18T00:00:00+00:00",
+      "symbol": "HYPE32196-USD"
+    },
+    "NEAR": {
+      "end": "2026-08-24T20:37:00+00:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/NEAR_1m.csv",
+      "rows": 9872,
+      "sha256": "3f7dcb62fd25af69758a4131a0891acbde8be0af5e6ea009ffa0d23d570552af",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-18T00:00:00+00:00",
+      "symbol": "NEAR-USD"
+    },
+    "SILVER": {
+      "end": "2026-08-24T16:26:00-04:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/SILVER_1m.csv",
+      "rows": 7674,
+      "sha256": "4b92f6a3689dbd78f07fbb808e34a9c9c8a2d30ce8c3b4ec78c18fcb12f7a1df",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-17T00:01:00-04:00",
+      "symbol": "SI=F"
+    },
+    "SOL": {
+      "end": "2026-08-24T20:37:00+00:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/SOL_1m.csv",
+      "rows": 9870,
+      "sha256": "df1d1623984788e1d69e6ad0ea28fed98ce6688359a8732111b5198bd51b3204",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-18T00:00:00+00:00",
+      "symbol": "SOL-USD"
+    },
+    "WTI": {
+      "end": "2026-08-24T16:27:00-04:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/WTI_1m.csv",
+      "rows": 1295,
+      "sha256": "61e048920c70445981daa3f9c4bd251d4c5f0821a0fc25ccf7fe409f04e4ff7b",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-21T16:59:00-04:00",
+      "symbol": "CL=F"
+    },
+    "XRP": {
+      "end": "2026-08-24T20:37:00+00:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/XRP_1m.csv",
+      "rows": 9872,
+      "sha256": "8562d7f90540651ed96325c4227cef2aee6cedbb6e9af9d61eb8151f2e5e4657",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-18T00:00:00+00:00",
+      "symbol": "XRP-USD"
+    },
+    "ZEC": {
+      "end": "2026-08-24T20:37:00+00:00",
+      "interval": "1m",
+      "path": "data/yfinance_1m/ZEC_1m.csv",
+      "rows": 9871,
+      "sha256": "b6feec80cb9e1867985a60c2bfd23d6d7ced8865759cfed4bcdad6ad1899d00d",
+      "source": "Yahoo Finance via yfinance",
+      "start": "2026-08-18T00:00:00+00:00",
+      "symbol": "ZEC-USD"
+    }
+  },
+  "columns": [
+    "timestamp",
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Volume"
+  ],
+  "downloaded_at": "2026-08-24T20:37:09.509076+00:00",
+  "forecast_horizon_minutes": 15,
+  "interval": "1m",
+  "period": "7d",
+  "schema_version": 2
+}

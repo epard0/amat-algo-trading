@@ -1,0 +1,2402 @@
+{
+  "generated_at": "2026-08-24T22:29:29.097007-04:00",
+  "scope": {
+    "valid_run_labels": [
+      "baseline",
+      "consensus_reversal"
+    ],
+    "model_artifact": "commodity_directional.json",
+    "main_and_lab_results_kept_separate": true,
+    "counterfactual_policy": "Only matched isolated-lab ticker/outcome entries are compared; no hindsight best-quote paths are counted as fills."
+  },
+  "runs": [
+    {
+      "label": "baseline",
+      "directory": "20260824_final_2h_new_models_adaptive_exit",
+      "run": {
+        "run_id": "68c031af-c50e-44a9-b6c7-53acb9f198bf",
+        "schema_version": 3,
+        "contract_version": 4,
+        "mode": "paper",
+        "environment": "production",
+        "strategy": "all",
+        "assets_json": "[\"BTC\",\"ETH\",\"SOL\",\"HYPE\",\"DOGE\",\"XRP\",\"BNB\",\"NEAR\",\"ZEC\",\"GOLD\",\"SILVER\",\"WTI\"]",
+        "source_revision": "unversioned:6e05967564c00e05a2173579b49372b03bba4069ce9966145a4bd7bb807ab927",
+        "config_hash": "60bf2fa6eef998012a1deba2f9b7153ff5de9138322923d953a44c6569c2284f",
+        "model_hash": "bundle:5036382a936772fc01e50e9a36a2fd886ffe91e273ca3e7ab79878366251d262",
+        "fee_model": "kalshi_quadratic_0.07_round_up_v1",
+        "fill_model": "rest_depth_latency_event_v4",
+        "started_at": "2026-08-24T21:59:17.456570+00:00",
+        "ended_at": "2026-08-24T23:59:18.351188+00:00",
+        "status": "COMPLETED"
+      },
+      "quality": {
+        "integrity": "ok",
+        "quality_events": 0,
+        "duplicate_snapshot_ids": 0,
+        "orphan_orderbook_levels": 0,
+        "invalid_top_of_book_rows": 0,
+        "passed": true,
+        "run_completed": true,
+        "open_main_positions": 0,
+        "invalid_decision_lines": 0
+      },
+      "market": {
+        "market_snapshots": 8365,
+        "orderbook_levels": 310118,
+        "portfolio_snapshots": 710,
+        "contracts": 108,
+        "assets": {
+          "BNB": 701,
+          "BTC": 700,
+          "DOGE": 696,
+          "ETH": 696,
+          "GOLD": 695,
+          "HYPE": 699,
+          "NEAR": 698,
+          "SILVER": 693,
+          "SOL": 698,
+          "WTI": 698,
+          "XRP": 698,
+          "ZEC": 693
+        },
+        "median_cadence_seconds": 10.000056,
+        "median_spread": 0.01,
+        "p90_spread": 0.048,
+        "favored_side_switches": 239
+      },
+      "main": {
+        "trades": 6,
+        "closed": 6,
+        "open": 0,
+        "wins": 6,
+        "losses": 0,
+        "net_pnl": 14.7162,
+        "win_rate": 1.0,
+        "take_profit_exits": 5,
+        "by_asset": {
+          "BTC": {
+            "trades": 5,
+            "closed": 5,
+            "wins": 5,
+            "losses": 0,
+            "net_pnl": 11.9028
+          },
+          "GOLD": {
+            "trades": 1,
+            "closed": 1,
+            "wins": 1,
+            "losses": 0,
+            "net_pnl": 2.8134
+          }
+        }
+      },
+      "main_trade_details": [
+        {
+          "trade_id": "d8c1dfe1-f80d-467c-adda-f2fa0a1cf302",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG241815-15",
+          "outcome": "no",
+          "status": "EXITED",
+          "exchange_status": "take_profit",
+          "placed_at": "2026-08-24T22:01:28.527185+00:00",
+          "exited_at": "2026-08-24T22:11:18.502282+00:00",
+          "contracts": 13.0,
+          "entry_price": 0.74,
+          "exit_price": 0.943,
+          "entry_probability": 0.8065770454132603,
+          "pnl": 2.4096,
+          "maximum_pnl_if_winner": 3.1999999999999993,
+          "positive_exit_capture_ratio": 0.7530000000000002
+        },
+        {
+          "trade_id": "63c06982-b5a7-4a13-84d7-8feb2094d33d",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG241845-45",
+          "outcome": "yes",
+          "status": "EXITED",
+          "exchange_status": "take_profit",
+          "placed_at": "2026-08-24T22:37:19.273159+00:00",
+          "exited_at": "2026-08-24T22:44:28.302073+00:00",
+          "contracts": 12.0,
+          "entry_price": 0.81,
+          "exit_price": 0.981,
+          "entry_probability": 0.8612156514036431,
+          "pnl": 1.9052,
+          "maximum_pnl_if_winner": 2.1500000000000004,
+          "positive_exit_capture_ratio": 0.8861395348837208
+        },
+        {
+          "trade_id": "067d2d9f-1417-4f50-955a-cc4d21c6b5f4",
+          "asset": "GOLD",
+          "ticker": "KXGOLD15M-26AUG241900-00",
+          "outcome": "yes",
+          "status": "EXITED",
+          "exchange_status": "take_profit",
+          "placed_at": "2026-08-24T22:51:19.934892+00:00",
+          "exited_at": "2026-08-24T22:52:08.442441+00:00",
+          "contracts": 13.0,
+          "entry_price": 0.7,
+          "exit_price": 0.936,
+          "entry_probability": 0.8078594049334222,
+          "pnl": 2.8134,
+          "maximum_pnl_if_winner": 3.6999999999999993,
+          "positive_exit_capture_ratio": 0.7603783783783785
+        },
+        {
+          "trade_id": "420ddaa0-37d4-4c06-bb7a-ca5a5564ff2b",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG241900-00",
+          "outcome": "no",
+          "status": "EXITED",
+          "exchange_status": "take_profit",
+          "placed_at": "2026-08-24T22:56:08.583329+00:00",
+          "exited_at": "2026-08-24T22:58:28.333525+00:00",
+          "contracts": 12.0,
+          "entry_price": 0.77,
+          "exit_price": 0.951,
+          "entry_probability": 0.8202140305022518,
+          "pnl": 1.9824,
+          "maximum_pnl_if_winner": 2.6099999999999994,
+          "positive_exit_capture_ratio": 0.7595402298850576
+        },
+        {
+          "trade_id": "6617ddb4-1e9a-4f36-88e6-0b4b7906d96f",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG241915-15",
+          "outcome": "no",
+          "status": "WON",
+          "exchange_status": "determined",
+          "placed_at": "2026-08-24T23:03:08.514446+00:00",
+          "exited_at": null,
+          "contracts": 13.0,
+          "entry_price": 0.73,
+          "exit_price": null,
+          "entry_probability": 0.8229907679935871,
+          "pnl": 3.33,
+          "maximum_pnl_if_winner": 3.33,
+          "positive_exit_capture_ratio": 1.0
+        },
+        {
+          "trade_id": "5be357a1-3690-4b9a-9227-844d4427ec8c",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG241945-45",
+          "outcome": "yes",
+          "status": "EXITED",
+          "exchange_status": "take_profit",
+          "placed_at": "2026-08-24T23:41:28.465310+00:00",
+          "exited_at": "2026-08-24T23:43:58.397295+00:00",
+          "contracts": 12.0,
+          "entry_price": 0.79,
+          "exit_price": 0.992,
+          "entry_probability": 0.8259772352351981,
+          "pnl": 2.2756,
+          "maximum_pnl_if_winner": 2.380000000000001,
+          "positive_exit_capture_ratio": 0.9561344537815122
+        }
+      ],
+      "pair_arb": {
+        "scans": 8365,
+        "approved": 0,
+        "simulated": 0,
+        "modeled_pnl": 0.0,
+        "minimum_guarded_pair_cost": 1.001,
+        "maximum_guarded_net_edge": -0.0038,
+        "gate_counts": {
+          "book": 336,
+          "net_edge": 7179,
+          "stale_leg": 850
+        }
+      },
+      "exit_evaluations": {
+        "evaluations": 121,
+        "gate_counts": {
+          "book": 2,
+          "capture": 113,
+          "take_profit": 5,
+          "time": 1
+        },
+        "verdict_counts": {
+          "exit": 5,
+          "hold": 116
+        },
+        "adaptive_fields_populated": 121
+      },
+      "exit_counterfactuals": {
+        "labeled_exits": 0,
+        "hold_better": 0,
+        "exit_better": 0
+      },
+      "probability_calibration": {
+        "labels": 0,
+        "by_asset_time_bucket": []
+      },
+      "strategy_lab": [
+        {
+          "strategy": "adaptive_take_profit",
+          "starting_balance": 100.0,
+          "ending_cash": 48.9518,
+          "positions": 22,
+          "closed": 22,
+          "open": 0,
+          "wins": 9,
+          "losses": 13,
+          "win_rate": 0.4090909090909091,
+          "net_pnl": -51.0482,
+          "wallet_reported_pnl": -51.0482
+        },
+        {
+          "strategy": "change_point_flip",
+          "starting_balance": 100.0,
+          "ending_cash": 68.9788,
+          "positions": 7,
+          "closed": 7,
+          "open": 0,
+          "wins": 2,
+          "losses": 5,
+          "win_rate": 0.2857142857142857,
+          "net_pnl": -31.0212,
+          "wallet_reported_pnl": -31.0212
+        },
+        {
+          "strategy": "complementary_pair_arb",
+          "starting_balance": 100.0,
+          "ending_cash": 100.0,
+          "positions": 0,
+          "closed": 0,
+          "open": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate": null,
+          "net_pnl": 0,
+          "wallet_reported_pnl": 0.0
+        },
+        {
+          "strategy": "consensus_tail_carry",
+          "starting_balance": 100.0,
+          "ending_cash": 104.2635,
+          "positions": 10,
+          "closed": 10,
+          "open": 0,
+          "wins": 10,
+          "losses": 0,
+          "win_rate": 1.0,
+          "net_pnl": 4.2635,
+          "wallet_reported_pnl": 4.2635
+        },
+        {
+          "strategy": "displaced_shelf",
+          "starting_balance": 100.0,
+          "ending_cash": 80.2431,
+          "positions": 2,
+          "closed": 2,
+          "open": 0,
+          "wins": 0,
+          "losses": 2,
+          "win_rate": 0.0,
+          "net_pnl": -19.7569,
+          "wallet_reported_pnl": -19.7569
+        },
+        {
+          "strategy": "fixed_take_profit",
+          "starting_balance": 100.0,
+          "ending_cash": 43.897,
+          "positions": 26,
+          "closed": 26,
+          "open": 0,
+          "wins": 14,
+          "losses": 12,
+          "win_rate": 0.5384615384615384,
+          "net_pnl": -56.103,
+          "wallet_reported_pnl": -56.103
+        },
+        {
+          "strategy": "hold_to_settlement",
+          "starting_balance": 100.0,
+          "ending_cash": 53.2667,
+          "positions": 22,
+          "closed": 22,
+          "open": 0,
+          "wins": 9,
+          "losses": 13,
+          "win_rate": 0.4090909090909091,
+          "net_pnl": -46.7333,
+          "wallet_reported_pnl": -46.7333
+        },
+        {
+          "strategy": "microprice_flow",
+          "starting_balance": 100.0,
+          "ending_cash": 26.8465,
+          "positions": 35,
+          "closed": 35,
+          "open": 0,
+          "wins": 6,
+          "losses": 29,
+          "win_rate": 0.17142857142857143,
+          "net_pnl": -73.1535,
+          "wallet_reported_pnl": -73.1535
+        },
+        {
+          "strategy": "probability_acceleration",
+          "starting_balance": 100.0,
+          "ending_cash": 59.7736,
+          "positions": 16,
+          "closed": 16,
+          "open": 0,
+          "wins": 4,
+          "losses": 12,
+          "win_rate": 0.25,
+          "net_pnl": -40.2264,
+          "wallet_reported_pnl": -40.2264
+        },
+        {
+          "strategy": "raw_value_longshot",
+          "starting_balance": 100.0,
+          "ending_cash": 56.6631,
+          "positions": 39,
+          "closed": 39,
+          "open": 0,
+          "wins": 15,
+          "losses": 24,
+          "win_rate": 0.38461538461538464,
+          "net_pnl": -43.3369,
+          "wallet_reported_pnl": -43.3369
+        },
+        {
+          "strategy": "regime_ensemble",
+          "starting_balance": 100.0,
+          "ending_cash": 32.9435,
+          "positions": 22,
+          "closed": 22,
+          "open": 0,
+          "wins": 6,
+          "losses": 16,
+          "win_rate": 0.2727272727272727,
+          "net_pnl": -67.0565,
+          "wallet_reported_pnl": -67.0565
+        },
+        {
+          "strategy": "strike_distance",
+          "starting_balance": 100.0,
+          "ending_cash": 63.7832,
+          "positions": 8,
+          "closed": 8,
+          "open": 0,
+          "wins": 2,
+          "losses": 6,
+          "win_rate": 0.25,
+          "net_pnl": -36.2168,
+          "wallet_reported_pnl": -36.2168
+        },
+        {
+          "strategy": "trend_trailing",
+          "starting_balance": 100.0,
+          "ending_cash": 100.0,
+          "positions": 0,
+          "closed": 0,
+          "open": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate": null,
+          "net_pnl": 0,
+          "wallet_reported_pnl": 0.0
+        }
+      ],
+      "strategy_lab_quality": {
+        "integrity": "ok",
+        "observations": 86463,
+        "open_positions": 0,
+        "terminal_positions_missing_pnl": 0,
+        "wallet_pnl_mismatches": 0,
+        "closed_wallet_balance_mismatches": 0,
+        "passed": true,
+        "decisions": {
+          "adaptive_take_profit": {
+            "actions": {
+              "entry": 22,
+              "exit": 7,
+              "hold": 224,
+              "skip": 6398
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4942
+              ],
+              [
+                "base probability/edge gate",
+                1456
+              ],
+              [
+                "75% upside captured and executable bid clears model confidence",
+                231
+              ],
+              [
+                "control admission",
+                22
+              ]
+            ]
+          },
+          "change_point_flip": {
+            "actions": {
+              "entry": 7,
+              "hold": 87,
+              "skip": 6557
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4943
+              ],
+              [
+                "base probability/edge gate",
+                1527
+              ],
+              [
+                "no probability change point",
+                87
+              ],
+              [
+                "three-observation opposite change point",
+                87
+              ],
+              [
+                "persistent probability change point",
+                7
+              ]
+            ]
+          },
+          "complementary_pair_arb": {
+            "actions": {
+              "skip": 6651
+            },
+            "top_reasons": [
+              [
+                "equal-leg net edge -0.0450 below 0.0200 or no common depth",
+                295
+              ],
+              [
+                "equal-leg net edge -0.0013 below 0.0200 or no common depth",
+                164
+              ],
+              [
+                "equal-leg net edge -0.0449 below 0.0200 or no common depth",
+                117
+              ],
+              [
+                "equal-leg net edge -0.0443 below 0.0200 or no common depth",
+                110
+              ],
+              [
+                "equal-leg net edge -0.0441 below 0.0200 or no common depth",
+                108
+              ],
+              [
+                "equal-leg net edge -0.0448 below 0.0200 or no common depth",
+                104
+              ],
+              [
+                "equal-leg net edge -0.0445 below 0.0200 or no common depth",
+                98
+              ],
+              [
+                "equal-leg net edge -0.0447 below 0.0200 or no common depth",
+                94
+              ],
+              [
+                "equal-leg net edge -0.0380 below 0.0200 or no common depth",
+                82
+              ],
+              [
+                "equal-leg net edge -0.0550 below 0.0200 or no common depth",
+                81
+              ]
+            ]
+          },
+          "consensus_tail_carry": {
+            "actions": {
+              "entry": 10,
+              "exit": 3,
+              "hold": 100,
+              "skip": 6538
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4943
+              ],
+              [
+                "tail consensus gate not met",
+                1594
+              ],
+              [
+                "tail policy takes a fee-adjusted 5c gain",
+                103
+              ],
+              [
+                "raw tail, market consensus, distance, and regime agree",
+                11
+              ]
+            ]
+          },
+          "displaced_shelf": {
+            "actions": {
+              "entry": 2,
+              "exit": 1,
+              "hold": 11,
+              "skip": 6637
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4943
+              ],
+              [
+                "base probability/edge gate",
+                1554
+              ],
+              [
+                "not a displaced shelf",
+                140
+              ],
+              [
+                "shelf broke toward strike",
+                12
+              ],
+              [
+                "large displacement holding in consolidation",
+                2
+              ]
+            ]
+          },
+          "fixed_take_profit": {
+            "actions": {
+              "entry": 26,
+              "exit": 13,
+              "hold": 166,
+              "skip": 6446
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4942
+              ],
+              [
+                "base probability/edge gate",
+                1504
+              ],
+              [
+                "fixed 5c net take-profit",
+                179
+              ],
+              [
+                "control admission",
+                26
+              ]
+            ]
+          },
+          "hold_to_settlement": {
+            "actions": {
+              "entry": 22,
+              "hold": 276,
+              "skip": 6353
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4942
+              ],
+              [
+                "base probability/edge gate",
+                1411
+              ],
+              [
+                "control holds to settlement",
+                276
+              ],
+              [
+                "control admission",
+                22
+              ]
+            ]
+          },
+          "microprice_flow": {
+            "actions": {
+              "entry": 35,
+              "exit": 32,
+              "hold": 32,
+              "skip": 6552
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4943
+              ],
+              [
+                "base probability/edge gate",
+                1541
+              ],
+              [
+                "book does not safely confirm",
+                68
+              ],
+              [
+                "microprice flipped or flow became toxic",
+                64
+              ],
+              [
+                "microprice confirms model with acceptable toxicity",
+                35
+              ]
+            ]
+          },
+          "probability_acceleration": {
+            "actions": {
+              "entry": 16,
+              "exit": 4,
+              "hold": 155,
+              "skip": 6476
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4943
+              ],
+              [
+                "base probability/edge gate",
+                1501
+              ],
+              [
+                "probability path intact",
+                153
+              ],
+              [
+                "no positive probability acceleration",
+                32
+              ],
+              [
+                "positive probability acceleration",
+                16
+              ],
+              [
+                "probability decelerated for two observations",
+                6
+              ]
+            ]
+          },
+          "raw_value_longshot": {
+            "actions": {
+              "entry": 39,
+              "exit": 15,
+              "hold": 328,
+              "skip": 6269
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4941
+              ],
+              [
+                "no unshrunk, fee-buffered longshot edge",
+                1324
+              ],
+              [
+                "tail policy takes a fee-adjusted 5c gain",
+                343
+              ],
+              [
+                "unshrunk tail probability clears price, edge, and flow",
+                43
+              ]
+            ]
+          },
+          "regime_ensemble": {
+            "actions": {
+              "entry": 22,
+              "exit": 9,
+              "hold": 219,
+              "skip": 6401
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4942
+              ],
+              [
+                "base probability/edge gate",
+                1452
+              ],
+              [
+                "ensemble hold",
+                215
+              ],
+              [
+                "ensemble consensus",
+                22
+              ],
+              [
+                "ensemble adaptive trail",
+                8
+              ],
+              [
+                "ensemble regime/probability exit",
+                5
+              ],
+              [
+                "insufficient ensemble agreement",
+                5
+              ],
+              [
+                "ensemble vetoes volatile chop",
+                2
+              ]
+            ]
+          },
+          "strike_distance": {
+            "actions": {
+              "entry": 8,
+              "exit": 4,
+              "hold": 55,
+              "skip": 6584
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4942
+              ],
+              [
+                "base probability/edge gate",
+                1535
+              ],
+              [
+                "distance below 1.25 sigma",
+                107
+              ],
+              [
+                "strike distance contracted below 0.70 sigma",
+                59
+              ],
+              [
+                "strike distance carry",
+                8
+              ]
+            ]
+          },
+          "trend_trailing": {
+            "actions": {
+              "skip": 6651
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                4943
+              ],
+              [
+                "base probability/edge gate",
+                1556
+              ],
+              [
+                "no aligned trend",
+                152
+              ]
+            ]
+          }
+        }
+      },
+      "matched_exit_comparison": [
+        {
+          "strategy": "fixed_take_profit",
+          "matched_positions": 26,
+          "actual_pnl": -56.103,
+          "hold_counterfactual_pnl": -12.627600000000003,
+          "delta_vs_hold": -43.4754,
+          "winner_markets": 13,
+          "winner_upside_capture": 0.2711868681137162,
+          "winner_pnl": 21.5068,
+          "winner_hold_pnl": 79.3062,
+          "loser_markets": 13,
+          "loser_exit_pnl": -77.6098,
+          "loser_hold_pnl": -91.9338,
+          "loss_avoided": 14.323999999999998
+        },
+        {
+          "strategy": "adaptive_take_profit",
+          "matched_positions": 22,
+          "actual_pnl": -51.0482,
+          "hold_counterfactual_pnl": -46.7333,
+          "delta_vs_hold": -4.3149000000000015,
+          "winner_markets": 9,
+          "winner_upside_capture": 0.9045386666076703,
+          "winner_pnl": 40.885600000000004,
+          "winner_hold_pnl": 45.2005,
+          "loser_markets": 13,
+          "loser_exit_pnl": -91.9338,
+          "loser_hold_pnl": -91.9338,
+          "loss_avoided": 0.0
+        }
+      ],
+      "decisions": {
+        "records": 16888,
+        "evaluations": 8365,
+        "invalid_lines": 0,
+        "record_type_counts": {
+          "decision": 8365,
+          "pair_arb_scan": 8365,
+          "take_profit_evaluated": 121,
+          "discovery_empty": 8,
+          "discovery_recovered": 8,
+          "scalp_quote": 6,
+          "scalp_fill": 6,
+          "take_profit_exit": 5,
+          "scalp_funnel": 2,
+          "take_profit_funnel": 1,
+          "pair_arb_funnel": 1
+        },
+        "decision_counts": {
+          "skipped": 8365
+        },
+        "gate_counts": {
+          "entry_window": 6637,
+          "model_market_divergence": 699,
+          "min_probability": 662,
+          "minimum_time_to_close": 192,
+          "candle_freshness": 112,
+          "settlement_margin": 31,
+          "min_edge": 30,
+          "live_edge": 2
+        },
+        "candidate_outcomes": {
+          "no": 943,
+          "yes": 481
+        },
+        "pair_gate_counts": {
+          "net_edge": 7179,
+          "stale_leg": 850,
+          "book": 336
+        },
+        "by_asset_gate": {
+          "BNB": {
+            "entry_window": 557,
+            "candle_freshness": 51,
+            "min_probability": 39,
+            "model_market_divergence": 34,
+            "minimum_time_to_close": 16,
+            "settlement_margin": 4
+          },
+          "BTC": {
+            "entry_window": 556,
+            "min_probability": 73,
+            "model_market_divergence": 41,
+            "minimum_time_to_close": 16,
+            "min_edge": 10,
+            "settlement_margin": 4
+          },
+          "DOGE": {
+            "entry_window": 552,
+            "min_probability": 60,
+            "model_market_divergence": 58,
+            "minimum_time_to_close": 16,
+            "min_edge": 4,
+            "candle_freshness": 4,
+            "settlement_margin": 2
+          },
+          "ETH": {
+            "entry_window": 552,
+            "min_probability": 73,
+            "model_market_divergence": 52,
+            "minimum_time_to_close": 16,
+            "settlement_margin": 3
+          },
+          "GOLD": {
+            "entry_window": 551,
+            "min_probability": 76,
+            "model_market_divergence": 44,
+            "minimum_time_to_close": 16,
+            "min_edge": 5,
+            "candle_freshness": 2,
+            "live_edge": 1
+          },
+          "HYPE": {
+            "entry_window": 555,
+            "model_market_divergence": 64,
+            "min_probability": 47,
+            "minimum_time_to_close": 16,
+            "candle_freshness": 13,
+            "settlement_margin": 4
+          },
+          "NEAR": {
+            "entry_window": 554,
+            "model_market_divergence": 52,
+            "min_probability": 41,
+            "candle_freshness": 34,
+            "minimum_time_to_close": 16,
+            "min_edge": 1
+          },
+          "SILVER": {
+            "entry_window": 549,
+            "min_probability": 81,
+            "model_market_divergence": 42,
+            "minimum_time_to_close": 16,
+            "settlement_margin": 3,
+            "candle_freshness": 2
+          },
+          "SOL": {
+            "entry_window": 554,
+            "model_market_divergence": 73,
+            "min_probability": 52,
+            "minimum_time_to_close": 16,
+            "min_edge": 2,
+            "settlement_margin": 1
+          },
+          "WTI": {
+            "entry_window": 554,
+            "model_market_divergence": 101,
+            "min_probability": 18,
+            "minimum_time_to_close": 16,
+            "settlement_margin": 3,
+            "min_edge": 3,
+            "candle_freshness": 2,
+            "live_edge": 1
+          },
+          "XRP": {
+            "entry_window": 554,
+            "model_market_divergence": 62,
+            "min_probability": 55,
+            "minimum_time_to_close": 16,
+            "settlement_margin": 6,
+            "min_edge": 5
+          },
+          "ZEC": {
+            "entry_window": 549,
+            "model_market_divergence": 76,
+            "min_probability": 47,
+            "minimum_time_to_close": 16,
+            "candle_freshness": 4,
+            "settlement_margin": 1
+          }
+        }
+      }
+    },
+    {
+      "label": "consensus_reversal",
+      "directory": "20260824_2h_consensus_reversal_counterfactual",
+      "run": {
+        "run_id": "83620b28-efef-474c-acaf-fc1c56ab30bb",
+        "schema_version": 3,
+        "contract_version": 4,
+        "mode": "paper",
+        "environment": "production",
+        "strategy": "all",
+        "assets_json": "[\"BTC\",\"ETH\",\"SOL\",\"HYPE\",\"DOGE\",\"XRP\",\"BNB\",\"NEAR\",\"ZEC\",\"GOLD\",\"SILVER\",\"WTI\"]",
+        "source_revision": "unversioned:902e0d153d0c670dfccbfec2ebc880a39f4d313a655e6956a3c3d99b32339789",
+        "config_hash": "93caad41e57a933b78e910c80aa0b08895c9f7e2360f9cfbb48311d75c7ff728",
+        "model_hash": "bundle:5036382a936772fc01e50e9a36a2fd886ffe91e273ca3e7ab79878366251d262",
+        "fee_model": "kalshi_quadratic_0.07_round_up_v1",
+        "fill_model": "rest_depth_latency_event_v4",
+        "started_at": "2026-08-25T00:29:05.131452+00:00",
+        "ended_at": "2026-08-25T02:29:08.281782+00:00",
+        "status": "COMPLETED"
+      },
+      "quality": {
+        "integrity": "ok",
+        "quality_events": 0,
+        "duplicate_snapshot_ids": 0,
+        "orphan_orderbook_levels": 0,
+        "invalid_top_of_book_rows": 0,
+        "passed": true,
+        "run_completed": true,
+        "open_main_positions": 0,
+        "invalid_decision_lines": 0
+      },
+      "market": {
+        "market_snapshots": 8388,
+        "orderbook_levels": 304006,
+        "portfolio_snapshots": 711,
+        "contracts": 108,
+        "assets": {
+          "BNB": 700,
+          "BTC": 699,
+          "DOGE": 700,
+          "ETH": 696,
+          "GOLD": 695,
+          "HYPE": 696,
+          "NEAR": 700,
+          "SILVER": 699,
+          "SOL": 703,
+          "WTI": 696,
+          "XRP": 702,
+          "ZEC": 702
+        },
+        "median_cadence_seconds": 9.999970000000001,
+        "median_spread": 0.01,
+        "p90_spread": 0.04,
+        "favored_side_switches": 271
+      },
+      "main": {
+        "trades": 7,
+        "closed": 7,
+        "open": 0,
+        "wins": 4,
+        "losses": 3,
+        "net_pnl": -0.3641000000000001,
+        "win_rate": 0.5714285714285714,
+        "take_profit_exits": 2,
+        "by_asset": {
+          "BTC": {
+            "trades": 5,
+            "closed": 5,
+            "wins": 2,
+            "losses": 3,
+            "net_pnl": -10.282499999999999
+          },
+          "SILVER": {
+            "trades": 1,
+            "closed": 1,
+            "wins": 1,
+            "losses": 0,
+            "net_pnl": 2.0284
+          },
+          "SOL": {
+            "trades": 1,
+            "closed": 1,
+            "wins": 1,
+            "losses": 0,
+            "net_pnl": 7.89
+          }
+        }
+      },
+      "main_trade_details": [
+        {
+          "trade_id": "2c4f828c-810b-48a3-9e7e-1f36dd797524",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG242100-00",
+          "outcome": "yes",
+          "status": "EXITED",
+          "exchange_status": "take_profit",
+          "placed_at": "2026-08-25T00:46:08.465462+00:00",
+          "exited_at": "2026-08-25T00:52:18.485531+00:00",
+          "contracts": 12.0,
+          "entry_price": 0.77,
+          "exit_price": 0.955,
+          "entry_probability": 0.830031983103034,
+          "pnl": 2.0328,
+          "maximum_pnl_if_winner": 2.6099999999999994,
+          "positive_exit_capture_ratio": 0.7788505747126439
+        },
+        {
+          "trade_id": "56491aa0-6a5a-4cca-80b7-c0ac9ee1d48b",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG242115-15",
+          "outcome": "yes",
+          "status": "EXITED",
+          "exchange_status": "confirmed_reversal",
+          "placed_at": "2026-08-25T01:03:28.505929+00:00",
+          "exited_at": "2026-08-25T01:10:38.459743+00:00",
+          "contracts": 13.0,
+          "entry_price": 0.71,
+          "exit_price": 0.22,
+          "entry_probability": 0.7591063507876417,
+          "pnl": -6.7173,
+          "maximum_pnl_if_winner": 3.58,
+          "positive_exit_capture_ratio": null
+        },
+        {
+          "trade_id": "68750ff9-a96f-44b8-9552-11b1cd764f94",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG242130-30",
+          "outcome": "yes",
+          "status": "WON",
+          "exchange_status": "finalized",
+          "placed_at": "2026-08-25T01:21:08.431001+00:00",
+          "exited_at": null,
+          "contracts": 13.0,
+          "entry_price": 0.72,
+          "exit_price": null,
+          "entry_probability": 0.7599355692610928,
+          "pnl": 3.45,
+          "maximum_pnl_if_winner": 3.4499999999999993,
+          "positive_exit_capture_ratio": 1.0000000000000002
+        },
+        {
+          "trade_id": "f14fc85a-be18-4985-9d77-ea3222ec4bd6",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG242145-45",
+          "outcome": "no",
+          "status": "EXITED",
+          "exchange_status": "confirmed_reversal",
+          "placed_at": "2026-08-25T01:33:18.466822+00:00",
+          "exited_at": "2026-08-25T01:38:48.455352+00:00",
+          "contracts": 13.0,
+          "entry_price": 0.72,
+          "exit_price": 0.55,
+          "entry_probability": 0.7698241374582394,
+          "pnl": -2.6262,
+          "maximum_pnl_if_winner": 3.4499999999999993,
+          "positive_exit_capture_ratio": null
+        },
+        {
+          "trade_id": "4168b74e-d480-4df1-83fb-ad940dcf41ef",
+          "asset": "BTC",
+          "ticker": "KXBTC15M-26AUG242200-00",
+          "outcome": "no",
+          "status": "EXITED",
+          "exchange_status": "confirmed_reversal",
+          "placed_at": "2026-08-25T01:52:58.526784+00:00",
+          "exited_at": "2026-08-25T01:58:18.327895+00:00",
+          "contracts": 11.0,
+          "entry_price": 0.83,
+          "exit_price": 0.27,
+          "entry_probability": 0.8669092831760208,
+          "pnl": -6.4218,
+          "maximum_pnl_if_winner": 1.7599999999999998,
+          "positive_exit_capture_ratio": null
+        },
+        {
+          "trade_id": "0a5d94eb-5f88-4e55-8b33-72e72237da0e",
+          "asset": "SILVER",
+          "ticker": "KXSILVER15M-26AUG242215-15",
+          "outcome": "no",
+          "status": "EXITED",
+          "exchange_status": "take_profit",
+          "placed_at": "2026-08-25T02:03:58.517904+00:00",
+          "exited_at": "2026-08-25T02:05:28.581313+00:00",
+          "contracts": 12.0,
+          "entry_price": 0.8,
+          "exit_price": 0.982,
+          "entry_probability": 0.849286388818773,
+          "pnl": 2.0284,
+          "maximum_pnl_if_winner": 2.26,
+          "positive_exit_capture_ratio": 0.8975221238938054
+        },
+        {
+          "trade_id": "f2380e5e-433e-4791-b129-c465d508af11",
+          "asset": "SOL",
+          "ticker": "KXSOL15M-26AUG242215-15",
+          "outcome": "no",
+          "status": "WON",
+          "exchange_status": "finalized",
+          "placed_at": "2026-08-25T02:12:58.808363+00:00",
+          "exited_at": null,
+          "contracts": 17.83,
+          "entry_price": 0.54,
+          "exit_price": null,
+          "entry_probability": 0.6221061167312434,
+          "pnl": 7.89,
+          "maximum_pnl_if_winner": 7.889999999999999,
+          "positive_exit_capture_ratio": 1.0000000000000002
+        }
+      ],
+      "pair_arb": {
+        "scans": 8388,
+        "approved": 0,
+        "simulated": 0,
+        "modeled_pnl": 0.0,
+        "minimum_guarded_pair_cost": 1.001,
+        "maximum_guarded_net_edge": -0.0038,
+        "gate_counts": {
+          "book": 489,
+          "net_edge": 6855,
+          "stale_leg": 1044
+        }
+      },
+      "exit_evaluations": {
+        "evaluations": 125,
+        "gate_counts": {
+          "book": 16,
+          "capture": 93,
+          "confirmed_reversal": 3,
+          "spread": 3,
+          "take_profit": 2,
+          "winning_confirmation": 2,
+          "winning_hold": 6
+        },
+        "verdict_counts": {
+          "exit": 5,
+          "hold": 120
+        },
+        "adaptive_fields_populated": 125
+      },
+      "exit_counterfactuals": {
+        "labeled_exits": 5,
+        "hold_better": 3,
+        "exit_better": 2,
+        "same": 0,
+        "total_delta_hold_minus_exit": 1.3640999999999999,
+        "mean_delta_hold_minus_exit": 0.27281999999999995
+      },
+      "probability_calibration": {
+        "labels": 7,
+        "by_asset_time_bucket": [
+          {
+            "asset": "BTC",
+            "time_bucket": "181_plus",
+            "labels": 5,
+            "brier_model": 0.2934550284867237,
+            "brier_raw": null,
+            "brier_market": null
+          },
+          {
+            "asset": "SILVER",
+            "time_bucket": "181_plus",
+            "labels": 1,
+            "brier_model": 0.022714592595286066,
+            "brier_raw": null,
+            "brier_market": null
+          },
+          {
+            "asset": "SOL",
+            "time_bucket": "121_180",
+            "labels": 1,
+            "brier_model": 0.14280378701194063,
+            "brier_raw": 0.11369833990178044,
+            "brier_market": 0.2209
+          }
+        ]
+      },
+      "strategy_lab": [
+        {
+          "strategy": "adaptive_take_profit",
+          "starting_balance": 100.0,
+          "ending_cash": 62.456,
+          "positions": 18,
+          "closed": 18,
+          "open": 0,
+          "wins": 9,
+          "losses": 9,
+          "win_rate": 0.5,
+          "net_pnl": -37.544000000000004,
+          "wallet_reported_pnl": -37.544
+        },
+        {
+          "strategy": "change_point_flip",
+          "starting_balance": 100.0,
+          "ending_cash": 98.6659,
+          "positions": 9,
+          "closed": 9,
+          "open": 0,
+          "wins": 6,
+          "losses": 3,
+          "win_rate": 0.6666666666666666,
+          "net_pnl": -1.3341000000000005,
+          "wallet_reported_pnl": -1.3341
+        },
+        {
+          "strategy": "complementary_pair_arb",
+          "starting_balance": 100.0,
+          "ending_cash": 100.0,
+          "positions": 0,
+          "closed": 0,
+          "open": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate": null,
+          "net_pnl": 0,
+          "wallet_reported_pnl": 0.0
+        },
+        {
+          "strategy": "confirmed_reversal_exit",
+          "starting_balance": 100.0,
+          "ending_cash": 70.9509,
+          "positions": 20,
+          "closed": 20,
+          "open": 0,
+          "wins": 8,
+          "losses": 12,
+          "win_rate": 0.4,
+          "net_pnl": -29.049100000000003,
+          "wallet_reported_pnl": -29.0491
+        },
+        {
+          "strategy": "consensus_tail_carry",
+          "starting_balance": 100.0,
+          "ending_cash": 100.0,
+          "positions": 0,
+          "closed": 0,
+          "open": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate": null,
+          "net_pnl": 0,
+          "wallet_reported_pnl": 0.0
+        },
+        {
+          "strategy": "displaced_shelf",
+          "starting_balance": 100.0,
+          "ending_cash": 93.6525,
+          "positions": 4,
+          "closed": 4,
+          "open": 0,
+          "wins": 2,
+          "losses": 2,
+          "win_rate": 0.5,
+          "net_pnl": -6.3475,
+          "wallet_reported_pnl": -6.3475
+        },
+        {
+          "strategy": "fixed_take_profit",
+          "starting_balance": 100.0,
+          "ending_cash": 57.8344,
+          "positions": 22,
+          "closed": 22,
+          "open": 0,
+          "wins": 14,
+          "losses": 8,
+          "win_rate": 0.6363636363636364,
+          "net_pnl": -42.1656,
+          "wallet_reported_pnl": -42.1656
+        },
+        {
+          "strategy": "hold_to_settlement",
+          "starting_balance": 100.0,
+          "ending_cash": 68.8961,
+          "positions": 18,
+          "closed": 18,
+          "open": 0,
+          "wins": 9,
+          "losses": 9,
+          "win_rate": 0.5,
+          "net_pnl": -31.1039,
+          "wallet_reported_pnl": -31.1039
+        },
+        {
+          "strategy": "microprice_flow",
+          "starting_balance": 100.0,
+          "ending_cash": 84.325,
+          "positions": 19,
+          "closed": 19,
+          "open": 0,
+          "wins": 6,
+          "losses": 13,
+          "win_rate": 0.3157894736842105,
+          "net_pnl": -15.675,
+          "wallet_reported_pnl": -15.675
+        },
+        {
+          "strategy": "principal_recovery",
+          "starting_balance": 100.0,
+          "ending_cash": 67.7912,
+          "positions": 18,
+          "closed": 18,
+          "open": 0,
+          "wins": 9,
+          "losses": 9,
+          "win_rate": 0.5,
+          "net_pnl": -32.208800000000004,
+          "wallet_reported_pnl": -32.2088
+        },
+        {
+          "strategy": "probability_acceleration",
+          "starting_balance": 100.0,
+          "ending_cash": 85.5149,
+          "positions": 12,
+          "closed": 12,
+          "open": 0,
+          "wins": 6,
+          "losses": 6,
+          "win_rate": 0.5,
+          "net_pnl": -14.4851,
+          "wallet_reported_pnl": -14.4851
+        },
+        {
+          "strategy": "raw_value_longshot",
+          "starting_balance": 100.0,
+          "ending_cash": 11.6704,
+          "positions": 51,
+          "closed": 51,
+          "open": 0,
+          "wins": 11,
+          "losses": 40,
+          "win_rate": 0.21568627450980393,
+          "net_pnl": -88.3296,
+          "wallet_reported_pnl": -88.3296
+        },
+        {
+          "strategy": "regime_ensemble",
+          "starting_balance": 100.0,
+          "ending_cash": 62.0347,
+          "positions": 20,
+          "closed": 20,
+          "open": 0,
+          "wins": 11,
+          "losses": 9,
+          "win_rate": 0.55,
+          "net_pnl": -37.9653,
+          "wallet_reported_pnl": -37.9653
+        },
+        {
+          "strategy": "strike_distance",
+          "starting_balance": 100.0,
+          "ending_cash": 94.1957,
+          "positions": 6,
+          "closed": 6,
+          "open": 0,
+          "wins": 3,
+          "losses": 3,
+          "win_rate": 0.5,
+          "net_pnl": -5.8043000000000005,
+          "wallet_reported_pnl": -5.8043
+        },
+        {
+          "strategy": "trend_trailing",
+          "starting_balance": 100.0,
+          "ending_cash": 100.0,
+          "positions": 0,
+          "closed": 0,
+          "open": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate": null,
+          "net_pnl": 0,
+          "wallet_reported_pnl": 0.0
+        },
+        {
+          "strategy": "winning_hold_take_profit",
+          "starting_balance": 100.0,
+          "ending_cash": 66.9814,
+          "positions": 18,
+          "closed": 18,
+          "open": 0,
+          "wins": 9,
+          "losses": 9,
+          "win_rate": 0.5,
+          "net_pnl": -33.0186,
+          "wallet_reported_pnl": -33.0186
+        }
+      ],
+      "strategy_lab_quality": {
+        "integrity": "ok",
+        "observations": 109408,
+        "open_positions": 0,
+        "terminal_positions_missing_pnl": 0,
+        "wallet_pnl_mismatches": 0,
+        "closed_wallet_balance_mismatches": 0,
+        "passed": true,
+        "decisions": {
+          "adaptive_take_profit": {
+            "actions": {
+              "entry": 18,
+              "exit": 8,
+              "hold": 244,
+              "skip": 6568
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1502
+              ],
+              [
+                "75% upside captured and executable bid clears model confidence",
+                252
+              ],
+              [
+                "control admission",
+                18
+              ]
+            ]
+          },
+          "change_point_flip": {
+            "actions": {
+              "entry": 7,
+              "flip": 2,
+              "hold": 78,
+              "skip": 6751
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1636
+              ],
+              [
+                "three-observation opposite change point",
+                80
+              ],
+              [
+                "no probability change point",
+                49
+              ],
+              [
+                "persistent probability change point",
+                7
+              ]
+            ]
+          },
+          "complementary_pair_arb": {
+            "actions": {
+              "skip": 6838
+            },
+            "top_reasons": [
+              [
+                "equal-leg net edge -0.0450 below 0.0200 or no common depth",
+                309
+              ],
+              [
+                "equal-leg net edge -0.0013 below 0.0200 or no common depth",
+                201
+              ],
+              [
+                "equal-leg net edge -0.0449 below 0.0200 or no common depth",
+                131
+              ],
+              [
+                "equal-leg net edge -0.0441 below 0.0200 or no common depth",
+                117
+              ],
+              [
+                "equal-leg net edge -0.0443 below 0.0200 or no common depth",
+                105
+              ],
+              [
+                "equal-leg net edge -0.0011 below 0.0200 or no common depth",
+                102
+              ],
+              [
+                "equal-leg net edge -0.0448 below 0.0200 or no common depth",
+                102
+              ],
+              [
+                "equal-leg net edge -0.0447 below 0.0200 or no common depth",
+                101
+              ],
+              [
+                "equal-leg net edge -0.0422 below 0.0200 or no common depth",
+                101
+              ],
+              [
+                "equal-leg net edge -0.0438 below 0.0200 or no common depth",
+                101
+              ]
+            ]
+          },
+          "confirmed_reversal_exit": {
+            "actions": {
+              "entry": 20,
+              "exit": 12,
+              "hold": 182,
+              "skip": 6624
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1558
+              ],
+              [
+                "adaptive exit after winner/reversal persistence checks",
+                144
+              ],
+              [
+                "active winner confirmed twice; hold toward settlement",
+                28
+              ],
+              [
+                "control admission",
+                20
+              ],
+              [
+                "three-signal deterioration confirmed twice",
+                13
+              ],
+              [
+                "active winner awaiting second confirmation",
+                9
+              ]
+            ]
+          },
+          "consensus_tail_carry": {
+            "actions": {
+              "skip": 6838
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5068
+              ],
+              [
+                "tail consensus gate not met",
+                1770
+              ]
+            ]
+          },
+          "displaced_shelf": {
+            "actions": {
+              "entry": 4,
+              "exit": 2,
+              "hold": 29,
+              "skip": 6803
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1683
+              ],
+              [
+                "not a displaced shelf",
+                54
+              ],
+              [
+                "shelf broke toward strike",
+                31
+              ],
+              [
+                "large displacement holding in consolidation",
+                4
+              ]
+            ]
+          },
+          "fixed_take_profit": {
+            "actions": {
+              "entry": 22,
+              "exit": 13,
+              "hold": 186,
+              "skip": 6617
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1550
+              ],
+              [
+                "fixed 5c net take-profit",
+                199
+              ],
+              [
+                "control admission",
+                23
+              ]
+            ]
+          },
+          "hold_to_settlement": {
+            "actions": {
+              "entry": 18,
+              "hold": 278,
+              "skip": 6542
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1476
+              ],
+              [
+                "control holds to settlement",
+                278
+              ],
+              [
+                "control admission",
+                18
+              ]
+            ]
+          },
+          "microprice_flow": {
+            "actions": {
+              "entry": 19,
+              "exit": 18,
+              "hold": 30,
+              "skip": 6771
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5068
+              ],
+              [
+                "base probability/edge gate",
+                1674
+              ],
+              [
+                "microprice flipped or flow became toxic",
+                48
+              ],
+              [
+                "book does not safely confirm",
+                28
+              ],
+              [
+                "microprice confirms model with acceptable toxicity",
+                20
+              ]
+            ]
+          },
+          "principal_recovery": {
+            "actions": {
+              "entry": 18,
+              "hold": 273,
+              "reduce": 5,
+              "skip": 6542
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1476
+              ],
+              [
+                "recover principal once, then carry the residual",
+                273
+              ],
+              [
+                "control admission",
+                18
+              ],
+              [
+                "original debit recovered",
+                5
+              ]
+            ]
+          },
+          "probability_acceleration": {
+            "actions": {
+              "entry": 12,
+              "exit": 5,
+              "hold": 100,
+              "skip": 6721
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5068
+              ],
+              [
+                "base probability/edge gate",
+                1616
+              ],
+              [
+                "probability path intact",
+                99
+              ],
+              [
+                "no positive probability acceleration",
+                37
+              ],
+              [
+                "positive probability acceleration",
+                12
+              ],
+              [
+                "probability decelerated for two observations",
+                6
+              ]
+            ]
+          },
+          "raw_value_longshot": {
+            "actions": {
+              "entry": 51,
+              "exit": 11,
+              "hold": 442,
+              "skip": 6334
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5068
+              ],
+              [
+                "no unshrunk, fee-buffered longshot edge",
+                1263
+              ],
+              [
+                "tail policy takes a fee-adjusted 5c gain",
+                453
+              ],
+              [
+                "unshrunk tail probability clears price, edge, and flow",
+                54
+              ]
+            ]
+          },
+          "regime_ensemble": {
+            "actions": {
+              "entry": 20,
+              "exit": 16,
+              "hold": 124,
+              "skip": 6678
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5068
+              ],
+              [
+                "base probability/edge gate",
+                1603
+              ],
+              [
+                "ensemble hold",
+                119
+              ],
+              [
+                "ensemble consensus",
+                20
+              ],
+              [
+                "ensemble regime/probability exit",
+                12
+              ],
+              [
+                "ensemble adaptive trail",
+                9
+              ],
+              [
+                "insufficient ensemble agreement",
+                6
+              ],
+              [
+                "ensemble vetoes volatile chop",
+                1
+              ]
+            ]
+          },
+          "strike_distance": {
+            "actions": {
+              "entry": 6,
+              "exit": 3,
+              "hold": 46,
+              "skip": 6783
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1677
+              ],
+              [
+                "strike distance contracted below 0.70 sigma",
+                49
+              ],
+              [
+                "distance below 1.25 sigma",
+                40
+              ],
+              [
+                "strike distance carry",
+                6
+              ]
+            ]
+          },
+          "trend_trailing": {
+            "actions": {
+              "skip": 6838
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5068
+              ],
+              [
+                "base probability/edge gate",
+                1697
+              ],
+              [
+                "no aligned trend",
+                73
+              ]
+            ]
+          },
+          "winning_hold_take_profit": {
+            "actions": {
+              "entry": 18,
+              "exit": 1,
+              "hold": 274,
+              "skip": 6545
+            },
+            "top_reasons": [
+              [
+                "outside 20-240s entry window",
+                5066
+              ],
+              [
+                "base probability/edge gate",
+                1479
+              ],
+              [
+                "adaptive exit after winner/reversal persistence checks",
+                238
+              ],
+              [
+                "active winner confirmed twice; hold toward settlement",
+                27
+              ],
+              [
+                "control admission",
+                18
+              ],
+              [
+                "active winner awaiting second confirmation",
+                10
+              ]
+            ]
+          }
+        }
+      },
+      "matched_exit_comparison": [
+        {
+          "strategy": "fixed_take_profit",
+          "matched_positions": 22,
+          "actual_pnl": -42.1656,
+          "hold_counterfactual_pnl": -11.4005,
+          "delta_vs_hold": -30.765099999999997,
+          "winner_markets": 13,
+          "winner_upside_capture": 0.39630734233706244,
+          "winner_pnl": 27.3867,
+          "winner_hold_pnl": 69.10470000000001,
+          "loser_markets": 9,
+          "loser_exit_pnl": -69.5523,
+          "loser_hold_pnl": -80.5052,
+          "loss_avoided": 10.9529
+        },
+        {
+          "strategy": "adaptive_take_profit",
+          "matched_positions": 18,
+          "actual_pnl": -37.544000000000004,
+          "hold_counterfactual_pnl": -31.1039,
+          "delta_vs_hold": -6.440100000000005,
+          "winner_markets": 9,
+          "winner_upside_capture": 0.8696370338432389,
+          "winner_pnl": 42.9612,
+          "winner_hold_pnl": 49.4013,
+          "loser_markets": 9,
+          "loser_exit_pnl": -80.5052,
+          "loser_hold_pnl": -80.5052,
+          "loss_avoided": 0.0
+        }
+      ],
+      "decisions": {
+        "records": 16943,
+        "evaluations": 8388,
+        "invalid_lines": 0,
+        "record_type_counts": {
+          "decision": 8388,
+          "pair_arb_scan": 8388,
+          "take_profit_evaluated": 125,
+          "discovery_empty": 8,
+          "discovery_recovered": 8,
+          "scalp_quote": 6,
+          "scalp_fill": 6,
+          "exit_counterfactual": 5,
+          "confirmed_reversal_exit": 3,
+          "take_profit_exit": 2,
+          "scalp_funnel": 2,
+          "take_profit_funnel": 1,
+          "pair_arb_funnel": 1
+        },
+        "decision_counts": {
+          "skipped": 8387,
+          "traded": 1
+        },
+        "gate_counts": {
+          "entry_window": 6660,
+          "min_probability": 894,
+          "model_market_divergence": 504,
+          "minimum_time_to_close": 188,
+          "candle_freshness": 74,
+          "min_edge": 31,
+          "settlement_margin": 12,
+          "entry_history": 12,
+          "live_edge": 6,
+          "cooldown": 5,
+          "live_liquidity": 1,
+          "approved": 1
+        },
+        "candidate_outcomes": {
+          "no": 835,
+          "yes": 614
+        },
+        "pair_gate_counts": {
+          "net_edge": 6855,
+          "stale_leg": 1044,
+          "book": 489
+        },
+        "by_asset_gate": {
+          "BNB": {
+            "entry_window": 556,
+            "model_market_divergence": 66,
+            "min_probability": 31,
+            "candle_freshness": 28,
+            "minimum_time_to_close": 16,
+            "min_edge": 3
+          },
+          "BTC": {
+            "entry_window": 555,
+            "min_probability": 93,
+            "model_market_divergence": 33,
+            "minimum_time_to_close": 16,
+            "min_edge": 2
+          },
+          "DOGE": {
+            "entry_window": 556,
+            "min_probability": 84,
+            "model_market_divergence": 39,
+            "minimum_time_to_close": 16,
+            "candle_freshness": 2,
+            "settlement_margin": 2,
+            "min_edge": 1
+          },
+          "ETH": {
+            "entry_window": 552,
+            "min_probability": 73,
+            "model_market_divergence": 53,
+            "minimum_time_to_close": 16,
+            "min_edge": 2
+          },
+          "GOLD": {
+            "entry_window": 551,
+            "min_probability": 69,
+            "model_market_divergence": 54,
+            "minimum_time_to_close": 16,
+            "min_edge": 2,
+            "settlement_margin": 2,
+            "live_edge": 1
+          },
+          "HYPE": {
+            "entry_window": 552,
+            "min_probability": 73,
+            "model_market_divergence": 52,
+            "minimum_time_to_close": 16,
+            "min_edge": 2,
+            "candle_freshness": 1
+          },
+          "NEAR": {
+            "entry_window": 556,
+            "min_probability": 61,
+            "candle_freshness": 34,
+            "model_market_divergence": 23,
+            "minimum_time_to_close": 16,
+            "min_edge": 6,
+            "settlement_margin": 4
+          },
+          "SILVER": {
+            "entry_window": 555,
+            "min_probability": 112,
+            "minimum_time_to_close": 14,
+            "model_market_divergence": 9,
+            "cooldown": 5,
+            "settlement_margin": 2,
+            "live_edge": 1,
+            "live_liquidity": 1
+          },
+          "SOL": {
+            "entry_window": 559,
+            "min_probability": 73,
+            "model_market_divergence": 42,
+            "minimum_time_to_close": 14,
+            "entry_history": 12,
+            "live_edge": 1,
+            "settlement_margin": 1,
+            "approved": 1
+          },
+          "WTI": {
+            "entry_window": 552,
+            "min_probability": 68,
+            "model_market_divergence": 50,
+            "minimum_time_to_close": 16,
+            "min_edge": 6,
+            "live_edge": 3,
+            "settlement_margin": 1
+          },
+          "XRP": {
+            "entry_window": 558,
+            "min_probability": 91,
+            "model_market_divergence": 35,
+            "minimum_time_to_close": 16,
+            "min_edge": 2
+          },
+          "ZEC": {
+            "entry_window": 558,
+            "min_probability": 66,
+            "model_market_divergence": 48,
+            "minimum_time_to_close": 16,
+            "candle_freshness": 9,
+            "min_edge": 5
+          }
+        }
+      }
+    }
+  ],
+  "aggregate": {
+    "runs": 2,
+    "main": {
+      "trades": 13,
+      "closed": 13,
+      "wins": 10,
+      "losses": 3,
+      "win_rate": 0.7692307692307693,
+      "net_pnl": 14.3521
+    },
+    "strategy_lab": [
+      {
+        "strategy": "adaptive_take_profit",
+        "runs_present": 2,
+        "closed": 40,
+        "wins": 18,
+        "losses": 22,
+        "win_rate": 0.45,
+        "net_pnl": -88.5922,
+        "pnl_per_closed_position": -2.214805
+      },
+      {
+        "strategy": "change_point_flip",
+        "runs_present": 2,
+        "closed": 16,
+        "wins": 8,
+        "losses": 8,
+        "win_rate": 0.5,
+        "net_pnl": -32.3553,
+        "pnl_per_closed_position": -2.02220625
+      },
+      {
+        "strategy": "complementary_pair_arb",
+        "runs_present": 2,
+        "closed": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate": null,
+        "net_pnl": 0,
+        "pnl_per_closed_position": null
+      },
+      {
+        "strategy": "confirmed_reversal_exit",
+        "runs_present": 1,
+        "closed": 20,
+        "wins": 8,
+        "losses": 12,
+        "win_rate": 0.4,
+        "net_pnl": -29.049100000000003,
+        "pnl_per_closed_position": -1.452455
+      },
+      {
+        "strategy": "consensus_tail_carry",
+        "runs_present": 2,
+        "closed": 10,
+        "wins": 10,
+        "losses": 0,
+        "win_rate": 1.0,
+        "net_pnl": 4.2635,
+        "pnl_per_closed_position": 0.42634999999999995
+      },
+      {
+        "strategy": "displaced_shelf",
+        "runs_present": 2,
+        "closed": 6,
+        "wins": 2,
+        "losses": 4,
+        "win_rate": 0.3333333333333333,
+        "net_pnl": -26.104400000000002,
+        "pnl_per_closed_position": -4.350733333333333
+      },
+      {
+        "strategy": "fixed_take_profit",
+        "runs_present": 2,
+        "closed": 48,
+        "wins": 28,
+        "losses": 20,
+        "win_rate": 0.5833333333333334,
+        "net_pnl": -98.26859999999999,
+        "pnl_per_closed_position": -2.0472625
+      },
+      {
+        "strategy": "hold_to_settlement",
+        "runs_present": 2,
+        "closed": 40,
+        "wins": 18,
+        "losses": 22,
+        "win_rate": 0.45,
+        "net_pnl": -77.8372,
+        "pnl_per_closed_position": -1.94593
+      },
+      {
+        "strategy": "microprice_flow",
+        "runs_present": 2,
+        "closed": 54,
+        "wins": 12,
+        "losses": 42,
+        "win_rate": 0.2222222222222222,
+        "net_pnl": -88.82849999999999,
+        "pnl_per_closed_position": -1.644972222222222
+      },
+      {
+        "strategy": "principal_recovery",
+        "runs_present": 1,
+        "closed": 18,
+        "wins": 9,
+        "losses": 9,
+        "win_rate": 0.5,
+        "net_pnl": -32.208800000000004,
+        "pnl_per_closed_position": -1.789377777777778
+      },
+      {
+        "strategy": "probability_acceleration",
+        "runs_present": 2,
+        "closed": 28,
+        "wins": 10,
+        "losses": 18,
+        "win_rate": 0.35714285714285715,
+        "net_pnl": -54.7115,
+        "pnl_per_closed_position": -1.953982142857143
+      },
+      {
+        "strategy": "raw_value_longshot",
+        "runs_present": 2,
+        "closed": 90,
+        "wins": 26,
+        "losses": 64,
+        "win_rate": 0.28888888888888886,
+        "net_pnl": -131.66649999999998,
+        "pnl_per_closed_position": -1.462961111111111
+      },
+      {
+        "strategy": "regime_ensemble",
+        "runs_present": 2,
+        "closed": 42,
+        "wins": 17,
+        "losses": 25,
+        "win_rate": 0.40476190476190477,
+        "net_pnl": -105.0218,
+        "pnl_per_closed_position": -2.5005190476190475
+      },
+      {
+        "strategy": "strike_distance",
+        "runs_present": 2,
+        "closed": 14,
+        "wins": 5,
+        "losses": 9,
+        "win_rate": 0.35714285714285715,
+        "net_pnl": -42.0211,
+        "pnl_per_closed_position": -3.0015071428571427
+      },
+      {
+        "strategy": "trend_trailing",
+        "runs_present": 2,
+        "closed": 0,
+        "wins": 0,
+        "losses": 0,
+        "win_rate": null,
+        "net_pnl": 0,
+        "pnl_per_closed_position": null
+      },
+      {
+        "strategy": "winning_hold_take_profit",
+        "runs_present": 1,
+        "closed": 18,
+        "wins": 9,
+        "losses": 9,
+        "win_rate": 0.5,
+        "net_pnl": -33.0186,
+        "pnl_per_closed_position": -1.8343666666666667
+      }
+    ],
+    "market_snapshots": 16753,
+    "orderbook_levels": 614124,
+    "pair_arb_scans": 16753,
+    "pair_arb_approved": 0
+  },
+  "models": [
+    {
+      "asset": "BNB",
+      "auc": 0.46439231204070097,
+      "baseline_auc": 0.4354437535330695,
+      "indicator_delta_auc": 0.02894855850763145,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    },
+    {
+      "asset": "DOGE",
+      "auc": 0.5233486015424988,
+      "baseline_auc": 0.49155972684692784,
+      "indicator_delta_auc": 0.03178887469557101,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    },
+    {
+      "asset": "GOLD",
+      "auc": 0.5124841571609633,
+      "baseline_auc": 0.550796423800226,
+      "indicator_delta_auc": -0.03831226663926268,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    },
+    {
+      "asset": "HYPE",
+      "auc": 0.5598094695273379,
+      "baseline_auc": 0.5138894543283258,
+      "indicator_delta_auc": 0.04592001519901212,
+      "deployment_status": "active",
+      "weight": 0.08971420429100685
+    },
+    {
+      "asset": "NEAR",
+      "auc": 0.5070406920458449,
+      "baseline_auc": 0.4927610005933606,
+      "indicator_delta_auc": 0.014279691452484311,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    },
+    {
+      "asset": "SILVER",
+      "auc": 0.5261423740570537,
+      "baseline_auc": 0.5211515803754954,
+      "indicator_delta_auc": 0.004990793681558303,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    },
+    {
+      "asset": "SOL",
+      "auc": 0.5324854774124415,
+      "baseline_auc": 0.5202235256518715,
+      "indicator_delta_auc": 0.012261951760569989,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    },
+    {
+      "asset": "WTI",
+      "auc": 0.5202973127501429,
+      "baseline_auc": 0.4934248141795312,
+      "indicator_delta_auc": 0.02687249857061169,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    },
+    {
+      "asset": "XRP",
+      "auc": 0.4979390895185897,
+      "baseline_auc": 0.48776976156730195,
+      "indicator_delta_auc": 0.010169327951287721,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    },
+    {
+      "asset": "ZEC",
+      "auc": 0.508487627716673,
+      "baseline_auc": 0.5213380225034192,
+      "indicator_delta_auc": -0.012850394786746211,
+      "deployment_status": "shadow_only",
+      "weight": 0.0
+    }
+  ]
+}

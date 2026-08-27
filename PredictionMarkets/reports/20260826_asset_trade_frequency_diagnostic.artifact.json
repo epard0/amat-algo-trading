@@ -1,0 +1,203 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Why Commodities Are Trading More Than Crypto",
+    "description": "A funnel-level diagnosis of live commodity-versus-crypto trade frequency through August 26, 2026.",
+    "generatedAt": "2026-08-26T15:43:48Z",
+    "charts": [
+      {
+        "id": "book-eligibility-by-asset",
+        "title": "Raw scalper book eligibility by asset",
+        "subtitle": "Current live run through 11:36 AM ET; repeated snapshots passing time, spread, depth, toxicity, and 70-92 cent price-band gates",
+        "intent": "comparison",
+        "question": "Which assets most often presented a book that could reach the scalper's model-pattern and EV checks?",
+        "rationale": "A horizontal ranking makes the concentration in BTC, GOLD, and SILVER immediately visible without implying independent trade opportunities.",
+        "comparisonContext": {
+          "baseline": "All snapshots inside the scalp window",
+          "grain": "One row per configured asset",
+          "unit": "Eligible snapshots"
+        },
+        "type": "horizontalBar",
+        "dataset": "book_eligibility_by_asset",
+        "sourceId": "current-live-ledger",
+        "encodings": {
+          "x": {"field": "asset", "type": "nominal", "label": "Asset"},
+          "y": {"field": "book_eligible", "type": "quantitative", "format": "number", "label": "Eligible snapshots"},
+          "tooltip": [
+            {"field": "asset_class", "type": "text", "label": "Asset class"},
+            {"field": "window_snapshots", "type": "quantitative", "format": "number", "label": "Window snapshots"},
+            {"field": "eligible_rate", "type": "quantitative", "format": "percent", "label": "Eligibility rate"},
+            {"field": "avg_touch_depth", "type": "quantitative", "format": "number", "label": "Average touch depth"}
+          ]
+        },
+        "valueFormat": "number",
+        "layout": "full",
+        "maxRows": 12,
+        "labels": {"values": "all"},
+        "palette": {"kind": "sequential", "name": "blue"},
+        "settings": {"limit": 12, "orientation": "horizontal", "showValues": true, "sort": "descending"},
+        "surface": {"surface": "compact", "compact": true, "viewMode": "visualization"}
+      },
+      {
+        "id": "filled-trades-by-asset",
+        "title": "Filled live trades by asset",
+        "subtitle": "August 25 through the frozen August 26, 11:36 AM ET cutoff; predictor and scalper combined",
+        "intent": "comparison",
+        "question": "Where did filled trades actually concentrate?",
+        "rationale": "An all-asset ranking shows that the crypto side is effectively BTC plus a small tail, while every commodity contributes.",
+        "comparisonContext": {
+          "baseline": "All configured assets",
+          "grain": "One row per asset",
+          "unit": "Filled trades"
+        },
+        "type": "horizontalBar",
+        "dataset": "filled_trades_by_asset",
+        "sourceId": "historical-live-ledger",
+        "encodings": {
+          "x": {"field": "asset", "type": "nominal", "label": "Asset"},
+          "y": {"field": "filled_trades", "type": "quantitative", "format": "number", "label": "Filled trades"},
+          "tooltip": [
+            {"field": "asset_class", "type": "text", "label": "Asset class"},
+            {"field": "predictor_trades", "type": "quantitative", "format": "number", "label": "Predictor"},
+            {"field": "scalper_trades", "type": "quantitative", "format": "number", "label": "Scalper"}
+          ]
+        },
+        "valueFormat": "number",
+        "layout": "full",
+        "maxRows": 12,
+        "labels": {"values": "all"},
+        "palette": {"kind": "sequential", "name": "blue"},
+        "settings": {"limit": 12, "orientation": "horizontal", "showValues": true, "sort": "descending"},
+        "surface": {"surface": "compact", "compact": true, "viewMode": "visualization"}
+      }
+    ],
+    "tables": [],
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# Why Commodities Are Trading More Than Crypto"},
+      {"id": "executive-summary", "type": "markdown", "sourceId": "current-live-ledger", "body": "## Executive summary\n\n**There is no commodity-priority branch in the active entry logic.** The imbalance is nevertheless real: the current run produced **5 commodity trades and 0 crypto trades**, and the August 25-to-cutoff history contains **39 commodity trades versus 24 crypto trades**.\n\nThree measurable effects explain most of it. First, commodity books passed the scalper's cheap pre-model gates at **14.2%** of in-window observations versus **6.3%** for crypto. Second, crypto opportunities are extremely concentrated: BTC supplied **260 of 313** raw eligible crypto observations; the other eight crypto assets supplied only 53, including four with none. Third, older crypto counts were depressed by **52 rejected orders**, including 40 `market_not_found` and 11 `insufficient_balance` rejections, while commodities had no rejected entries in the measured period.\n\nThe remaining uncertainty is a telemetry defect: the fallback predictions used by the scalper outside the predictor's normal entry window are not persisted per asset, and the scalper's gate counters are only drained as aggregate totals. That prevents an exact current-run split between pattern rejection and minimum-EV rejection—especially for BTC, which had many eligible books but no fill."},
+      {"id": "scope", "type": "markdown", "body": "## What was counted\n\nThe **current run** is live production run `0107d3c2-b7f2-4dee-9a05-2f19115debc4`, frozen at **11:36 AM ET on August 26** so the running process cannot change the denominator mid-analysis. A **trade** is a normalized filled live entry. A **book-eligible snapshot** is inside the scalper quote window and passes the spread, two-sided touch-depth, toxicity, and 70-92 cent entry-price-band checks. It is a repeated observation, not an independent opportunity or expected fill.\n\nThe broader trade and order comparison starts at midnight UTC on August 25 and ends at the same cutoff. `Other final state` includes submitted orders that ended canceled, expired, resting, or otherwise not filled/rejected."},
+      {"id": "eligibility-finding", "type": "markdown", "sourceId": "current-live-ledger", "body": "## More symbols did not mean more viable scalp markets\n\nAll 12 configured assets were discovered and recorded at almost the same cadence—roughly 630-646 snapshots each—so missing-market coverage is not the current explanation. The difference appears later in the funnel.\n\nThe three commodities generated 232 raw eligible observations from 1,636 in-window snapshots (**14.2%**). The nine crypto assets generated 313 from 4,957 (**6.3%**). Crypto therefore had three times the symbol exposure but only 1.35 times the raw eligible observations. More importantly, **83.1% of those crypto observations came from BTC**. GOLD, SILVER, and WTI all contributed; BNB, DOGE, HYPE, and NEAR contributed zero."},
+      {"id": "eligibility-chart", "type": "chart", "chartId": "book-eligibility-by-asset", "layout": "full"},
+      {"id": "model-finding", "type": "markdown", "sourceId": "current-live-ledger", "body": "## The current 5-0 split comes from the scalper, not the predictor\n\nEvery one of the five current entries was a scalper trade: three SILVER and two GOLD. The predictor approved none of its 2,825 recorded evaluations; 1,476 stopped at minimum probability, 1,303 at model/market divergence, 33 at settlement margin, and 13 at minimum edge. Those predictor gates were broadly restrictive, but they did not create the commodity advantage because they created no trades for either class.\n\nThe scalper is deliberately independent of the predictor verdict and applies the same `assess` method to every discovered market. BTC still had 260 raw book-eligible observations and no current fill, which means its candidates failed a later pattern, expected-value, final-quote, sizing, or duplicate/exposure condition. The ledger does not currently persist enough per-asset scalp-gate detail to identify the exact mix."},
+      {"id": "capital-finding", "type": "markdown", "sourceId": "runtime-balance-log", "body": "## The two asset classes did not have equal usable capital\n\nAt startup, all three commodities mapped to Kalshi exchange index 0 with **$48.85 spendable**, while all nine crypto markets mapped to index 2 with **$23.49 spendable**. Capital is pooled by exchange index rather than assigned per symbol, but the practical headroom per listed asset was about **6.2 times larger on the commodity side**.\n\nThe live scalper checks the market's exchange index and fetches that indexed balance before placement. With a $50 maximum budget and roughly $12-$20 recent scalp debits, the smaller crypto pool can support fewer simultaneous entries and is more sensitive to resting orders or unsettled collateral. This is a structural routing/capital constraint, not evidence that commodities receive a better signal threshold."},
+      {"id": "historical-finding", "type": "markdown", "sourceId": "historical-live-ledger", "body": "## Older crypto counts were materially reduced by execution failures\n\nCrypto actually generated **106 submitted scalper orders** versus 71 for commodities, but only 19 crypto scalper orders filled versus 32 commodity orders. Forty-nine crypto scalper orders were rejected; commodities had zero rejected orders in either strategy. Across crypto predictor and scalper combined, rejection reasons were **40 `market_not_found`**, **11 `insufficient_balance`**, and **1 `header_timestamp_expired`**.\n\nThose rejections were concentrated in older sessions, and the current frozen run has no rejected order. Therefore they explain a meaningful part of the historical 39-to-24 trade imbalance, but they do **not** explain the current 5-to-0 result."},
+      {"id": "trades-chart", "type": "chart", "chartId": "filled-trades-by-asset", "layout": "full"},
+      {"id": "logic-review", "type": "markdown", "sourceId": "active-source", "body": "## Is there an error in the logic?\n\n**Not a commodity-preference error.** The production loop iterates every market, fills missing predictions, and calls the same scalper assessment. The active scalper's thresholds do not branch on commodity versus crypto. The commodity model artifact also does not provide a broad hidden boost: its blend weight is zero for GOLD, SILVER, and WTI in the current artifacts.\n\n**There are two real implementation concerns.** Historical market routing, balance, and timestamp failures disproportionately blocked crypto orders. Separately, scalp observability is incomplete: fallback probabilities used by the scalper are not written to `signal_evaluations`, and gate blocks are persisted only as run-level aggregates when the funnel drains. The first concern changes fills; the second prevents trustworthy per-asset attribution and could hide a model/calibration problem."},
+      {"id": "recommendations", "type": "markdown", "body": "## Recommended next steps\n\n1. **Instrument before tuning.** Persist one scalp assessment row per asset and pass with model probability, chosen side, pattern, gross/net EV, every gate result, indexed available balance, final executable quote, and final disposition.\n\n2. **Separate opportunity, intent, submission, and fill KPIs.** Report rates per asset and per independent market window, not repeated snapshots. This will distinguish a thin book from a strict model or an execution failure.\n\n3. **Add exchange-index capacity telemetry.** Record spendable cash, reserved cash, open-order debit, and position collateral at each placement decision. Alert when one index is starved while another has idle cash.\n\n4. **Replay BTC and the non-BTC crypto books after instrumentation.** BTC is the highest-value diagnostic: it passed the cheap book gates often but produced no current fill. Do not loosen global thresholds until pattern/EV/final-quote rejection outcomes and realized counterfactuals are available.\n\n5. **Keep historical operational errors out of strategy comparisons.** Compare signal quality on approved intents, then execution quality on submitted orders; otherwise `market_not_found` and balance failures masquerade as weak crypto strategy performance."},
+      {"id": "further-questions", "type": "markdown", "body": "## Further questions\n\n- Are BTC's later failures primarily model pattern, minimum EV after fees, final quote drift, or crypto-index capital contention?\n- How many raw eligible snapshots collapse into unique opportunities after grouping by ticker, side, and contiguous time interval?\n- Would redistributing capital between Kalshi exchange indexes increase fills without increasing total exposure, or are the pools operationally non-transferable during a session?\n- Are the non-BTC crypto books consistently too shallow for the 100-contract floor, and would risk-bounded smaller orders remain profitable after fees?"},
+      {"id": "limitations", "type": "markdown", "body": "## Caveats and assumptions\n\nThe current process remained running and was not modified or restarted. All current-run metrics use a fixed cutoff. Book eligibility is intentionally a pre-model diagnostic; repeated snapshots are correlated and cannot be interpreted as 545 independent opportunities. The exact current scalp pattern-versus-EV breakdown is unavailable because those intermediate decisions are not persisted per asset.\n\nThe historical comparison spans a short period and includes changing runtime conditions. It is strong enough to diagnose funnel mechanics and rejected-order contamination, but not to infer long-run asset-class profitability or win rate."}
+    ],
+    "sources": [
+      {
+        "id": "current-live-ledger",
+        "label": "Current live trade ledger through the frozen cutoff",
+        "query": {
+          "engine": "SQLite",
+          "language": "sql",
+          "executed_at": "2026-08-26T15:43:48Z",
+          "description": "Counts current-run filled entries and predictor gates, and derives per-asset raw scalp book eligibility from normalized market snapshots.",
+          "tables_used": ["trade_ledger.runs", "trade_ledger.trades", "trade_ledger.signal_evaluations", "trade_ledger.market_snapshots"],
+          "filters": ["run_id = 0107d3c2-b7f2-4dee-9a05-2f19115debc4", "observed_at <= 2026-08-26T15:36:00+00:00", "mode = live"],
+          "metric_definitions": [
+            "Book eligible means seconds to close at least 120, spread at most 0.02, both touch sizes at least 100, toxicity at most 0.85, and an executable side in the 0.70-0.92 scalp band.",
+            "Eligibility rate is eligible repeated snapshots divided by snapshots inside the quote window.",
+            "Filled trade is one normalized trade entry, not an order attempt."
+          ],
+          "sql": "WITH snapshots AS (SELECT asset, seconds_to_close, yes_bid, yes_ask, yes_bid_size, yes_ask_size, toxicity_score FROM market_snapshots WHERE run_id = '0107d3c2-b7f2-4dee-9a05-2f19115debc4' AND observed_at <= '2026-08-26T15:36:00+00:00') SELECT asset, COUNT(*) FILTER (WHERE seconds_to_close >= 120) AS window_snapshots, COUNT(*) FILTER (WHERE seconds_to_close >= 120 AND yes_ask-yes_bid <= 0.02 AND yes_bid_size >= 100 AND yes_ask_size >= 100 AND toxicity_score <= 0.85 AND (yes_ask BETWEEN 0.70 AND 0.92 OR 1.0-yes_bid BETWEEN 0.70 AND 0.92)) AS book_eligible FROM snapshots GROUP BY asset;"
+        }
+      },
+      {
+        "id": "historical-live-ledger",
+        "label": "Live trades and normalized entry orders since August 25",
+        "query": {
+          "engine": "SQLite",
+          "language": "sql",
+          "executed_at": "2026-08-26T15:43:48Z",
+          "description": "Groups filled trades and the latest state of distinct entry or maker orders by asset class and strategy.",
+          "tables_used": ["trade_ledger.trades", "trade_ledger.orders", "trade_ledger.order_events"],
+          "filters": ["mode = live", "created_at >= 2026-08-25T00:00:00+00:00", "created_at <= 2026-08-26T15:36:00+00:00", "order intent in entry or maker-entry paths"],
+          "metric_definitions": [
+            "Submitted is a distinct normalized order, counted once at its latest final state.",
+            "Other final state includes canceled, expired, resting, or otherwise non-filled/non-rejected orders."
+          ],
+          "sql": "WITH latest AS (SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.order_id ORDER BY e.occurred_at DESC) rn, e.status final_status FROM orders o LEFT JOIN order_events e ON e.order_id=o.order_id WHERE o.created_at BETWEEN '2026-08-25T00:00:00+00:00' AND '2026-08-26T15:36:00+00:00' AND o.mode='live') SELECT CASE WHEN asset IN ('GOLD','SILVER','WTI') THEN 'Commodity' ELSE 'Crypto' END asset_class, strategy, COUNT(*) submitted, SUM(final_status='filled') filled, SUM(final_status='rejected') rejected FROM latest WHERE rn=1 GROUP BY asset_class, strategy;"
+        }
+      },
+      {
+        "id": "runtime-balance-log",
+        "label": "Current live startup balance and exchange-index routing log",
+        "query": {
+          "engine": "Runtime log",
+          "language": "text",
+          "executed_at": "2026-08-26T15:43:48Z",
+          "description": "Uses the current process startup balance line and the exchange indexes stored with current market snapshots.",
+          "query": "Aggregate Kalshi balance: $72.33; spendable by exchange: index 0=$48.85, index 1=$0.00, index 2=$23.49, index 3=$0.00. Current snapshots map GOLD/SILVER/WTI to index 0 and all configured crypto assets to index 2."
+        }
+      },
+      {
+        "id": "active-source",
+        "label": "Active market evaluation and scalper implementation",
+        "query": {
+          "engine": "Python source",
+          "language": "python",
+          "executed_at": "2026-08-26T15:43:48Z",
+          "description": "Traces market iteration, fallback prediction generation, shared scalp assessment, exchange-index balance checks, and funnel persistence.",
+          "query": "bot.py:1673 applies the scalp path to each market; bot.py:1906 fills missing predictions; execution/scalp_engine.py:181 applies shared gates; execution/scalp_engine.py:438-441 checks indexed cash; execution/scalp_engine.py:1063 persists only aggregate funnel counters on drain. No commodity-specific threshold branch exists in this path."
+        }
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-26T15:43:48Z",
+    "status": "ready",
+    "datasets": {
+      "book_eligibility_by_asset": [
+        {"asset": "BTC", "asset_class": "Crypto", "snapshots": 636, "window_snapshots": 548, "book_eligible": 260, "eligible_rate": 0.474, "avg_touch_depth": 2252.2},
+        {"asset": "GOLD", "asset_class": "Commodity", "snapshots": 630, "window_snapshots": 542, "book_eligible": 158, "eligible_rate": 0.292, "avg_touch_depth": 466.5},
+        {"asset": "SILVER", "asset_class": "Commodity", "snapshots": 635, "window_snapshots": 548, "book_eligible": 50, "eligible_rate": 0.091, "avg_touch_depth": 184.4},
+        {"asset": "ETH", "asset_class": "Crypto", "snapshots": 635, "window_snapshots": 547, "book_eligible": 40, "eligible_rate": 0.073, "avg_touch_depth": 68.5},
+        {"asset": "WTI", "asset_class": "Commodity", "snapshots": 633, "window_snapshots": 546, "book_eligible": 24, "eligible_rate": 0.044, "avg_touch_depth": 116.4},
+        {"asset": "ZEC", "asset_class": "Crypto", "snapshots": 634, "window_snapshots": 547, "book_eligible": 8, "eligible_rate": 0.015, "avg_touch_depth": 89.1},
+        {"asset": "XRP", "asset_class": "Crypto", "snapshots": 646, "window_snapshots": 558, "book_eligible": 3, "eligible_rate": 0.005, "avg_touch_depth": 40.0},
+        {"asset": "SOL", "asset_class": "Crypto", "snapshots": 638, "window_snapshots": 550, "book_eligible": 2, "eligible_rate": 0.004, "avg_touch_depth": 60.1},
+        {"asset": "BNB", "asset_class": "Crypto", "snapshots": 638, "window_snapshots": 550, "book_eligible": 0, "eligible_rate": 0.0, "avg_touch_depth": 44.8},
+        {"asset": "DOGE", "asset_class": "Crypto", "snapshots": 640, "window_snapshots": 552, "book_eligible": 0, "eligible_rate": 0.0, "avg_touch_depth": 82.9},
+        {"asset": "HYPE", "asset_class": "Crypto", "snapshots": 642, "window_snapshots": 554, "book_eligible": 0, "eligible_rate": 0.0, "avg_touch_depth": 20.1},
+        {"asset": "NEAR", "asset_class": "Crypto", "snapshots": 638, "window_snapshots": 551, "book_eligible": 0, "eligible_rate": 0.0, "avg_touch_depth": 54.5}
+      ],
+      "current_class_summary": [
+        {"asset_class": "Commodity", "configured_assets": 3, "current_filled_trades": 5, "window_snapshots": 1636, "book_eligible": 232, "eligible_rate": 0.1418},
+        {"asset_class": "Crypto", "configured_assets": 9, "current_filled_trades": 0, "window_snapshots": 4957, "book_eligible": 313, "eligible_rate": 0.0631}
+      ],
+      "filled_trades_by_asset": [
+        {"asset": "GOLD", "asset_class": "Commodity", "predictor_trades": 4, "scalper_trades": 15, "filled_trades": 19},
+        {"asset": "BTC", "asset_class": "Crypto", "predictor_trades": 0, "scalper_trades": 16, "filled_trades": 16},
+        {"asset": "SILVER", "asset_class": "Commodity", "predictor_trades": 2, "scalper_trades": 11, "filled_trades": 13},
+        {"asset": "WTI", "asset_class": "Commodity", "predictor_trades": 0, "scalper_trades": 7, "filled_trades": 7},
+        {"asset": "ETH", "asset_class": "Crypto", "predictor_trades": 1, "scalper_trades": 1, "filled_trades": 2},
+        {"asset": "XRP", "asset_class": "Crypto", "predictor_trades": 0, "scalper_trades": 2, "filled_trades": 2},
+        {"asset": "ZEC", "asset_class": "Crypto", "predictor_trades": 2, "scalper_trades": 0, "filled_trades": 2},
+        {"asset": "BNB", "asset_class": "Crypto", "predictor_trades": 1, "scalper_trades": 0, "filled_trades": 1},
+        {"asset": "HYPE", "asset_class": "Crypto", "predictor_trades": 1, "scalper_trades": 0, "filled_trades": 1},
+        {"asset": "DOGE", "asset_class": "Crypto", "predictor_trades": 0, "scalper_trades": 0, "filled_trades": 0},
+        {"asset": "NEAR", "asset_class": "Crypto", "predictor_trades": 0, "scalper_trades": 0, "filled_trades": 0},
+        {"asset": "SOL", "asset_class": "Crypto", "predictor_trades": 0, "scalper_trades": 0, "filled_trades": 0}
+      ],
+      "execution_funnel": [
+        {"asset_class": "Crypto", "strategy": "Scalper", "submitted": 106, "filled": 19, "rejected": 49, "other": 38},
+        {"asset_class": "Commodity", "strategy": "Scalper", "submitted": 71, "filled": 32, "rejected": 0, "other": 39},
+        {"asset_class": "Commodity", "strategy": "Predictor", "submitted": 8, "filled": 6, "rejected": 0, "other": 2},
+        {"asset_class": "Crypto", "strategy": "Predictor", "submitted": 8, "filled": 4, "rejected": 3, "other": 1}
+      ],
+      "current_predictor_gates": [
+        {"gate": "Minimum probability", "count": 1476},
+        {"gate": "Model/market divergence", "count": 1303},
+        {"gate": "Settlement margin", "count": 33},
+        {"gate": "Minimum edge", "count": 13}
+      ]
+    }
+  }
+}

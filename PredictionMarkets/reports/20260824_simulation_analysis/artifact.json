@@ -1,0 +1,728 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Kalshi 15-minute strategy and exit-policy analysis",
+    "generatedAt": "2026-08-24T19:59:34.679381-04:00",
+    "description": "Technical evaluation of isolated Kalshi 15-minute simulation sessions.",
+    "cards": [],
+    "charts": [
+      {
+        "id": "strategy_pnl",
+        "title": "Final-run strategy-lab net P&L",
+        "subtitle": "Wallets are isolated; counts and win rates remain available in tooltips.",
+        "type": "horizontalBar",
+        "dataset": "final_strategies",
+        "sourceId": "simulation_analysis",
+        "encodings": {
+          "x": {
+            "field": "strategy",
+            "type": "nominal",
+            "label": "Strategy"
+          },
+          "y": {
+            "field": "net_pnl",
+            "type": "quantitative",
+            "format": "currency",
+            "label": "Net P&L"
+          },
+          "tooltip": [
+            {
+              "field": "closed",
+              "type": "quantitative",
+              "label": "Closed positions"
+            },
+            {
+              "field": "win_rate",
+              "type": "quantitative",
+              "format": "percent",
+              "label": "Win rate"
+            }
+          ]
+        },
+        "referenceLines": [
+          {
+            "value": 0,
+            "label": "$0"
+          }
+        ],
+        "maxRows": 20
+      },
+      {
+        "id": "exit_capture",
+        "title": "Matched winning-market upside capture by exit policy",
+        "subtitle": "Only same-run ticker/outcome matches against hold-to-settlement are eligible.",
+        "type": "bar",
+        "dataset": "exit_comparison",
+        "sourceId": "simulation_analysis",
+        "encodings": {
+          "x": {
+            "field": "strategy",
+            "type": "nominal",
+            "label": "Exit policy"
+          },
+          "y": {
+            "field": "winner_upside_capture",
+            "type": "quantitative",
+            "format": "percent",
+            "label": "Upside captured"
+          },
+          "tooltip": [
+            {
+              "field": "matched_positions",
+              "type": "quantitative",
+              "label": "Matched positions"
+            },
+            {
+              "field": "actual_pnl",
+              "type": "quantitative",
+              "format": "currency",
+              "label": "Actual P&L"
+            },
+            {
+              "field": "loss_avoided",
+              "type": "quantitative",
+              "format": "currency",
+              "label": "Loss avoided"
+            }
+          ]
+        },
+        "referenceLines": [
+          {
+            "value": 0.75,
+            "label": "75% target"
+          }
+        ],
+        "emptyState": "No matched winning markets were available in this window."
+      },
+      {
+        "id": "model_auc",
+        "title": "Chronological out-of-sample AUC by asset",
+        "subtitle": "Only models at or above 0.55 with non-negative indicator lift are deployable.",
+        "type": "horizontalBar",
+        "dataset": "models",
+        "sourceId": "simulation_analysis",
+        "encodings": {
+          "x": {
+            "field": "asset",
+            "type": "nominal",
+            "label": "Asset"
+          },
+          "y": {
+            "field": "auc",
+            "type": "quantitative",
+            "format": "number",
+            "label": "ROC AUC"
+          },
+          "tooltip": [
+            {
+              "field": "baseline_auc",
+              "type": "quantitative",
+              "label": "Indicator-free AUC"
+            },
+            {
+              "field": "indicator_delta_auc",
+              "type": "quantitative",
+              "label": "Indicator lift"
+            },
+            {
+              "field": "deployment_status",
+              "type": "nominal",
+              "label": "Status"
+            },
+            {
+              "field": "weight",
+              "type": "quantitative",
+              "label": "Blend weight"
+            }
+          ]
+        },
+        "referenceLines": [
+          {
+            "value": 0.5,
+            "label": "Random"
+          },
+          {
+            "value": 0.55,
+            "label": "Deploy threshold"
+          }
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "id": "exit_comparison",
+        "title": "Matched exit-policy details",
+        "subtitle": "P&L and counterfactuals are fee-adjusted within the isolated lab.",
+        "dataset": "exit_comparison",
+        "sourceId": "simulation_analysis",
+        "defaultSort": {
+          "field": "actual_pnl",
+          "direction": "desc"
+        },
+        "columns": [
+          {
+            "field": "strategy",
+            "label": "Exit policy",
+            "type": "text"
+          },
+          {
+            "field": "matched_positions",
+            "label": "Matched",
+            "type": "number"
+          },
+          {
+            "field": "actual_pnl",
+            "label": "Actual P&L",
+            "type": "currency",
+            "format": "currency",
+            "movement": true
+          },
+          {
+            "field": "hold_counterfactual_pnl",
+            "label": "Hold P&L",
+            "type": "currency",
+            "format": "currency",
+            "movement": true
+          },
+          {
+            "field": "winner_upside_capture",
+            "label": "Winner capture",
+            "type": "percent",
+            "format": "percent"
+          },
+          {
+            "field": "loss_avoided",
+            "label": "Loss avoided",
+            "type": "currency",
+            "format": "currency",
+            "movement": true
+          }
+        ]
+      },
+      {
+        "id": "run_quality",
+        "title": "Run scope, provenance, and quality",
+        "dataset": "runs",
+        "sourceId": "simulation_analysis",
+        "defaultSort": {
+          "field": "run",
+          "direction": "asc"
+        },
+        "columns": [
+          {
+            "field": "run",
+            "label": "Run",
+            "type": "text"
+          },
+          {
+            "field": "status",
+            "label": "Status",
+            "type": "text"
+          },
+          {
+            "field": "snapshots",
+            "label": "Snapshots",
+            "type": "number",
+            "format": "compact"
+          },
+          {
+            "field": "depth_rows",
+            "label": "Depth rows",
+            "type": "number",
+            "format": "compact"
+          },
+          {
+            "field": "main_closed",
+            "label": "Main closed",
+            "type": "number"
+          },
+          {
+            "field": "main_win_rate",
+            "label": "Main win rate",
+            "type": "percent",
+            "format": "percent"
+          },
+          {
+            "field": "main_pnl",
+            "label": "Main P&L",
+            "type": "currency",
+            "format": "currency",
+            "movement": true
+          },
+          {
+            "field": "pair_arb_approved",
+            "label": "Approved arbs",
+            "type": "number"
+          },
+          {
+            "field": "quality_passed",
+            "label": "Quality passed",
+            "type": "text"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "simulation_analysis",
+        "label": "Isolated simulation ledgers and derived analysis",
+        "path": "reports/20260824_simulation_analysis/analysis_summary.json",
+        "query": {
+          "engine": "sqlite",
+          "language": "sql",
+          "sql": "ATTACH DATABASE 'data/simulations/20260824_all_assets_2h/trade_ledger.db' AS ledger_0;\nATTACH DATABASE 'data/simulations/20260824_all_assets_2h/strategy_lab.db' AS lab_0;\nATTACH DATABASE 'data/simulations/20260824_all_assets_new_models_to_6pm_v2/trade_ledger.db' AS ledger_1;\nATTACH DATABASE 'data/simulations/20260824_all_assets_new_models_to_6pm_v2/strategy_lab.db' AS lab_1;\nATTACH DATABASE 'data/simulations/20260824_final_2h_new_models_adaptive_exit/trade_ledger.db' AS ledger_2;\nATTACH DATABASE 'data/simulations/20260824_final_2h_new_models_adaptive_exit/strategy_lab.db' AS lab_2;\nSELECT 'legacy_2h' AS run_label, 'main_trade' AS record_type, json_object('trade_id', trade_id, 'ticker', ticker, 'asset', asset, 'outcome', outcome, 'status', status, 'pnl', pnl) AS record_json FROM ledger_0.trades\nUNION ALL\nSELECT 'legacy_2h', 'lab_position', json_object('position_id', position_id, 'strategy', strategy, 'ticker', ticker, 'outcome', outcome, 'status', status, 'pnl', pnl) FROM lab_0.lab_positions\nUNION ALL\nSELECT 'legacy_2h', 'market_count', json_object('snapshots', COUNT(*), 'contracts', COUNT(DISTINCT ticker)) FROM ledger_0.market_snapshots\nUNION ALL\nSELECT 'checkpoint' AS run_label, 'main_trade' AS record_type, json_object('trade_id', trade_id, 'ticker', ticker, 'asset', asset, 'outcome', outcome, 'status', status, 'pnl', pnl) AS record_json FROM ledger_1.trades\nUNION ALL\nSELECT 'checkpoint', 'lab_position', json_object('position_id', position_id, 'strategy', strategy, 'ticker', ticker, 'outcome', outcome, 'status', status, 'pnl', pnl) FROM lab_1.lab_positions\nUNION ALL\nSELECT 'checkpoint', 'market_count', json_object('snapshots', COUNT(*), 'contracts', COUNT(DISTINCT ticker)) FROM ledger_1.market_snapshots\nUNION ALL\nSELECT 'final' AS run_label, 'main_trade' AS record_type, json_object('trade_id', trade_id, 'ticker', ticker, 'asset', asset, 'outcome', outcome, 'status', status, 'pnl', pnl) AS record_json FROM ledger_2.trades\nUNION ALL\nSELECT 'final', 'lab_position', json_object('position_id', position_id, 'strategy', strategy, 'ticker', ticker, 'outcome', outcome, 'status', status, 'pnl', pnl) FROM lab_2.lab_positions\nUNION ALL\nSELECT 'final', 'market_count', json_object('snapshots', COUNT(*), 'contracts', COUNT(DISTINCT ticker)) FROM ledger_2.market_snapshots;",
+          "description": "Extracts the raw main trades, strategy-lab positions, and market counts used by the reproducible Python analysis.",
+          "executed_at": "2026-08-24T19:59:34.679381-04:00",
+          "tables_used": [
+            "ledger_0.data_runs",
+            "ledger_0.market_snapshots",
+            "ledger_0.trades",
+            "ledger_0.position_evaluations",
+            "ledger_0.pair_arb_observations",
+            "lab_0.lab_positions",
+            "lab_0.lab_observations",
+            "ledger_1.data_runs",
+            "ledger_1.market_snapshots",
+            "ledger_1.trades",
+            "ledger_1.position_evaluations",
+            "ledger_1.pair_arb_observations",
+            "lab_1.lab_positions",
+            "lab_1.lab_observations",
+            "ledger_2.data_runs",
+            "ledger_2.market_snapshots",
+            "ledger_2.trades",
+            "ledger_2.position_evaluations",
+            "ledger_2.pair_arb_observations",
+            "lab_2.lab_positions",
+            "lab_2.lab_observations"
+          ],
+          "filters": [
+            "Only explicitly selected isolated simulation directories are attached.",
+            "Known-invalid calibration sessions are excluded before this query is built."
+          ],
+          "metric_definitions": [
+            "Net P&L is the sum of recorded fee-adjusted closed-position P&L in USD.",
+            "Win rate is positive-P&L closed positions divided by all closed positions.",
+            "Winner upside capture is exit-policy P&L divided by matched hold-to-settlement P&L where the held side won.",
+            "Loss avoided is exit-policy P&L minus matched hold-to-settlement P&L where the held side lost."
+          ]
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# Kalshi 15-minute strategy and exit-policy analysis"
+      },
+      {
+        "id": "technical_assessment",
+        "type": "markdown",
+        "sourceId": "simulation_analysis",
+        "body": "## Technical assessment\n\n**Summary:** 6 final trades, 100.0% wins, $+14.72; adaptive capture 90.5% versus fixed 27.1%. **Method:** strict fee-aware ledgers and matched exits. **Limit:** small paper sample. **Action:** keep adaptive exit and the $10 cap; require independent replication. **Question:** does this persist over 100 matches?"
+      },
+      {
+        "id": "strategy_chart_block",
+        "type": "chart",
+        "chartId": "strategy_pnl"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-24T19:59:34.679381-04:00",
+    "status": "ready",
+    "datasets": {
+      "headline": [
+        {
+          "final_main_pnl": 14.7162,
+          "final_main_win_rate": 1.0,
+          "final_main_closed": 6,
+          "reviewed_snapshots": 21307,
+          "reviewed_depth_rows": 795160,
+          "pair_arb_approved": 0
+        }
+      ],
+      "final_strategies": [
+        {
+          "strategy": "consensus_tail_carry",
+          "starting_balance": 100.0,
+          "ending_cash": 104.2635,
+          "positions": 10,
+          "closed": 10,
+          "open": 0,
+          "wins": 10,
+          "losses": 0,
+          "win_rate": 1.0,
+          "net_pnl": 4.2635,
+          "wallet_reported_pnl": 4.2635
+        },
+        {
+          "strategy": "complementary_pair_arb",
+          "starting_balance": 100.0,
+          "ending_cash": 100.0,
+          "positions": 0,
+          "closed": 0,
+          "open": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate": null,
+          "net_pnl": 0,
+          "wallet_reported_pnl": 0.0
+        },
+        {
+          "strategy": "trend_trailing",
+          "starting_balance": 100.0,
+          "ending_cash": 100.0,
+          "positions": 0,
+          "closed": 0,
+          "open": 0,
+          "wins": 0,
+          "losses": 0,
+          "win_rate": null,
+          "net_pnl": 0,
+          "wallet_reported_pnl": 0.0
+        },
+        {
+          "strategy": "displaced_shelf",
+          "starting_balance": 100.0,
+          "ending_cash": 80.2431,
+          "positions": 2,
+          "closed": 2,
+          "open": 0,
+          "wins": 0,
+          "losses": 2,
+          "win_rate": 0.0,
+          "net_pnl": -19.7569,
+          "wallet_reported_pnl": -19.7569
+        },
+        {
+          "strategy": "change_point_flip",
+          "starting_balance": 100.0,
+          "ending_cash": 68.9788,
+          "positions": 7,
+          "closed": 7,
+          "open": 0,
+          "wins": 2,
+          "losses": 5,
+          "win_rate": 0.2857142857142857,
+          "net_pnl": -31.0212,
+          "wallet_reported_pnl": -31.0212
+        },
+        {
+          "strategy": "strike_distance",
+          "starting_balance": 100.0,
+          "ending_cash": 63.7832,
+          "positions": 8,
+          "closed": 8,
+          "open": 0,
+          "wins": 2,
+          "losses": 6,
+          "win_rate": 0.25,
+          "net_pnl": -36.2168,
+          "wallet_reported_pnl": -36.2168
+        },
+        {
+          "strategy": "probability_acceleration",
+          "starting_balance": 100.0,
+          "ending_cash": 59.7736,
+          "positions": 16,
+          "closed": 16,
+          "open": 0,
+          "wins": 4,
+          "losses": 12,
+          "win_rate": 0.25,
+          "net_pnl": -40.2264,
+          "wallet_reported_pnl": -40.2264
+        },
+        {
+          "strategy": "raw_value_longshot",
+          "starting_balance": 100.0,
+          "ending_cash": 56.6631,
+          "positions": 39,
+          "closed": 39,
+          "open": 0,
+          "wins": 15,
+          "losses": 24,
+          "win_rate": 0.38461538461538464,
+          "net_pnl": -43.3369,
+          "wallet_reported_pnl": -43.3369
+        },
+        {
+          "strategy": "hold_to_settlement",
+          "starting_balance": 100.0,
+          "ending_cash": 53.2667,
+          "positions": 22,
+          "closed": 22,
+          "open": 0,
+          "wins": 9,
+          "losses": 13,
+          "win_rate": 0.4090909090909091,
+          "net_pnl": -46.7333,
+          "wallet_reported_pnl": -46.7333
+        },
+        {
+          "strategy": "adaptive_take_profit",
+          "starting_balance": 100.0,
+          "ending_cash": 48.9518,
+          "positions": 22,
+          "closed": 22,
+          "open": 0,
+          "wins": 9,
+          "losses": 13,
+          "win_rate": 0.4090909090909091,
+          "net_pnl": -51.0482,
+          "wallet_reported_pnl": -51.0482
+        },
+        {
+          "strategy": "fixed_take_profit",
+          "starting_balance": 100.0,
+          "ending_cash": 43.897,
+          "positions": 26,
+          "closed": 26,
+          "open": 0,
+          "wins": 14,
+          "losses": 12,
+          "win_rate": 0.5384615384615384,
+          "net_pnl": -56.103,
+          "wallet_reported_pnl": -56.103
+        },
+        {
+          "strategy": "regime_ensemble",
+          "starting_balance": 100.0,
+          "ending_cash": 32.9435,
+          "positions": 22,
+          "closed": 22,
+          "open": 0,
+          "wins": 6,
+          "losses": 16,
+          "win_rate": 0.2727272727272727,
+          "net_pnl": -67.0565,
+          "wallet_reported_pnl": -67.0565
+        },
+        {
+          "strategy": "microprice_flow",
+          "starting_balance": 100.0,
+          "ending_cash": 26.8465,
+          "positions": 35,
+          "closed": 35,
+          "open": 0,
+          "wins": 6,
+          "losses": 29,
+          "win_rate": 0.17142857142857143,
+          "net_pnl": -73.1535,
+          "wallet_reported_pnl": -73.1535
+        }
+      ],
+      "exit_comparison": [
+        {
+          "strategy": "fixed_take_profit",
+          "matched_positions": 26,
+          "actual_pnl": -56.103,
+          "hold_counterfactual_pnl": -12.627600000000003,
+          "delta_vs_hold": -43.4754,
+          "winner_markets": 13,
+          "winner_upside_capture": 0.2711868681137162,
+          "loss_avoided": 14.323999999999998
+        },
+        {
+          "strategy": "adaptive_take_profit",
+          "matched_positions": 22,
+          "actual_pnl": -51.0482,
+          "hold_counterfactual_pnl": -46.7333,
+          "delta_vs_hold": -4.3149000000000015,
+          "winner_markets": 9,
+          "winner_upside_capture": 0.9045386666076703,
+          "loss_avoided": 0.0
+        }
+      ],
+      "runs": [
+        {
+          "run": "legacy_2h",
+          "status": "COMPLETED",
+          "snapshots": 8385,
+          "depth_rows": 313520,
+          "main_closed": 16,
+          "main_win_rate": 0.875,
+          "main_pnl": -0.6204900000000001,
+          "pair_arb_approved": 0,
+          "quality_passed": true
+        },
+        {
+          "run": "checkpoint",
+          "status": "COMPLETED",
+          "snapshots": 4557,
+          "depth_rows": 171522,
+          "main_closed": 2,
+          "main_win_rate": 1.0,
+          "main_pnl": 2.1143,
+          "pair_arb_approved": 0,
+          "quality_passed": true
+        },
+        {
+          "run": "final",
+          "status": "COMPLETED",
+          "snapshots": 8365,
+          "depth_rows": 310118,
+          "main_closed": 6,
+          "main_win_rate": 1.0,
+          "main_pnl": 14.7162,
+          "pair_arb_approved": 0,
+          "quality_passed": true
+        }
+      ],
+      "models": [
+        {
+          "asset": "HYPE",
+          "auc": 0.5598094695273379,
+          "baseline_auc": 0.5138894543283258,
+          "indicator_delta_auc": 0.04592001519901212,
+          "deployment_status": "active",
+          "weight": 0.08971420429100685,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "SOL",
+          "auc": 0.5324854774124415,
+          "baseline_auc": 0.5202235256518715,
+          "indicator_delta_auc": 0.012261951760569989,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "SILVER",
+          "auc": 0.5261423740570537,
+          "baseline_auc": 0.5211515803754954,
+          "indicator_delta_auc": 0.004990793681558303,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "DOGE",
+          "auc": 0.5233486015424988,
+          "baseline_auc": 0.49155972684692784,
+          "indicator_delta_auc": 0.03178887469557101,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "WTI",
+          "auc": 0.5202973127501429,
+          "baseline_auc": 0.4934248141795312,
+          "indicator_delta_auc": 0.02687249857061169,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "GOLD",
+          "auc": 0.5124841571609633,
+          "baseline_auc": 0.550796423800226,
+          "indicator_delta_auc": -0.03831226663926268,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "ZEC",
+          "auc": 0.508487627716673,
+          "baseline_auc": 0.5213380225034192,
+          "indicator_delta_auc": -0.012850394786746211,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "NEAR",
+          "auc": 0.5070406920458449,
+          "baseline_auc": 0.4927610005933606,
+          "indicator_delta_auc": 0.014279691452484311,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "XRP",
+          "auc": 0.4979390895185897,
+          "baseline_auc": 0.48776976156730195,
+          "indicator_delta_auc": 0.010169327951287721,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        },
+        {
+          "asset": "BNB",
+          "auc": 0.46439231204070097,
+          "baseline_auc": 0.4354437535330695,
+          "indicator_delta_auc": 0.02894855850763145,
+          "deployment_status": "shadow_only",
+          "weight": 0.0,
+          "threshold": 0.55,
+          "random_baseline": 0.5
+        }
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "simulation_analysis",
+      "label": "Isolated simulation ledgers and derived analysis",
+      "path": "reports/20260824_simulation_analysis/analysis_summary.json",
+      "query": {
+        "engine": "sqlite",
+        "language": "sql",
+        "sql": "ATTACH DATABASE 'data/simulations/20260824_all_assets_2h/trade_ledger.db' AS ledger_0;\nATTACH DATABASE 'data/simulations/20260824_all_assets_2h/strategy_lab.db' AS lab_0;\nATTACH DATABASE 'data/simulations/20260824_all_assets_new_models_to_6pm_v2/trade_ledger.db' AS ledger_1;\nATTACH DATABASE 'data/simulations/20260824_all_assets_new_models_to_6pm_v2/strategy_lab.db' AS lab_1;\nATTACH DATABASE 'data/simulations/20260824_final_2h_new_models_adaptive_exit/trade_ledger.db' AS ledger_2;\nATTACH DATABASE 'data/simulations/20260824_final_2h_new_models_adaptive_exit/strategy_lab.db' AS lab_2;\nSELECT 'legacy_2h' AS run_label, 'main_trade' AS record_type, json_object('trade_id', trade_id, 'ticker', ticker, 'asset', asset, 'outcome', outcome, 'status', status, 'pnl', pnl) AS record_json FROM ledger_0.trades\nUNION ALL\nSELECT 'legacy_2h', 'lab_position', json_object('position_id', position_id, 'strategy', strategy, 'ticker', ticker, 'outcome', outcome, 'status', status, 'pnl', pnl) FROM lab_0.lab_positions\nUNION ALL\nSELECT 'legacy_2h', 'market_count', json_object('snapshots', COUNT(*), 'contracts', COUNT(DISTINCT ticker)) FROM ledger_0.market_snapshots\nUNION ALL\nSELECT 'checkpoint' AS run_label, 'main_trade' AS record_type, json_object('trade_id', trade_id, 'ticker', ticker, 'asset', asset, 'outcome', outcome, 'status', status, 'pnl', pnl) AS record_json FROM ledger_1.trades\nUNION ALL\nSELECT 'checkpoint', 'lab_position', json_object('position_id', position_id, 'strategy', strategy, 'ticker', ticker, 'outcome', outcome, 'status', status, 'pnl', pnl) FROM lab_1.lab_positions\nUNION ALL\nSELECT 'checkpoint', 'market_count', json_object('snapshots', COUNT(*), 'contracts', COUNT(DISTINCT ticker)) FROM ledger_1.market_snapshots\nUNION ALL\nSELECT 'final' AS run_label, 'main_trade' AS record_type, json_object('trade_id', trade_id, 'ticker', ticker, 'asset', asset, 'outcome', outcome, 'status', status, 'pnl', pnl) AS record_json FROM ledger_2.trades\nUNION ALL\nSELECT 'final', 'lab_position', json_object('position_id', position_id, 'strategy', strategy, 'ticker', ticker, 'outcome', outcome, 'status', status, 'pnl', pnl) FROM lab_2.lab_positions\nUNION ALL\nSELECT 'final', 'market_count', json_object('snapshots', COUNT(*), 'contracts', COUNT(DISTINCT ticker)) FROM ledger_2.market_snapshots;",
+        "description": "Extracts the raw main trades, strategy-lab positions, and market counts used by the reproducible Python analysis.",
+        "executed_at": "2026-08-24T19:59:34.679381-04:00",
+        "tables_used": [
+          "ledger_0.data_runs",
+          "ledger_0.market_snapshots",
+          "ledger_0.trades",
+          "ledger_0.position_evaluations",
+          "ledger_0.pair_arb_observations",
+          "lab_0.lab_positions",
+          "lab_0.lab_observations",
+          "ledger_1.data_runs",
+          "ledger_1.market_snapshots",
+          "ledger_1.trades",
+          "ledger_1.position_evaluations",
+          "ledger_1.pair_arb_observations",
+          "lab_1.lab_positions",
+          "lab_1.lab_observations",
+          "ledger_2.data_runs",
+          "ledger_2.market_snapshots",
+          "ledger_2.trades",
+          "ledger_2.position_evaluations",
+          "ledger_2.pair_arb_observations",
+          "lab_2.lab_positions",
+          "lab_2.lab_observations"
+        ],
+        "filters": [
+          "Only explicitly selected isolated simulation directories are attached.",
+          "Known-invalid calibration sessions are excluded before this query is built."
+        ],
+        "metric_definitions": [
+          "Net P&L is the sum of recorded fee-adjusted closed-position P&L in USD.",
+          "Win rate is positive-P&L closed positions divided by all closed positions.",
+          "Winner upside capture is exit-policy P&L divided by matched hold-to-settlement P&L where the held side won.",
+          "Loss avoided is exit-policy P&L minus matched hold-to-settlement P&L where the held side lost."
+        ]
+      }
+    }
+  ],
+  "package_info": {}
+}

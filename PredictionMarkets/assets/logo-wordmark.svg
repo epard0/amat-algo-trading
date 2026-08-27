@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 306 64" role="img"
+     aria-labelledby="kx15-wordmark-title" width="306" height="64">
+  <title id="kx15-wordmark-title">KX15 — Kalshi 15-minute crypto trading bot</title>
+  <!--
+    Horizontal lockup for READMEs and email headers: the mark from logo.svg,
+    then the name at the same optical weight.
+
+    The name cannot use currentColor. This file is loaded through img tags in
+    places that give an SVG document no inherited colour, so currentColor
+    resolves to black and the name disappears on a dark README. The stylesheet
+    below picks the ink from the viewer's own colour scheme instead, which
+    works in an img because a standalone SVG evaluates its own media queries.
+
+    The wordmark is live text in a system font stack rather than outlines: the
+    file stays editable and tiny, at the cost of a few pixels of difference
+    across platforms. Convert the text to paths if exact letterforms ever
+    matter; on a screen the difference is invisible.
+
+    Clear space either side is 12 units, half the dial's radius.
+  -->
+  <style>
+    .kx-name { fill: #0b1a12; }
+    @media (prefers-color-scheme: dark) { .kx-name { fill: #f2f7f4; } }
+  </style>
+  <g fill="none" stroke="#16a34a" stroke-linecap="round">
+    <path d="M32 7 A25 25 0 1 0 57 32" stroke-width="5" opacity=".9" />
+    <g stroke-width="3.5" opacity=".5">
+      <path d="M21 41 L21 27" />
+      <path d="M32 46 L32 21" />
+      <path d="M43 37 L43 15" />
+    </g>
+    <g stroke-width="9">
+      <path d="M21 38.5 L21 33.5" opacity=".45" />
+      <path d="M32 42 L32 27" opacity=".75" />
+      <path d="M43 32 L43 20" />
+    </g>
+  </g>
+  <text class="kx-name" x="76" y="42" font-size="30" font-weight="700"
+        letter-spacing="-.5"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        >KX15</text>
+  <text x="172" y="41" font-size="13" font-weight="600" letter-spacing="1.4"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        fill="#16a34a" opacity=".9">15-MIN CRYPTO</text>
+</svg>
