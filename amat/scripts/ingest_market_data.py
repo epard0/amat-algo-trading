@@ -156,9 +156,73 @@ WIDE_UNIVERSE: tuple[str, ...] = (
     "SCHH",
 )
 
+# Broad discovery universe for strategy v10+. It starts from the 81-symbol
+# complete/decidable subset documented by experiment 0006, then adds continuous
+# 2016-01-04 coverage in three deliberately separate families. CTRA and CHRD
+# were probed on 2026-09-07 and excluded mechanically because their histories
+# begin in 2018 and 2020; no return was inspected for inclusion.
+_WIDE_DATA_EXCLUSIONS = frozenset(
+    {"BND", "BNDX", "EWT", "IWF", "MTUM", "TLH", "VCIT", "VCSH", "JNK", "SLX", "GDXJ"}
+)
+EXPANDED_UNIVERSE: tuple[str, ...] = (
+    *(symbol for symbol in WIDE_UNIVERSE if symbol not in _WIDE_DATA_EXCLUSIONS),
+    # US defense/aerospace companies and liquid industry ETFs.
+    "LMT",
+    "RTX",
+    "NOC",
+    "GD",
+    "LHX",
+    "HII",
+    "BA",
+    "TXT",
+    "LDOS",
+    "CACI",
+    "KTOS",
+    "MRCY",
+    "CW",
+    "TDG",
+    "HEI",
+    "AVAV",
+    "ITA",
+    "XAR",
+    "PPA",
+    # Integrated energy, E&P, refiners, services, midstream, and LNG.
+    "XOM",
+    "CVX",
+    "COP",
+    "EOG",
+    "OXY",
+    "MPC",
+    "VLO",
+    "PSX",
+    "SLB",
+    "HAL",
+    "KMI",
+    "WMB",
+    "LNG",
+    "EQT",
+    "DVN",
+    "FANG",
+    "APA",
+    "OKE",
+    "TRGP",
+    "AR",
+    "CNX",
+    "OVV",
+    # Oil/gas product ETFs. Leveraged/inverse funds are discovery-only and
+    # receive their own cap; they must never be treated as long-term holdings.
+    "BNO",
+    "UGA",
+    "BOIL",
+    "KOLD",
+    "UCO",
+    "SCO",
+)
+
 _UNIVERSES: dict[str, tuple[str, ...]] = {
     "core": UNIVERSE,
     "wide": WIDE_UNIVERSE,
+    "expanded": EXPANDED_UNIVERSE,
 }
 
 
@@ -172,7 +236,8 @@ def main() -> int:
         help=(
             "Which declared symbol list to pull. `core` is the 30-symbol list every "
             "snapshot before 2026-08-20 used and is the default so that re-running this "
-            "script reproduces them; `wide` is the 92-symbol list for experiment 0006."
+            "script reproduces them; `wide` is the 92-symbol list for experiment 0006; "
+            "`expanded` is the 128-symbol ETF, energy, and defense discovery universe."
         ),
     )
     parser.add_argument("--start", type=dt.date.fromisoformat, default=dt.date(2016, 1, 4))

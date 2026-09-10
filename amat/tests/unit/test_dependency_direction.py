@@ -29,6 +29,12 @@ LAYERS: dict[str, int] = {
     "features": 4,
     "context": 4,
     "regime": 4,
+    # Research-only pair diagnostics consume price histories and emit no
+    # portfolio weights or execution instructions.
+    "stat_arb": 4,
+    # Descriptive session-pattern diagnostics consume immutable panels and emit
+    # no targets or orders.
+    "patterns": 4,
     "risk": 4,
     "portfolio": 4,
     "execution": 4,

@@ -474,7 +474,7 @@ def build_insights(
             a missed rally to a cluster cap.
     """
     weights, max_error = reconstruct_weights(result, panel, actions_by_session=actions_by_session)
-    trades = replay_trades(result, panel)
+    trades = replay_trades(result, panel, actions_by_session=actions_by_session)
     captured, whipsaws, givebacks = _classify_trades(trades)
     rallies = _missed_rallies(result, panel, weights, clusters=clusters)
 

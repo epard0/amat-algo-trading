@@ -33,6 +33,10 @@ from amat.errors import DataIntegrityError
 __all__ = ["IngestionPlan", "ingest_snapshot"]
 
 _CHECKPOINT_VERSION = 1
+# Re-serializing a wide checkpoint after every session is quadratic in the
+# number of sessions (a 128-symbol/1,700-session checkpoint is already ~28 MB).
+# Commit bounded batches, and always flush the tail in ``finally``.
+_CHECKPOINT_BATCH_SESSIONS = 25
 
 
 class IngestionPlan:
@@ -181,20 +185,33 @@ def _collect_window_bars(
         collected = _read_checkpoint(checkpoint_path, plan)
         progress(f"resumed from checkpoint: {len(collected)} sessions already fetched")
 
-    for position, session in enumerate(sessions):
-        if session in collected:
-            continue
-        collected[session] = client.execution_window_bars(
-            plan.symbols,
-            session,
-            window_start=plan.window_start,
-            window_end=plan.window_end,
-            exchange_timezone=plan.exchange_timezone,
-        )
-        if checkpoint_path is not None:
+    since_checkpoint = 0
+    try:
+        for position, session in enumerate(sessions):
+            if session in collected:
+                continue
+            collected[session] = client.execution_window_bars(
+                plan.symbols,
+                session,
+                window_start=plan.window_start,
+                window_end=plan.window_end,
+                exchange_timezone=plan.exchange_timezone,
+            )
+            since_checkpoint += 1
+            if (
+                checkpoint_path is not None
+                and since_checkpoint >= _CHECKPOINT_BATCH_SESSIONS
+            ):
+                _write_checkpoint(checkpoint_path, plan, collected)
+                since_checkpoint = 0
+            if position % 100 == 0:
+                progress(f"execution windows: {position + 1}/{len(sessions)} sessions")
+    finally:
+        # Includes normal completion, vendor failure, and Ctrl-C. Only fully
+        # returned sessions enter ``collected``, so the flush cannot claim a
+        # half-response as covered.
+        if checkpoint_path is not None and since_checkpoint:
             _write_checkpoint(checkpoint_path, plan, collected)
-        if position % 100 == 0:
-            progress(f"execution windows: {position + 1}/{len(sessions)} sessions")
 
     return [bar for session in sessions for bar in collected.get(session, [])]
 

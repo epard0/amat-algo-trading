@@ -1,0 +1,132 @@
+# AMAT v12: compact-universe control for the v11 adaptive stack.
+#
+# Universe is byte-for-byte v6's eleven instruments. Adaptive components and
+# parameters match v11 except for the 20% symbol cap appropriate to eleven
+# instruments. Comparing v11 to v12 isolates universe expansion from the
+# adaptive stack; comparing v12 to v6 isolates the stack from expansion.
+# This remains the executable daily/long-only precursor for the same explicit
+# data/accounting reasons documented in v11.
+
+name = "amat-adaptive-compact-11"
+version = "12.0.1"
+
+[[universe.clusters]]
+name = "us_equity"
+gross_cap = 0.40
+symbols = ["SPY", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "international"
+gross_cap = 0.25
+symbols = ["EFA", "EEM"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+symbols = ["IEF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.20
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.20
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[cross_sectional]
+enabled = true
+max_positions = 10
+min_horizon_agreement = 2
+
+[structure]
+enabled = true
+variance_lookback_sessions = 63
+variance_ratio_horizon = 5
+variance_ratio_floor = 0.80
+variance_ratio_target = 1.15
+rsi_period = 14
+rsi_floor = 40.0
+rsi_target = 55.0
+rsi_upper_target = 75.0
+rsi_ceiling = 85.0
+channel_lookback_sessions = 63
+channel_floor = 0.45
+channel_target = 0.90
+downside_lookback_sessions = 63
+downside_target = 0.35
+downside_ceiling = 0.65
+min_multiplier = 0.90
+
+[risk_budget]
+enabled = true
+lookback_sessions = 252
+min_periods_sessions = 126
+min_multiplier = 0.75
+max_multiplier = 1.25
+measure = "information_ratio"
+
+[learned_regime]
+enabled = true
+n_regimes = 3
+fit_window_sessions = 504
+refit_every_sessions = 21
+risk_floor = 0.75
+unknown_scalar = 1.00
+seed = 20260907
+
+[covariance]
+lookback_sessions = 252
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.20
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 378

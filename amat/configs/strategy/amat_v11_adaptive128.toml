@@ -1,0 +1,186 @@
+# AMAT v11: expanded adaptive daily research candidate.
+#
+# This is v10's same 124-symbol tradable universe (from the 128-symbol snapshot)
+# with selection, soft market-
+# structure quality, trailing signal-payoff risk budgeting, and causal learned
+# regime conditioning enabled. It is the executable DAILY precursor to the
+# requested multi-horizon strategy. True shorts and hourly/intraday sleeves are
+# not claimed here: the current ledger prohibits negative inventory and the
+# snapshot contains neither hourly bars nor a 15:55 execution window.
+
+name = "amat-adaptive-defense-energy-124"
+version = "11.0.3"
+
+[[universe.clusters]]
+name = "us_equity_broad"
+gross_cap = 0.40
+symbols = ["SPY", "VTI", "QQQ", "IWM", "IJH", "IJR", "MDY", "RSP"]
+
+[[universe.clusters]]
+name = "us_equity_style"
+gross_cap = 0.25
+symbols = ["IWD", "QUAL", "USMV", "VLUE", "SPLV"]
+
+[[universe.clusters]]
+name = "us_equity_sector"
+gross_cap = 0.40
+symbols = ["XLK", "XLF", "XLE", "XLV", "XLI", "XLP", "XLY", "XLU", "XLB"]
+
+[[universe.clusters]]
+name = "intl_developed"
+gross_cap = 0.40
+symbols = ["EFA", "VEA", "EWJ", "EWG", "EWU", "EWC", "EWA", "IEV", "EZU", "IEFA", "ACWI"]
+
+[[universe.clusters]]
+name = "intl_emerging"
+gross_cap = 0.40
+symbols = ["EEM", "VWO", "FXI", "EWY", "EWZ", "EWH", "EWW", "INDA", "IEMG"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.40
+symbols = ["TLT", "IEF", "SHY", "TIP", "IEI", "SHV", "BIL", "STIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.35
+symbols = ["AGG", "LQD", "HYG", "EMB", "MBB", "MUB", "PFF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.15
+symbols = ["GLD", "SLV", "PPLT"]
+
+[[universe.clusters]]
+name = "real_asset_equity"
+gross_cap = 0.20
+symbols = ["GDX", "XME", "XOP", "WOOD"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.25
+symbols = ["DBC", "USO", "DBA", "DBB", "UNG"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.25
+symbols = ["VNQ", "IYR", "XLRE", "REM", "SCHH"]
+
+[[universe.clusters]]
+name = "currencies"
+gross_cap = 0.35
+symbols = ["UUP", "FXE", "FXY", "FXB", "FXF", "FXA", "FXC"]
+
+[[universe.clusters]]
+name = "us_defense"
+gross_cap = 0.25
+# RTX is present in the data snapshot but quarantined from trading; see v10.
+symbols = ["LMT", "NOC", "GD", "LHX", "HII", "BA", "TXT", "LDOS", "CACI", "KTOS", "MRCY", "CW", "TDG", "HEI", "AVAV", "ITA", "XAR", "PPA"]
+
+[[universe.clusters]]
+name = "energy_companies"
+gross_cap = 0.30
+# COP, DVN, and FANG remain data-only until fixed-plus-variable dividends can
+# be represented without choosing or summing ambiguous normalized records.
+symbols = ["XOM", "CVX", "EOG", "OXY", "MPC", "VLO", "PSX", "SLB", "HAL", "KMI", "WMB", "LNG", "EQT", "APA", "OKE", "TRGP", "AR", "CNX", "OVV"]
+
+[[universe.clusters]]
+name = "energy_products"
+gross_cap = 0.10
+symbols = ["BNO", "UGA", "BOIL", "KOLD", "UCO", "SCO"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[cross_sectional]
+enabled = true
+max_positions = 24
+# All-three agreement was materially better in the v6 diagnostic, but the first
+# v12 run showed that stacking the hard rule with three risk multipliers
+# under-deployed the book. Two-of-three keeps confirmation without requiring
+# every horizon to agree; this calibration is explicitly burned-history tuning.
+min_horizon_agreement = 2
+
+[structure]
+enabled = true
+variance_lookback_sessions = 63
+variance_ratio_horizon = 5
+variance_ratio_floor = 0.80
+variance_ratio_target = 1.15
+rsi_period = 14
+rsi_floor = 40.0
+rsi_target = 55.0
+rsi_upper_target = 75.0
+rsi_ceiling = 85.0
+channel_lookback_sessions = 63
+channel_floor = 0.45
+channel_target = 0.90
+downside_lookback_sessions = 63
+downside_target = 0.35
+downside_ceiling = 0.65
+min_multiplier = 0.90
+
+[risk_budget]
+enabled = true
+lookback_sessions = 252
+min_periods_sessions = 126
+min_multiplier = 0.75
+max_multiplier = 1.25
+measure = "information_ratio"
+
+[learned_regime]
+enabled = true
+n_regimes = 3
+fit_window_sessions = 504
+refit_every_sessions = 21
+risk_floor = 0.75
+unknown_scalar = 1.00
+seed = 20260907
+
+[covariance]
+lookback_sessions = 252
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.08
+max_symbol_weight = 0.05
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+# 252 trend sessions plus 126 causal payoff observations for risk budgeting.
+min_completed_sessions = 378

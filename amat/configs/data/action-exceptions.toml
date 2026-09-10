@@ -72,6 +72,25 @@ distribution in every one of the eleven years covered, 0.018007 pairs with
 puts SHY's 2021 total at 0.191948 (~0.22% on a ~$86 share), consistent with
 2-year Treasury yields at the 2021 ZIRP trough.
 """
+
+# The same SHY source record appears byte-for-byte in the expanded snapshot.
+# Snapshot scoping deliberately requires the decision to be re-recorded.
+[[exception]]
+snapshot_id = "alpaca-sip-expanded128-2026-09-07"
+symbol = "SHY"
+ex_date = 2021-12-01
+kind = "cash_dividend"
+chosen = 0.018007
+rejected = [0.031906]
+recorded_at = 2026-09-07
+reason = """
+Identical values and schedule evidence to the two prior SHY entries: the fund
+pays monthly plus a separate mid-December distribution, and this snapshot also
+contains 2021-12-16 at 0.018063. The 0.018007 reading pairs with that amount and
+continues the neighbouring monthly sequence; 0.031906 would create an otherwise
+unsupported third December distribution. This is a re-recorded per-snapshot
+decision, not a wildcard inheritance.
+"""
 # =============================================================================
 # Confirmed price discontinuities.
 #
@@ -120,4 +139,48 @@ indiscriminately for cash and rebounded violently. The next session was -23.1%.
 This entry confirms one bar. It does not raise the threshold, and it says nothing
 about any other symbol or date -- a survey of all 92 symbols over 2016-01-04 to
 2026-08-10 found this to be the only unexplained discontinuity in the sample.
+"""
+
+[[price_discontinuity]]
+snapshot_id = "alpaca-sip-expanded128-2026-09-07"
+symbol = "OVV"
+session = 2020-03-09
+observed_move = -0.72046944
+tolerance = 0.005
+recorded_at = 2026-09-07
+reason = """
+Real market crash, not a missing split. Alpaca raw close fell from 7.94 on
+2020-03-06 to 2.22 on 2020-03-09 (-72.04%); its adjusted close fell from 6.561
+to 1.834 (-72.05%). The agreement between bases is the signature of a price
+move. The 2020-03-09 OHLC is coherent (5.33/5.41/2.21/2.22) and the SEC Form 4
+filed by Ovintiv's CFO records a 5,000-share open-market purchase that session
+at $4.09, independently placing real trades inside that range:
+https://www.sec.gov/Archives/edgar/data/1776159/000166773120000149/xslF345X03/code09032020.xml
+
+Ovintiv's March 12 issuer release explicitly says it was responding to the
+recent large drop in oil prices and cut second-quarter capital investment by
+$300 million. This entry confirms this bar only.
+"""
+
+[[price_discontinuity]]
+snapshot_id = "alpaca-sip-expanded128-2026-09-07"
+symbol = "RTX"
+session = 2020-04-03
+observed_move = -0.70973619
+tolerance = 0.005
+recorded_at = 2026-09-07
+reason = """
+Confirmed corporate-identity discontinuity, not an unrecorded split. On
+2020-04-03 United Technologies spun off Carrier and Otis, completed its merger
+with Raytheon, changed its name, and began trading as RTX. The SEC filing states
+those events and the 2.3348 exchange ratio:
+https://www.sec.gov/Archives/edgar/data/101829/000119312520097237/d827106d8k.htm
+
+Alpaca raw close changed from 86.01 to 49.93 (-41.95%), while adjusted close
+changed from 148.21 to 43.02 (-70.97%). This is therefore not a normal return
+series that the current cash/share ledger can reproduce: it does not model the
+Carrier and Otis shares distributed to holders. RTX is retained in the broad
+DATA snapshot so the discontinuity remains inspectable, but is quarantined from
+v10/v11's tradable universe. The exception permits snapshot construction; it
+does not declare RTX backtest-safe.
 """

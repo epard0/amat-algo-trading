@@ -182,14 +182,17 @@ def detect_code_revision(root: Path | str) -> CodeRevision:
         detail = head.stderr.strip() or "git rev-parse HEAD failed"
         return CodeRevision(detected=False, reason=detail)
 
-    status = subprocess.run(
-        ["git", "status", "--porcelain"],  # noqa: S607
-        cwd=workdir,
-        capture_output=True,
-        text=True,
-        timeout=10,
-        check=False,
-    )
+    try:
+        status = subprocess.run(
+            ["git", "status", "--porcelain"],  # noqa: S607
+            cwd=workdir,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return CodeRevision(detected=False, reason=f"git invocation failed: {exc}")
     if status.returncode != 0:
         detail = status.stderr.strip() or "git status --porcelain failed"
         return CodeRevision(detected=False, reason=detail)

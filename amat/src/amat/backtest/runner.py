@@ -47,6 +47,7 @@ from amat.portfolio import (
     decide,
     precompute_decision_inputs,
 )
+from amat.validation.conditioning import regime_scalars
 
 __all__ = [
     "BacktestResult",
@@ -737,7 +738,33 @@ def _require_constant_cash_rate(strategy: StrategyConfig) -> float:
     return strategy.cash.constant_annualized_rate
 
 
-def run_backtest(
+def _resolve_weight_scalars(
+    strategy: StrategyConfig,
+    panel: MarketPanel,
+    provided: np.ndarray | None,
+) -> np.ndarray | None:
+    """Build the configured causal regime series, rejecting double conditioning."""
+    if not strategy.learned_regime.enabled:
+        return provided
+    if provided is not None:
+        raise DataIntegrityError(
+            "learned_regime is enabled and an external weight_scalars series was also "
+            "supplied; two regime layers cannot be attributed to one run"
+        )
+    learned = strategy.learned_regime
+    return regime_scalars(
+        panel,
+        n_regimes=learned.n_regimes,
+        fit_window=learned.fit_window_sessions,
+        refit_every=learned.refit_every_sessions,
+        risk_floor=learned.risk_floor,
+        unknown_scalar=learned.unknown_scalar,
+        seed=learned.seed,
+        horizons=strategy.trend.horizons_sessions,
+    )
+
+
+def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally explicit
     strategy: StrategyConfig,
     panel: MarketPanel,
     universe: Universe,
@@ -824,6 +851,7 @@ def run_backtest(
         )
         raise DataIntegrityError(message)
 
+    weight_scalars = _resolve_weight_scalars(strategy, panel, weight_scalars)
     _validate_weight_scalars(weight_scalars, total)
     _validate_decision_overlay(decision_overlay, total, len(universe.symbols))
     _validate_stance(stance, panel, strategy, total)

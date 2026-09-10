@@ -36,18 +36,30 @@ import numpy as np
 
 from amat.config.models import TrendConfig, VolatilityConfig
 from amat.errors import DataIntegrityError
+from amat.features.structure import (
+    donchian_position,
+    downside_variance_share,
+    relative_strength_index,
+    structure_multiplier,
+    variance_ratio,
+)
 
 #: A market panel is always 2-D: (sessions, symbols).
 _PANEL_NDIM = 2
 
 __all__ = [
     "annualized_volatility",
+    "donchian_position",
+    "downside_variance_share",
     "ewma_std",
     "horizon_log_returns",
     "horizon_trend_scores",
     "log_returns",
     "long_scores",
+    "relative_strength_index",
+    "structure_multiplier",
     "trend_scores",
+    "variance_ratio",
 ]
 
 

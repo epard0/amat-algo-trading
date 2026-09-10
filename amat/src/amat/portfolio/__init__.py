@@ -286,6 +286,8 @@ class PrecomputedDecisionInputs:
     asset, or ``None`` when no risk budget is configured. Strictly backward
     looking at every row, which is what lets the cached path stay identical to
     recomputing from the visible prefix."""
+    structure_multipliers: np.ndarray | None = None
+    """``(T, N)`` soft technical-structure quality, or ``None`` when disabled."""
 
     def __post_init__(self) -> None:
         if not (self.returns.shape == self.sigma_panel.shape == self.long_scores.shape):
@@ -295,6 +297,23 @@ class PrecomputedDecisionInputs:
                 f"long_scores {self.long_scores.shape}"
             )
             raise DataIntegrityError(message)
+        for name, panel in (
+            ("horizon_scores", self.horizon_scores),
+            ("signal_quality", self.signal_quality),
+            ("structure_multipliers", self.structure_multipliers),
+        ):
+            if panel is None:
+                continue
+            expected = self.returns.shape
+            if name == "horizon_scores":
+                if panel.shape[1:] == expected:
+                    continue
+            elif panel.shape == expected:
+                continue
+            raise DataIntegrityError(
+                f"precomputed {name} has shape {panel.shape}, expected "
+                f"{expected if name != 'horizon_scores' else f'(H, {expected[0]}, {expected[1]})'}"
+            )
 
 
 def precompute_decision_inputs(
@@ -330,12 +349,16 @@ def precompute_decision_inputs(
             min_periods=strategy.risk_budget.min_periods_sessions,
             measure=strategy.risk_budget.measure,
         )
+    structure = None
+    if strategy.structure.enabled:
+        structure = features.structure_multiplier(adjusted_closes, returns, strategy.structure)
     return PrecomputedDecisionInputs(
         returns=returns,
         sigma_panel=sigma_panel,
         long_scores=long,
         horizon_scores=horizon_scores,
         signal_quality=quality,
+        structure_multipliers=structure,
     )
 
 
@@ -416,6 +439,13 @@ def decide(
         safe_scores = select_cross_section(
             safe_scores, strategy.cross_sectional, horizon_z=horizon_row
         ).scores
+
+    if strategy.structure.enabled:
+        if precomputed.structure_multipliers is None:
+            raise DataIntegrityError(
+                "structure filter is enabled but the feature cache carries no multipliers"
+            )
+        safe_scores = safe_scores * precomputed.structure_multipliers[decision_index]
 
     if strategy.risk_budget.enabled:
         # Between the signal and the sizing: the budget decides who carries the

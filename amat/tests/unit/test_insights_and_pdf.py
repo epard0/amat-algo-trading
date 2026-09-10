@@ -112,6 +112,37 @@ class TestWeightReconstruction:
         with pytest.raises(DataIntegrityError, match="disagrees with ledger"):
             reconstruct_weights(result, panel, actions_by_session=bogus)
 
+    def test_build_insights_passes_splits_to_both_replays(
+        self, result, panel, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Episode replay must see the same actions as holdings replay.
+
+        A forward split can make a legitimate later sale exceed the quantity
+        inferred from fills alone. This wiring regression was exposed by XLE's
+        2025-12-16 sale in the wide-universe report.
+        """
+        import amat.reporting.insights as insights_module
+
+        actions: dict[dt.date, tuple[CorporateAction, ...]] = {}
+        seen: list[object] = []
+        original_reconstruct = insights_module.reconstruct_weights
+        original_replay = insights_module.replay_trades
+
+        def reconstruct_with_capture(*args, **kwargs):
+            seen.append(kwargs.get("actions_by_session"))
+            return original_reconstruct(*args, **kwargs)
+
+        def replay_with_capture(*args, **kwargs):
+            seen.append(kwargs.get("actions_by_session"))
+            return original_replay(*args, **kwargs)
+
+        monkeypatch.setattr(insights_module, "reconstruct_weights", reconstruct_with_capture)
+        monkeypatch.setattr(insights_module, "replay_trades", replay_with_capture)
+
+        build_insights(result, panel, actions_by_session=actions)
+
+        assert seen == [actions, actions]
+
 
 def _trade(**overrides) -> ClosedTrade:
     payload = {

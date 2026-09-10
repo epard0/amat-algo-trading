@@ -173,6 +173,9 @@ def sleeve_strategy(strategy: StrategyConfig, symbol: str) -> StrategyConfig:
     payload["name"] = f"{strategy.name}-sleeve-{symbol}"
     payload["universe"] = {"clusters": [{"name": "sleeve", "gross_cap": 1.0, "symbols": [symbol]}]}
     payload["constraints"]["max_symbol_weight"] = 1.0
+    # Learned market state is a combined-portfolio conditioning layer. A
+    # one-symbol diagnostic sleeve must remain the raw signal comparison.
+    payload["learned_regime"]["enabled"] = False
     return StrategyConfig.model_validate(payload)
 
 

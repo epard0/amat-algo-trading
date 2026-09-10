@@ -16,15 +16,18 @@ size cap so a hostile or broken vendor cannot balloon the raw-payload archive.
 from __future__ import annotations
 
 from newsdesk.clients.adanos import AdanosClient, parse_adanos_mentions
+from newsdesk.clients.alpaca import AlpacaNewsClient, parse_alpaca_news_page
 from newsdesk.clients.base import ApiCredential, FetchedPage, ReadOnlyJsonClient
 from newsdesk.clients.marketaux import MarketauxClient, parse_marketaux_page
 
 __all__ = [
     "AdanosClient",
+    "AlpacaNewsClient",
     "ApiCredential",
     "FetchedPage",
     "MarketauxClient",
     "ReadOnlyJsonClient",
     "parse_adanos_mentions",
+    "parse_alpaca_news_page",
     "parse_marketaux_page",
 ]

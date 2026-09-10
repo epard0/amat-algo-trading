@@ -36,6 +36,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from newsdesk.clients.adanos import AdanosClient, parse_adanos_mentions
+from newsdesk.clients.alpaca import AlpacaNewsClient, parse_alpaca_news_page
 from newsdesk.clients.base import FetchedPage
 from newsdesk.clients.marketaux import MarketauxClient, parse_marketaux_page
 from newsdesk.errors import ProviderSuspendedError
@@ -45,6 +46,7 @@ __all__ = [
     "SUSPENSION_THRESHOLD",
     "IngestOutcome",
     "ingest_adanos_mentions",
+    "ingest_alpaca_news",
     "ingest_marketaux",
 ]
 
@@ -210,6 +212,29 @@ def ingest_marketaux(
         parser=parse_marketaux_page,
         window_start=published_after,
         window_end=published_before,
+        symbols=symbols,
+        force=force,
+    )
+
+
+def ingest_alpaca_news(
+    store: NewsStore,
+    client: AlpacaNewsClient,
+    *,
+    symbols: Sequence[str],
+    start: str,
+    end: str,
+    force: bool = False,
+) -> IngestOutcome:
+    """Pull one fully cursor-paginated Alpaca/Benzinga archive window."""
+    return _run_ingestion(
+        store,
+        provider="alpaca_news",
+        host="data.alpaca.markets",
+        pages=client.news_pages(symbols, start=start, end=end),
+        parser=parse_alpaca_news_page,
+        window_start=start,
+        window_end=end,
         symbols=symbols,
         force=force,
     )

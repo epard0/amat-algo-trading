@@ -21,6 +21,7 @@ import pytest
 
 from amat.backtest.runner import run_backtest
 from amat.config.loading import load_strategy_config
+from amat.config.models import LearnedRegimeConfig
 from amat.data.synthetic import generate_panel
 from amat.errors import DataIntegrityError
 from amat.validation.conditioning import regime_scalars, session_features
@@ -127,6 +128,41 @@ class TestSessionFeatures:
 
 
 class TestTheRunnerAppliesTheScalar:
+    def test_configured_learned_regime_is_applied_without_an_external_file(
+        self, strategy, panel
+    ) -> None:
+        adaptive = strategy.model_copy(
+            update={
+                "learned_regime": LearnedRegimeConfig(
+                    enabled=True,
+                    fit_window_sessions=252,
+                    refit_every_sessions=21,
+                    seed=7,
+                )
+            }
+        )
+        result = run_backtest(
+            adaptive,
+            panel,
+            adaptive.to_universe(),
+            initial_cash=Decimal("1200000"),
+        )
+        assert result.total_fills > 0
+
+    def test_configured_and_external_regime_layers_are_refused(
+        self, strategy, panel
+    ) -> None:
+        adaptive = strategy.model_copy(
+            update={"learned_regime": LearnedRegimeConfig(enabled=True)}
+        )
+        with pytest.raises(DataIntegrityError, match="two regime layers"):
+            run_backtest(
+                adaptive,
+                panel,
+                adaptive.to_universe(),
+                weight_scalars=np.ones(len(panel)),
+            )
+
     def test_a_series_of_ones_reproduces_v1_exactly(self, strategy, panel) -> None:
         """v1 is v3 with a scalar of 1. If this drifts, every v1-vs-v3
         comparison is measuring the plumbing rather than the conditioning."""

@@ -1476,6 +1476,11 @@ def _study_caveats(
             f"Conditioning: per-session weight scalars from {args.scalars} were applied "
             "to the combined portfolio's targets (v3). Sleeves are unconditioned."
         )
+    if strategy.learned_regime.enabled:
+        caveats.append(
+            "Conditioning: the configured causal trailing-window KMeans regime model "
+            "reduced combined-portfolio targets only; diagnostic sleeves are unconditioned."
+        )
     return caveats
 
 
@@ -2159,7 +2164,12 @@ def _load_v4_inputs(
     resolved = load_switching_config(args.config)
     config = resolved.strategy
     symbols = [str(symbol) for symbol in config.trend.universe.symbols]
-    panel, manifest = load_panel(args.snapshot, symbols, start=args.start, end=args.end)
+    panel, manifest = load_panel(
+        args.snapshot,
+        symbols,
+        start=args.start,
+        end=args.end,
+    )
 
     def say(message: str) -> None:
         print(f"  {message}", file=sys.stderr, flush=True)
@@ -2432,7 +2442,13 @@ def _load_measurement_inputs(
     resolved = _load_any_strategy_config(args.config)
     strategy = resolved.strategy
     symbols = [str(symbol) for symbol in strategy.universe.symbols]
-    panel, manifest = load_panel(args.snapshot, symbols, start=args.start, end=args.end)
+    panel, manifest = load_panel(
+        args.snapshot,
+        symbols,
+        start=args.start,
+        end=args.end,
+        with_context=strategy.learned_regime.enabled,
+    )
 
     def say(message: str) -> None:
         print(f"  {message}", file=sys.stderr, flush=True)

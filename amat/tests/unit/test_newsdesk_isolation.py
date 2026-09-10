@@ -37,7 +37,12 @@ TRANSPORT_ROOTS = {"urllib", "http", "socket", "ssl", "requests", "httpx", "aioh
 
 #: The one module family in newsdesk allowed to perform network transport.
 #: Widening this list is a deliberate, reviewable act.
-NETWORK_CAPABLE = {"clients/marketaux.py", "clients/adanos.py", "clients/base.py"}
+NETWORK_CAPABLE = {
+    "clients/marketaux.py",
+    "clients/adanos.py",
+    "clients/alpaca.py",
+    "clients/base.py",
+}
 
 
 def _imports(path: Path) -> list[str]:

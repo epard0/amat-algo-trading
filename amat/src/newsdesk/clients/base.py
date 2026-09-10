@@ -178,6 +178,7 @@ class ReadOnlyJsonClient:
         *,
         host: str,
         credential: ApiCredential,
+        additional_credentials: tuple[ApiCredential, ...] = (),
         permitted_prefixes: tuple[str, ...],
         denied_prefixes: tuple[str, ...] = (),
         timeout_seconds: float = 30.0,
@@ -193,6 +194,7 @@ class ReadOnlyJsonClient:
         self._requests_per_minute = requests_per_minute
         self._host = host
         self._credential = credential
+        self._credentials = (credential, *additional_credentials)
         self._permitted = permitted_prefixes
         self._denied = denied_prefixes
         self._timeout = timeout_seconds
@@ -275,7 +277,7 @@ class ReadOnlyJsonClient:
                 detail = self._error_detail(exc)
                 if exc.code not in _RETRY_STATUSES:
                     message = f"request to {path} failed: HTTP {exc.code}{detail}"
-                    raise VendorResponseError(self._credential.scrub(message)) from None
+                    raise VendorResponseError(self._scrub(message)) from None
                 last_error = f"HTTP {exc.code}{detail}"
             except (
                 http.client.HTTPException,
@@ -283,9 +285,9 @@ class ReadOnlyJsonClient:
                 TimeoutError,
                 OSError,
             ) as exc:
-                last_error = self._credential.scrub(f"{type(exc).__name__}: {exc}")
+                last_error = self._scrub(f"{type(exc).__name__}: {exc}")
             else:
-                raw = self._credential.scrub_bytes(raw)
+                raw = self._scrub_bytes(raw)
                 if len(raw) > MAX_RESPONSE_BYTES:
                     # Enforced here rather than in _transport: the cap is policy,
                     # and policy inside a substitutable transport method is
@@ -307,9 +309,21 @@ class ReadOnlyJsonClient:
 
         message = (
             f"request to {path} failed after {_MAX_ATTEMPTS} attempts: "
-            f"{self._credential.scrub(last_error)}"
+            f"{self._scrub(last_error)}"
         )
         raise VendorResponseError(message)
+
+    def _scrub(self, value: str) -> str:
+        """Redact every credential held by a multi-header client."""
+        for credential in self._credentials:
+            value = credential.scrub(value)
+        return value
+
+    def _scrub_bytes(self, value: bytes) -> bytes:
+        """Redact every credential before raw vendor bytes can be archived."""
+        for credential in self._credentials:
+            value = credential.scrub_bytes(value)
+        return value
 
     def _error_detail(self, exc: urllib.error.HTTPError) -> str:
         """Extract the vendor's error code from an error body, safely.
@@ -336,7 +350,7 @@ class ReadOnlyJsonClient:
         message = error.get("message")
         parts = []
         if isinstance(code, str) and code:
-            parts.append(self._credential.scrub(code[:64]))
+            parts.append(self._scrub(code[:64]))
         if isinstance(message, str) and message:
-            parts.append(self._credential.scrub(message[:200]))
+            parts.append(self._scrub(message[:200]))
         return f" ({': '.join(parts)})" if parts else ""

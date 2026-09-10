@@ -66,6 +66,19 @@ def build_parser() -> argparse.ArgumentParser:
             "market news used by theme discovery."
         ),
     )
+
+    alpaca = commands.add_parser(
+        "ingest-alpaca",
+        help="Pull Alpaca's historical Benzinga news archive.",
+        description=(
+            "Cursor-paginated historical news. Archive rows are stamped with the "
+            "collector's actual ingestion time and are not backdated knowledge."
+        ),
+    )
+    alpaca.add_argument("--symbols", default="", help="Optional comma-separated tickers.")
+    alpaca.add_argument("--start", required=True, help="Inclusive RFC-3339 timestamp/date.")
+    alpaca.add_argument("--end", required=True, help="Inclusive RFC-3339 timestamp/date.")
+    alpaca.add_argument("--force", action="store_true")
     marketaux.add_argument(
         "--published-after", required=True, help="YYYY-MM-DD or YYYY-MM-DDTHH:MM (UTC)."
     )
@@ -197,6 +210,22 @@ def _command_ingest_marketaux(store: NewsStore, args: argparse.Namespace) -> int
         published_after=args.published_after,
         published_before=args.published_before,
         language=args.language,
+        force=args.force,
+    )
+    print(outcome.summary)
+    return _EXIT_OK if outcome.status == "complete" else _EXIT_ERROR
+
+
+def _command_ingest_alpaca(store: NewsStore, args: argparse.Namespace) -> int:
+    from newsdesk.clients.alpaca import AlpacaNewsClient  # noqa: PLC0415 - network path
+    from newsdesk.ingest import ingest_alpaca_news  # noqa: PLC0415
+
+    outcome = ingest_alpaca_news(
+        store,
+        AlpacaNewsClient(),
+        symbols=[s.strip().upper() for s in args.symbols.split(",") if s.strip()],
+        start=args.start,
+        end=args.end,
         force=args.force,
     )
     print(outcome.summary)
@@ -375,9 +404,11 @@ def _command_discover_assets(store: NewsStore, args: argparse.Namespace) -> int:
     return _EXIT_OK
 
 
-def _dispatch(store: NewsStore, args: argparse.Namespace) -> int:
+def _dispatch(store: NewsStore, args: argparse.Namespace) -> int:  # noqa: PLR0911
     if args.command == "ingest-marketaux":
         return _command_ingest_marketaux(store, args)
+    if args.command == "ingest-alpaca":
+        return _command_ingest_alpaca(store, args)
     if args.command == "ingest-adanos":
         return _command_ingest_adanos(store, args)
     if args.command == "coverage":

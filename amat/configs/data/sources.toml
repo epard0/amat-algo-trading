@@ -1,9 +1,10 @@
 # =============================================================================
 # Declared market-data sources.
 #
-# STATUS: declaration only. No loader consumes this file yet; the ingestion
-# client is built in the data-foundation phase. It exists now so that the
-# credential policy is fixed before any code touches a provider.
+# STATUS: capability catalog. The Alpaca historical-news source has a working
+# read-only collector; each remaining non-price source states explicitly when
+# it is declaration-only. This file is not itself executable configuration, so
+# implementation status must be verified against the named client/CLI path.
 #
 # CREDENTIAL POLICY
 # This file records the NAMES of environment variables, never their values.
@@ -37,6 +38,58 @@ purpose = "raw intraday prices for the 09:30-09:35 execution window VWAP"
 adjustment_mode = "raw"
 credential_env_vars = ["ALPACA_MARKET_API_KEY", "ALPACA_MARKET_API_SECRET"]
 docs = "https://docs.alpaca.markets/"
+
+[[sources]]
+id = "alpaca_historical_news"
+provider = "alpaca"
+dataset = "benzinga_historical_news"
+purpose = "point-in-time tagged articles for attention, event, and asset-discovery features"
+adjustment_mode = "not_applicable"
+credential_env_vars = ["ALPACA_MARKET_API_KEY", "ALPACA_MARKET_API_SECRET"]
+docs = "https://docs.alpaca.markets/us/docs/historical-news-data"
+implementation_status = "implemented_read_only_collector"
+# Historical rows retain the collector's actual ingested_at timestamp. Pulling
+# a 2018 article today does not make it knowable to a 2018 backtest.
+
+[[sources]]
+id = "sec_edgar_filings"
+provider = "sec"
+dataset = "submissions_and_companyfacts"
+purpose = "filing events, guidance changes, and fundamental surprise features"
+adjustment_mode = "not_applicable"
+credential_env_vars = []
+docs = "https://www.sec.gov/search-filings/edgar-application-programming-interfaces"
+implementation_status = "declared_not_yet_ingested"
+
+[[sources]]
+id = "eia_energy_open_data"
+provider = "eia"
+dataset = "petroleum_and_natural_gas"
+purpose = "inventories, production, storage, spot, and futures context for energy sleeves"
+adjustment_mode = "not_applicable"
+credential_env_vars = ["EIA_API_KEY"]
+docs = "https://www.eia.gov/opendata/index.php/api"
+implementation_status = "declared_not_yet_ingested"
+
+[[sources]]
+id = "gdelt_global_news"
+provider = "gdelt"
+dataset = "doc_and_gkg"
+purpose = "broad multilingual event discovery and geopolitical attention features"
+adjustment_mode = "not_applicable"
+credential_env_vars = []
+docs = "https://www.gdeltproject.org/data.html"
+implementation_status = "declared_not_yet_ingested"
+
+[[sources]]
+id = "dod_contract_awards"
+provider = "us_department_of_defense"
+dataset = "daily_contract_announcements"
+purpose = "contract-award event features for the defense sleeve"
+adjustment_mode = "not_applicable"
+credential_env_vars = []
+docs = "https://www.defense.gov/News/Contracts/"
+implementation_status = "declared_not_yet_ingested"
 
 [[sources]]
 id = "fred_treasury_3m"

@@ -16,6 +16,7 @@ import urllib.error
 import pytest
 
 from newsdesk.clients.adanos import AdanosClient, parse_adanos_mentions
+from newsdesk.clients.alpaca import AlpacaNewsClient, parse_alpaca_news_page
 from newsdesk.clients.base import (
     MAX_RESPONSE_BYTES,
     ApiCredential,
@@ -115,6 +116,30 @@ class StubAdanos(_TransportStub, AdanosClient):
     def __init__(self, responses: list) -> None:
         AdanosClient.__init__(self, credential())
         self._install(responses)
+
+
+class StubAlpaca(_TransportStub, AlpacaNewsClient):
+    def __init__(self, responses: list) -> None:
+        AlpacaNewsClient.__init__(
+            self,
+            ApiCredential(variable="TEST_ALPACA_KEY", value="test-key"),
+            ApiCredential(variable="TEST_ALPACA_SECRET", value="test-secret"),
+        )
+        self._install(responses)
+
+
+def alpaca_article(*, identifier: int = 101, symbol: str = "XOM") -> dict:
+    return {
+        "author": "Benzinga Newsdesk",
+        "created_at": "2026-09-01T13:15:00Z",
+        "headline": "Energy company updates its outlook",
+        "id": identifier,
+        "source": "benzinga",
+        "summary": "Management published an updated outlook.",
+        "symbols": [symbol],
+        "updated_at": "2026-09-01T13:16:00Z",
+        "url": f"https://example.test/news/{identifier}",
+    }
 
 
 def http_error(code: int, body: bytes = b"") -> urllib.error.HTTPError:
@@ -550,3 +575,42 @@ class TestAuditFindings20260811:
         row = TestAdanos.mention(published_at=True)
         _, rejected, _ = parse_adanos_mentions({"results": [row]})
         assert rejected == 1
+
+
+class TestAlpacaNews:
+    def test_cursor_pagination(self) -> None:
+        first = {"news": [alpaca_article()], "next_page_token": "next-token"}
+        second = {"news": [alpaca_article(identifier=102)], "next_page_token": None}
+        client = StubAlpaca([json.dumps(first).encode(), json.dumps(second).encode()])
+        pages = list(
+            client.news_pages(
+                ["XOM", "LMT"], start="2026-09-01", end="2026-09-02"
+            )
+        )
+        assert [page.number for page in pages] == [1, 2]
+        assert "symbols=XOM%2CLMT" in client.urls[0]
+        assert "page_token=next-token" in client.urls[1]
+
+    def test_repeated_cursor_fails_closed(self) -> None:
+        page = {"news": [alpaca_article()], "next_page_token": "same"}
+        client = StubAlpaca([json.dumps(page).encode(), json.dumps(page).encode()])
+        with pytest.raises(IngestionIncompleteError, match="repeated"):
+            list(client.news_pages(["XOM"], start="2026-09-01", end="2026-09-02"))
+
+    def test_parse_normalizes_timestamp_and_symbol_tags(self) -> None:
+        records, rejected, reported = parse_alpaca_news_page(
+            {"news": [alpaca_article()]}
+        )
+        assert rejected == 0
+        assert reported is None
+        assert records[0].published_at == "2026-09-01T13:15:00.000Z"
+        assert records[0].symbols == {"XOM": (None, None)}
+
+    def test_both_header_credentials_are_scrubbed_from_archived_bytes(self) -> None:
+        reflected = json.dumps(
+            {"news": [], "reflection": "test-key and test-secret", "next_page_token": None}
+        ).encode()
+        client = StubAlpaca([reflected])
+        page = next(client.news_pages([], start="2026-09-01", end="2026-09-02"))
+        assert b"test-key" not in page.raw
+        assert b"test-secret" not in page.raw

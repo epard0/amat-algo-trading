@@ -1,0 +1,142 @@
+# AMAT v9 research candidate: wide continuous ETF universe plus a soft,
+# causal technical-structure allocator.
+#
+# NOT PROMOTED. The entire 2016-08-10 sample was already inspected before this
+# file existed, so every result is development evidence on burned history.
+# v6 remains the executor strategy unless a future untouched/paper evaluation
+# clears the promotion gates.
+#
+# Changes relative to v6 are explicit:
+#   * 11 -> 30 ETFs using the pre-existing continuous-coverage wide30 universe;
+#   * the established 21/63/252 trend horizons and 20/60 volatility estimator
+#     are held fixed so the new structure signal is not confused with churn;
+#   * 252-session covariance for a better observations/assets ratio;
+#   * 10% target volatility and 12% symbol cap to address underdeployment;
+#   * a soft four-indicator structure multiplier, never hard selection;
+#   * the established 2% rebalance band and $25 notional gate are retained.
+#
+# The structure component uses variance ratio, Wilder RSI, Donchian position,
+# and downside variance share. It maps the equal-weight quality into [0.75, 1]
+# and therefore reallocates risk without deleting assets based on this sample.
+
+name = "amat-etf-structure-wide30"
+version = "9.0.0"
+
+[[universe.clusters]]
+name = "us_equity_broad"
+gross_cap = 0.20
+symbols = ["SPY", "VTI", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "us_equity_sector"
+gross_cap = 0.25
+symbols = ["XLK", "XLF", "XLE", "XLV", "XLI"]
+
+[[universe.clusters]]
+name = "intl_developed"
+gross_cap = 0.15
+symbols = ["EFA", "VEA", "EWJ"]
+
+[[universe.clusters]]
+name = "intl_emerging"
+gross_cap = 0.15
+symbols = ["EEM", "VWO", "FXI"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.20
+symbols = ["TLT", "IEF", "SHY", "TIP"]
+
+[[universe.clusters]]
+name = "credit"
+gross_cap = 0.20
+symbols = ["AGG", "LQD", "HYG", "EMB"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.10
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.10
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "real_estate"
+gross_cap = 0.10
+symbols = ["VNQ", "IYR"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.10
+symbols = ["UUP"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [21, 63, 252]
+clip_abs = 2.0
+deadband_abs = 0.20
+long_only = true
+
+[structure]
+enabled = true
+variance_lookback_sessions = 63
+variance_ratio_horizon = 5
+variance_ratio_floor = 0.80
+variance_ratio_target = 1.15
+rsi_period = 14
+rsi_floor = 40.0
+rsi_target = 55.0
+rsi_upper_target = 75.0
+rsi_ceiling = 85.0
+channel_lookback_sessions = 63
+channel_floor = 0.45
+channel_target = 0.90
+downside_lookback_sessions = 63
+downside_target = 0.35
+downside_ceiling = 0.65
+min_multiplier = 0.75
+
+[covariance]
+lookback_sessions = 252
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[constraints]
+target_annualized_volatility = 0.10
+max_symbol_weight = 0.12
+max_gross_exposure = 1.00
+allow_releverage_after_clipping = false
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = 09:30:00
+window_end = 09:35:00
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252

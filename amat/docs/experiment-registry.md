@@ -1245,6 +1245,127 @@ Which is why the K=6 winners above are the shape they are: the least selective
 rules on the grid, barely concentrating at all, capturing a small turnover
 saving — and no effect distinguishable from holding slightly less.
 
+## 2026-09-07 v9 structure-wide30 research run — higher frequency, not promoted
+
+This operator-requested research run was **not pre-registered** and used burned
+history. It is therefore diagnostic evidence only, regardless of whether a
+headline improves. The final citable record is
+`outputs/runs/study-amat-etf-structure-wide30-20260907T153208.806426Z`; its
+configuration digest is
+`6a8b3cfe12241066d64fc44abb8adab31b8878625c73fa03fc4576352b8ff4c7`.
+The matched current-v6 record is
+`outputs/runs/backtest-amat-etf-regime-quality-20260907T150504.332389Z`.
+Both end on the untouched holdout boundary, 2026-08-10; neither accessed data
+past it.
+
+V9 expands v6's 11 continuously covered ETFs to 30 liquid cross-asset ETFs and
+adds a causal, soft structure multiplier. The multiplier combines four
+interpretable price features — five-session variance ratio, Wilder RSI with a
+healthy plateau, 63-session Donchian position, and downside-variance share —
+and can reduce an asset's raw trend score by at most 25%. It cannot hard-delete
+an asset. The signal remains long-or-cash because the executor contract has no
+borrow, locate, short-margin, or signed-plan semantics; presenting this run as
+long/short would be fictitious.
+
+| Full-sample primary result | Current v6 | V9 wide30 | V9 − v6 |
+|---|---:|---:|---:|
+| Symbols | 11 | 30 | +19 |
+| Total return | **+77.08%** | +65.88% | −11.20 pp |
+| Annualized return | **+6.15%** | +5.43% | −0.72 pp |
+| Annualized volatility | **5.41%** | 6.26% | +0.85 pp |
+| Sharpe | **1.137** | 0.866 | −0.270 |
+| Max drawdown | **−7.89%** | −9.45% | −1.55 pp worse |
+| Average gross exposure | 56.38% | **76.38%** | +20.00 pp |
+| Fills | 3,110 | **5,727** | +84.1% |
+| Costs | **$3,496.83** | $4,503.47 | +$1,006.64 |
+| Annualized cost drag | **0.365%** | 0.470% | +0.105 pp |
+| Best-symbol P&L share | 22.98% | **14.55%** | −8.43 pp |
+
+The candidate achieves the requested breadth, deployment, diversification, and
+trade-frequency goals, but not the primary return/risk objective. More fills
+mostly redistribute the same trend exposure across correlated listings and add
+cost. Rates and credit are the clearest weak cluster in combined attribution:
+TLT, HYG, TIP, AGG, LQD, EMB, and IEF are all net negative, while GLD, XLK,
+QQQ, SPY, EEM, XLE, and VTI dominate profits. Removing those losers now would
+be hindsight selection; the next test must specify a causal structure or
+relative-value rule in advance and compare it with a static exposure-matched
+control.
+
+Two unrecorded exploratory iterations were used to debug and narrow the
+operator-requested configuration. They have no evidentiary status and are not
+quoted as results. This search count is disclosed because choosing the last
+configuration after looking at earlier output raises multiple-testing risk.
+
+**Decision: do not promote v9.** Keep it as a research strategy and shadow
+candidate. The next honest test is a pre-registered walk-forward ablation that
+holds universe, target volatility, covariance, and rebalance rules fixed and
+switches only the structure multiplier. Follow that with cost stresses and a
+new post-2026-08-10 paper period. True long/short, intraday, event/news, ML, and
+statistical-arbitrage sleeves remain separate contracts described in
+`docs/regime-adaptive-strategy-workflow-2026-09-07.md`; they were not smuggled
+into this daily long-only backtest.
+
+**Report-generation defect found and fixed.** The full PDF initially failed on
+XLE's 2025-12-16 post-split sale. Holdings reconstruction received corporate
+actions, but episode trade reconstruction did not, so its replay thought the
+sale exceeded held shares. `build_insights` now passes the identical action map
+to both replays, with a regression test. The rerun completed a 30-sleeve,
+episode-diagnostic PDF at
+`outputs/reports/v9-structure-wide30-20260907.pdf`.
+
+## 2026-09-07 v10/v11/v12 breadth and adaptive attribution — not promoted
+
+These operator-requested experiments used already-inspected history and were
+not pre-registered. They are diagnostic attribution, never holdout evidence.
+The expanded immutable snapshot contains 128 instruments; 124 are tradable in
+v10/v11. RTX is quarantined because the ledger cannot represent the securities
+distributed in the 2020 UTX transformation. COP, DVN, and FANG are quarantined
+because their fixed and variable dividends collide in the provider's normalized
+cash-dividend field. Excluding those records is safer than guessing or silently
+inventing cash.
+
+| Arm | Config digest | Purpose | Result |
+|---|---|---|---|
+| v10 breadth control | `04e6f23e888c6a04` | Frozen daily long/cash signal over 124 assets | Rejected |
+| v11 broad adaptive | `c310985db3941d84` | v10 plus top-24 selection, structure/payoff scaling, causal KMeans risk conditioning | Rejected |
+| v12 compact adaptive | `6cbfd14a1e06d63b` | v11 stack on v6's original 11 assets | Rejected |
+
+The citable v10 full study is
+`outputs/runs/study-amat-discovery-defense-energy-124-20260907T163138.117681Z`;
+it includes all 124 independent sleeves and the PDF
+`outputs/reports/v10-discovery124-20260907.pdf`. On the same 2,414 sessions as
+current v6 it returned 35.64%, Sharpe 0.710, and maximum drawdown -7.00%, with
+18,268 fills and $2,566.53 cost. Current v6 returned 77.08%, Sharpe 1.137, and
+-7.89% drawdown with 3,110 fills. Thus breadth created 5.87 times the fills but
+lost 41.43 percentage points of return and 0.427 Sharpe.
+
+The exact 2017-07-03 matched-start v10 record is
+`outputs/runs/study-amat-discovery-defense-energy-124-20260907T165731.127263Z`.
+The v11 record is
+`outputs/runs/study-amat-adaptive-defense-energy-124-20260907T164125.129005Z`,
+with PDF `outputs/reports/v11-adaptive124-20260907.pdf`. V11 improved total
+return from 34.16% to 39.16%, but Sharpe fell from 0.696 to 0.665, maximum
+drawdown worsened from -8.11% to -9.92%, and costs rose from $2,513.53 to
+$6,257.13 even though fills fell 27.0%. Selection reduced order count but
+increased traded notional and did not improve the risk-adjusted objective.
+
+The final softened v12 record is
+`outputs/runs/study-amat-adaptive-compact-11-20260907T161113.539781Z`, with PDF
+`outputs/reports/v12-adaptive11-soft-20260907.pdf`. On the exact same dates as
+the v6 compact control, v12 returned 60.06% versus 70.64%, Sharpe 1.012 versus
+1.114, and drawdown -7.05% versus -7.89%; it added 303 fills. The softer stack
+was materially better than the first over-filtered v12 iteration (+31.26 pp
+return and +0.275 Sharpe), but still failed to exceed the incumbent.
+
+**Decision: promote none.** Preserve v6. Use v10 as a discovery dataset, not a
+production universe; run causal family-shrunk eligibility and single-component,
+turnover-matched ablations. Defense was the strongest new family (17/18
+standalone sleeves positive, median Sharpe 0.467). Currency ETFs were the
+weakest transfer (3/7 positive, median Sharpe -0.068), which supports a separate
+carry/rate-differential FX sleeve rather than reuse of the equity model. Full
+interpretation and promotion gates are in
+`docs/strategy-adjustments-2026-09-07.md`.
+
 ## V6 research candidate — static 6% risk with auditable regime context
 
 > **Universe changed 2026-08-15: TLT removed by operator decision.** v6 is now

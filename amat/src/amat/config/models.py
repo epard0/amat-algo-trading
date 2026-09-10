@@ -32,10 +32,12 @@ __all__ = [
     "CovarianceConfig",
     "CrossSectionConfig",
     "ExecutionConfig",
+    "LearnedRegimeConfig",
     "RebalanceConfig",
     "RiskBudgetConfig",
     "RiskOverlayConfig",
     "StrategyConfig",
+    "StructureFilterConfig",
     "TrendConfig",
     "UniverseSpec",
     "VolatilityConfig",
@@ -282,6 +284,66 @@ class CrossSectionConfig(BaseModel):
                 f"ever qualify and the strategy would hold cash forever"
             )
             raise ValueError(message)
+
+
+class StructureFilterConfig(BaseModel):
+    """Soft price-structure quality used to reallocate, never hard-select.
+
+    Four causal feature families describe whether a positive trend has the
+    structure the strategy expects: multi-session variance ratio, Wilder RSI,
+    Donchian channel position, and downside variance share. Their normalized
+    qualities are averaged and mapped into ``[min_multiplier, 1]``. Keeping the
+    floor strictly positive is deliberate: experiments 0006/0007 rejected hard
+    selection, so this component may tilt risk but may not erase an asset.
+    """
+
+    model_config = _MODEL_CONFIG
+
+    enabled: bool = False
+    variance_lookback_sessions: PositiveInt = 63
+    variance_ratio_horizon: PositiveInt = 5
+    variance_ratio_floor: float = Field(default=0.80, gt=0.0)
+    variance_ratio_target: float = Field(default=1.15, gt=0.0)
+    rsi_period: PositiveInt = 14
+    rsi_floor: float = Field(default=40.0, ge=0.0, le=100.0)
+    rsi_target: float = Field(default=55.0, ge=0.0, le=100.0)
+    rsi_upper_target: float = Field(default=75.0, ge=0.0, le=100.0)
+    rsi_ceiling: float = Field(default=85.0, ge=0.0, le=100.0)
+    channel_lookback_sessions: PositiveInt = 63
+    channel_floor: float = Field(default=0.45, ge=0.0, le=1.0)
+    channel_target: float = Field(default=0.90, ge=0.0, le=1.0)
+    downside_lookback_sessions: PositiveInt = 63
+    downside_target: float = Field(default=0.35, ge=0.0, le=1.0)
+    downside_ceiling: float = Field(default=0.65, ge=0.0, le=1.0)
+    min_multiplier: float = Field(default=0.50, gt=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def _require_ordered_thresholds(self) -> Self:
+        if self.variance_ratio_horizon >= self.variance_lookback_sessions:
+            raise ValueError("structure.variance_ratio_horizon must be shorter than its lookback")
+        if self.variance_ratio_floor >= self.variance_ratio_target:
+            raise ValueError("structure.variance_ratio_floor must be below variance_ratio_target")
+        if not self.rsi_floor < self.rsi_target < self.rsi_upper_target < self.rsi_ceiling:
+            raise ValueError(
+                "structure RSI thresholds must satisfy floor < target < upper_target < ceiling"
+            )
+        if self.channel_floor >= self.channel_target:
+            raise ValueError("structure.channel_floor must be below channel_target")
+        if self.downside_target >= self.downside_ceiling:
+            raise ValueError("structure.downside_target must be below downside_ceiling")
+        return self
+
+    @property
+    def required_warmup_sessions(self) -> int:
+        """Longest input window when the filter is active."""
+        if not self.enabled:
+            return 0
+        return max(
+            self.variance_lookback_sessions,
+            self.rsi_period,
+            self.channel_lookback_sessions,
+            self.downside_lookback_sessions,
+        )
 
 
 class RiskBudgetConfig(BaseModel):
@@ -550,6 +612,34 @@ class RiskOverlayConfig(BaseModel):
         return self
 
 
+class LearnedRegimeConfig(BaseModel):
+    """Causal KMeans market-state conditioning for the combined portfolio.
+
+    This is a risk layer, not a direction model: it may only multiply target
+    weights by a value in ``(0, 1]``.  Direction remains the independently
+    testable trend signal.  Enabling it requires daily highs, lows, and volume;
+    the runner fails closed when those fields are absent.
+    """
+
+    model_config = _MODEL_CONFIG
+
+    enabled: bool = False
+    n_regimes: int = Field(default=3, ge=2, le=8)
+    fit_window_sessions: int = Field(default=504, ge=252)
+    refit_every_sessions: PositiveInt = 21
+    risk_floor: float = Field(default=0.50, gt=0.0, le=1.0)
+    unknown_scalar: float = Field(default=1.0, gt=0.0, le=1.0)
+    seed: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def _require_refit_inside_window(self) -> Self:
+        if self.refit_every_sessions > self.fit_window_sessions:
+            raise ValueError(
+                "learned_regime.refit_every_sessions must not exceed fit_window_sessions"
+            )
+        return self
+
+
 class WarmupConfig(BaseModel):
     """Minimum completed history before the strategy may hold a position."""
 
@@ -571,6 +661,7 @@ class StrategyConfig(BaseModel):
     covariance: CovarianceConfig = CovarianceConfig()
     constraints: ConstraintConfig = ConstraintConfig()
     cross_sectional: CrossSectionConfig = CrossSectionConfig()
+    structure: StructureFilterConfig = StructureFilterConfig()
     risk_budget: RiskBudgetConfig = RiskBudgetConfig()
     rebalance: RebalanceConfig = RebalanceConfig()
     execution: ExecutionConfig = ExecutionConfig()
@@ -578,6 +669,7 @@ class StrategyConfig(BaseModel):
     cash: CashConfig = CashConfig()
     warmup: WarmupConfig = WarmupConfig()
     risk: RiskOverlayConfig = RiskOverlayConfig()
+    learned_regime: LearnedRegimeConfig = LearnedRegimeConfig()
 
     @model_validator(mode="after")
     def _require_sufficient_warmup(self) -> Self:
@@ -586,6 +678,7 @@ class StrategyConfig(BaseModel):
             self.trend.max_horizon_sessions,
             self.covariance.lookback_sessions,
             self.volatility.min_periods_sessions,
+            self.structure.required_warmup_sessions,
         )
         # The risk budget reads payoffs, and a payoff needs a score, so its
         # history sits ON TOP of the trend horizon rather than beside it.
