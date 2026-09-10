@@ -413,8 +413,13 @@ def test_a_hand_run_submit_derives_its_own_lateness(tmp_path: Path) -> None:
 # -- the loop ----------------------------------------------------------------
 
 
-def test_a_phase_that_raises_is_still_settled(tmp_path: Path, monkeypatch) -> None:
-    """A bad morning must not become an infinite retry against the broker."""
+def test_a_phase_that_keeps_raising_is_eventually_settled(tmp_path: Path, monkeypatch) -> None:
+    """A bad morning must not become an infinite retry against the broker.
+
+    Each raise is retried (the window is wide open and the attempt count is
+    below the cap), but the cap is finite: once exhausted the phase is
+    settled as done rather than reconsidered forever.
+    """
     client = _FakeClient((_session("2026-08-20"),), _at("2026-08-20", 9, 25))
     daemon = _daemon(tmp_path, client)
 
@@ -429,10 +434,59 @@ def test_a_phase_that_raises_is_still_settled(tmp_path: Path, monkeypatch) -> No
     for _ in range(4):
         daemon.tick()
 
-    assert len(calls) == 1
+    assert len(calls) == 3  # the first attempt plus two retries, then the cap is hit
+    assert daemon._already_done("submit", dt.date(2026, 8, 20))
     failures = _events(daemon._settings, "phase_failed")
-    assert len(failures) == 1
+    assert len(failures) == 3
     assert "RuntimeError" in str(failures[0]["error"])
+
+
+def test_a_transient_submit_failure_is_retried_within_the_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The common case: a broker blip clears well before the submit window closes."""
+    client = _FakeClient((_session("2026-09-10"),), _at("2026-09-10", 9, 25))
+    daemon = _daemon(tmp_path, client)
+    calls: list[str] = []
+
+    def flaky(session: dt.date, *, minutes_late: int = 0) -> None:
+        calls.append(session.isoformat())
+        if len(calls) == 1:
+            raise RuntimeError("broker hiccup")
+
+    monkeypatch.setattr(daemon, "run_submit", flaky)
+
+    sleep = daemon.tick()
+    assert calls == ["2026-09-10"]
+    assert sleep == pytest.approx(300.0)
+    assert not daemon._already_done("submit", dt.date(2026, 9, 10))
+
+    client.now = _at("2026-09-10", 9, 31)
+    daemon.tick()
+    assert calls == ["2026-09-10", "2026-09-10"]
+    assert daemon._already_done("submit", dt.date(2026, 9, 10))
+    failed = _events(daemon._settings, "phase_failed")
+    retried = _events(daemon._settings, "phase_retry_scheduled")
+    assert failed
+    assert retried
+
+
+def test_a_phase_gives_up_after_the_attempt_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dependency that never recovers must not be retried forever."""
+    client = _FakeClient((_session("2026-09-10"),), _at("2026-09-10", 9, 25))
+    daemon = _daemon(tmp_path, client)
+
+    def boom(session: dt.date, *, minutes_late: int = 0) -> None:
+        message = "x"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr(daemon, "run_submit", boom)
+    for minute in (25, 31, 37):
+        client.now = _at("2026-09-10", 9, minute)
+        daemon.tick()
+    assert daemon._already_done("submit", dt.date(2026, 9, 10))
 
 
 def test_the_loop_sleeps_toward_the_next_phase_not_past_it(tmp_path: Path) -> None:

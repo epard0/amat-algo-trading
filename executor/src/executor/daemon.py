@@ -114,6 +114,18 @@ _LEDGER_LIMIT = 64
 #: was down, throttled, or the host was suspended, and the report should say so.
 _LATE_SUBMIT_MINUTES = 15
 
+#: A phase that raised is retried after this many seconds, while its window is
+#: still open. Long enough for a broker blip or a stuck subprocess to clear,
+#: short enough that a 09:25 failure still trades well before the cutoff.
+#: Submit retries are safe because ``client_order_id_for`` is deterministic:
+#: an order that already reached the broker is rejected as a duplicate rather
+#: than doubled, so retrying a submit that actually succeeded is harmless.
+_PHASE_RETRY_SECONDS = 300.0
+
+#: Attempts per phase per session, including the first. After this the phase
+#: is settled as failed so the loop does not hammer a broken dependency.
+_MAX_PHASE_ATTEMPTS = 3
+
 
 @dataclass(frozen=True, slots=True)
 class _Phase:
@@ -159,6 +171,13 @@ class Daemon:
         #: Read from disk once, then written through. Re-reading it per phase
         #: per tick was pure syscall overhead.
         self._ledger: set[str] | None = None
+        #: Attempts made so far for each not-yet-settled phase, keyed by
+        #: ``_Phase.key``. In-memory only: a restart resets it, so a process
+        #: that crashed mid-retry gets a fresh set of attempts rather than
+        #: inheriting a count from before the crash. That is acceptable --
+        #: the window and the deterministic client order IDs still bound the
+        #: damage a restart-reset retry count could do.
+        self._attempts: dict[str, int] = {}
 
     # -- lifecycle ----------------------------------------------------------
 
@@ -627,7 +646,11 @@ class Daemon:
         A failure inside one phase is journalled and swallowed: the daemon must
         survive a bad morning and still send the evening's report, and a report
         that says "the plan failed, here is the traceback" is worth far more
-        than a dead process that says nothing.
+        than a dead process that says nothing. While the phase's window is
+        still open and its attempt count is below the cap, the failure is
+        retried after a short delay rather than settled immediately -- a
+        transient broker or subprocess error should not permanently skip the
+        day's rebalance.
         """
         clock = self._client.get_clock()
         zone = self._zone(clock)
@@ -662,6 +685,8 @@ class Daemon:
                 )
                 continue
             if phase.is_due(now):
+                attempt = self._attempts.get(phase.key, 0) + 1
+                self._attempts[phase.key] = attempt
                 try:
                     if phase.name == "submit":
                         self.run_submit(phase.session, minutes_late=phase.minutes_late(now))
@@ -673,9 +698,22 @@ class Daemon:
                         "phase_failed",
                         session=phase.session,
                         phase=phase.name,
+                        attempt=attempt,
                         error=f"{type(exc).__name__}: {exc}",
                     )
+                    retry_at = now + dt.timedelta(seconds=_PHASE_RETRY_SECONDS)
+                    if attempt < _MAX_PHASE_ATTEMPTS and retry_at <= phase.until:
+                        self._journal.record(
+                            "phase_retry_scheduled",
+                            session=phase.session,
+                            phase=phase.name,
+                            attempt=attempt,
+                            retry_at=retry_at.isoformat(),
+                            window_closes_at=phase.until.isoformat(),
+                        )
+                        return _PHASE_RETRY_SECONDS
                 self._mark_done(phase.name, phase.session)
+                self._attempts.pop(phase.key, None)
                 return 1.0  # re-evaluate immediately; another phase may also be due
 
         upcoming = [phase.at for phase in phases if phase.at > now]
