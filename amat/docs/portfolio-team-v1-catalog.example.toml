@@ -1,0 +1,85 @@
+# DESIGN EXAMPLE ONLY. Paths are relative to the amat project root.
+# These run directories and selected study samples were inspected on 2026-09-10.
+# Import must independently verify artifacts; this catalog grants no trust.
+schema_version = "portfolio-team-catalog/1"
+default_evaluation_use = "previously_inspected_history"
+
+[[runs]]
+id = "v6_full"
+path = "outputs/runs/backtest-amat-etf-regime-quality-20260907T150504.332389Z"
+study_index = 0
+engine = "v1-frozen"
+config_path = "configs/strategy/amat_v6.toml"
+
+[[runs]]
+id = "v9_full"
+path = "outputs/runs/study-amat-etf-structure-wide30-20260907T153208.806426Z"
+study_index = 0
+engine = "v1-frozen"
+config_path = "configs/strategy/amat_v9.toml"
+
+[[runs]]
+id = "v10_full"
+path = "outputs/runs/study-amat-discovery-defense-energy-124-20260907T163138.117681Z"
+study_index = 0
+engine = "v1-frozen"
+config_path = "configs/strategy/amat_v10_discovery128.toml"
+
+[[runs]]
+id = "v10_matched"
+path = "outputs/runs/study-amat-discovery-defense-energy-124-20260907T165731.127263Z"
+study_index = 0
+engine = "v1-frozen"
+config_path = "configs/strategy/amat_v10_discovery128.toml"
+
+[[runs]]
+id = "v11_matched"
+path = "outputs/runs/study-amat-adaptive-defense-energy-124-20260907T164125.129005Z"
+study_index = 0
+engine = "v1-frozen"
+config_path = "configs/strategy/amat_v11_adaptive128.toml"
+
+[[runs]]
+id = "v12_soft"
+path = "outputs/runs/study-amat-adaptive-compact-11-20260907T161113.539781Z"
+study_index = 0
+engine = "v1-frozen"
+config_path = "configs/strategy/amat_v12_adaptive11.toml"
+
+[[comparisons]]
+id = "v9-versus-incumbent"
+candidate = "v9_full"
+control = "v6_full"
+purpose = "replacement"
+require_matched_sample = true
+require_settings_diff = true
+causal_component_attribution = false
+
+[[comparisons]]
+id = "v10-versus-incumbent"
+candidate = "v10_full"
+control = "v6_full"
+purpose = "replacement"
+require_matched_sample = true
+require_settings_diff = true
+causal_component_attribution = false
+
+[[comparisons]]
+id = "v11-versus-broad-control"
+candidate = "v11_matched"
+control = "v10_matched"
+purpose = "replacement"
+require_matched_sample = true
+require_settings_diff = true
+causal_component_attribution = false
+
+[[comparisons]]
+id = "v12-versus-incumbent-needs-matched-run"
+candidate = "v12_soft"
+control = "v6_full"
+purpose = "replacement"
+require_matched_sample = true
+require_settings_diff = true
+causal_component_attribution = false
+# Deliberate mismatch: the importer derives the failed sample check from facts.
+# The previously reported matched v6 performance cannot be imported from prose.

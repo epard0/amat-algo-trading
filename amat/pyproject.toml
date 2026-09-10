@@ -13,9 +13,10 @@ classifiers = [
   "Topic :: Office/Business :: Financial :: Investment",
 ]
 dependencies = [
-  "google-genai>=1.21",
+  "google-genai>=2.17,<3",
   "matplotlib>=3.9",
   "numpy>=2.1",
+  "openai>=2,<3",
   "polars>=1.17",
   "pydantic>=2.10",
   "scikit-learn>=1.6",
@@ -29,6 +30,7 @@ dependencies = [
 amat = "amat.cli.main:main"
 deskreview = "deskreview.cli:main"
 newsdesk = "newsdesk.cli:main"
+pmteam = "portfolio_team.cli:main"
 
 [dependency-groups]
 dev = [
@@ -54,14 +56,14 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-# Three packages, one dependency direction. `amat` imports neither of the
+# Sibling packages with one-way dependencies. `amat` imports neither of the
 # others; `deskreview` reads amat's own functions so a review can never
 # disagree with the strategy it describes; `newsdesk` reaches the strategy
 # only through its database. tests/unit/test_newsdesk_isolation.py and
 # tests/unit/test_deskreview.py fail the build if an edge appears.
 # (`deskreview` was missing from this list for a day -- installed wheels
 # shipped a CLI entry pointing at a package that was not in the wheel.)
-packages = ["src/amat", "src/newsdesk", "src/deskreview"]
+packages = ["src/amat", "src/newsdesk", "src/deskreview", "src/portfolio_team"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/newsdesk/schema.sql" = "newsdesk/schema.sql"
@@ -112,6 +114,7 @@ ignore = [
 # Operator-facing commands: stdout is their interface, same as amat's CLI.
 "src/deskreview/cli.py" = ["T20"]
 "src/newsdesk/cli.py" = ["T20"]
+"src/portfolio_team/cli.py" = ["T20"]
 # Operator-facing scripts: stdout is their interface.
 "scripts/*.py" = ["T20"]
 

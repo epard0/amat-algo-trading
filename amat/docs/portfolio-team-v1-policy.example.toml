@@ -1,0 +1,85 @@
+# DESIGN EXAMPLE ONLY. No current runtime loads this file.
+# Operational budgets are proposed defaults, not measured provider costs.
+schema_version = "portfolio-team-policy/1"
+policy_id = "amat-pm-shadow-review-v1"
+mode = "review_only"
+execution_authority = "none"
+
+[team]
+reviewers = ["research", "portfolio", "risk_operations"]
+chief = "chief_pm"
+required_reviewers = 3
+independent_first_pass = true
+debate_rounds = 0
+
+[models]
+# Resolve the actual provider/model IDs explicitly at deployment.
+# Fake must work offline; real-provider selection remains configurable.
+provider = "fake"
+allow_implicit_fallback = false
+
+[runtime]
+concurrent_reviews = 1
+concurrent_reviewer_calls = 3
+max_attempts_per_role = 2
+max_attempts_per_review = 8
+request_timeout_seconds = 120
+review_deadline_seconds = 600
+watch_interval_seconds = 60
+
+[budgets]
+# Reservations include repeated evidence across all reviewer and chief calls.
+max_input_tokens_per_review = 160000
+max_output_tokens_per_attempt = 3000
+max_total_output_tokens_per_review = 24000
+max_input_tokens_per_day = 1000000
+max_output_tokens_per_day = 150000
+on_exhaustion = "deferred_budget"
+
+[evidence]
+unknown_formats = "quarantine"
+invalid_manifest_link = "quarantine"
+missing_historical_config = "record_missing"
+dirty_code_revision = "reviewable_readiness_blocked"
+unknown_evaluation_use = "not_out_of_sample"
+source_policy = "structured_artifacts_first"
+allow_pdf_metric_extraction = false
+allow_prose_as_verified_metrics = false
+
+[decisions]
+allowed = [
+  "reject_current_proposal",
+  "request_evidence",
+  "continue_research",
+  "shortlist_for_forward_shadow",
+]
+missing_required_reviewer = "incomplete_review"
+missing_shortlist_evidence = "request_evidence"
+retain_dissent = true
+retain_proposed_and_effective_dispositions = true
+
+[shortlist]
+# Applies only to the canonical strategy family under the specified evidence
+# requirements. Full-history aggregate metrics cannot satisfy OOS gates.
+strategy_family = "canonical_daily_long_cash"
+require_verified_config = true
+require_detected_clean_code = true
+require_accounting_and_parity_evidence = true
+require_registered_evaluation_protocol = true
+require_untouched_evaluation_evidence = true
+require_nearby_parameter_stability = true
+require_signal_free_control = true
+require_cost_break_even_evidence = true
+min_net_oos_sharpe = 0.50
+min_positive_annual_oos_fold_fraction = 0.60
+max_drawdown_magnitude = 0.20
+require_positive_locked_holdout_return = true
+require_positive_return_at_cost_multiple = 3.0
+max_best_symbol_pnl_share_exclusive = 0.25
+max_best_year_pnl_share_exclusive = 0.40
+
+[outputs]
+formats = ["json", "markdown"]
+verified_numeric_tables = true
+model_interpretation_labeled = true
+offline_replay = true

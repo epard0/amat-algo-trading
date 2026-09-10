@@ -1,0 +1,16 @@
+[Unit]
+Description=AMAT registered research comparison review
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Documents/amat-workspace/amat
+ExecStart=%h/Documents/amat-workspace/amat/.venv/bin/pmteam cycle configs/governance/initial-reviews.toml --provider gemini --model gemini-3.6-flash --chief-model gpt-6-astra --chief-reasoning high --max-reviews 1
+TimeoutStartSec=12min
+UMask=0077
+UnsetEnvironment=ALPACA_PAPER_API_KEY ALPACA_PAPER_API_SECRET ALPACA_MARKET_API_KEY ALPACA_MARKET_API_SECRET APCA_API_KEY_ID APCA_API_SECRET_KEY
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/Documents/amat-workspace/amat/data/governance/pmteam
+ReadWritePaths=%h/Documents/amat-workspace/amat/outputs/governance

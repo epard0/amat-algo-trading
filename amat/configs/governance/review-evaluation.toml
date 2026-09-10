@@ -1,0 +1,16 @@
+# Development examples, NOT a held-out benchmark or profitability assessment.
+# Only the evaluator sees these expected labels; models receive frozen evidence.
+schema_version = "pmteam-reference-eval/1"
+
+[[cases]]
+id = "matched-broad-evidence-gaps"
+comparison = "v11-versus-broad-control"
+expected_issue_ids = [
+  "v11_matched.revision", "v10_matched.revision", "untouched_evaluation",
+  "daily_series", "accounting_parity", "registered_protocol",
+]
+
+[[cases]]
+id = "unmatched-compact-control"
+comparison = "v12-versus-incumbent-needs-matched-run"
+expected_issue_ids = ["sample_alignment", "untouched_evaluation", "daily_series"]
