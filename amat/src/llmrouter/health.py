@@ -25,6 +25,11 @@ class HealthPolicy(Record):
     failure_ratio_threshold: float = 0.5
     failure_ratio_window_seconds: float = 300
     failure_ratio_min_observations: int = 4
+    #: Deque capacity backing the failure-ratio window. Must comfortably
+    #: outlast `failure_ratio_window_seconds` of request volume so the ratio
+    #: computation's time-based filter (not this cap) decides membership;
+    #: too small a value here silently truncates the window under load.
+    ratio_window_capacity: int = 200
     timeout_threshold: int = 2
     timeout_window_requests: int = 5
     cooldown_seconds: float = 600
@@ -40,7 +45,9 @@ class ProviderHealth:
         self.policy = policy
         self._clock = clock
         self._recent: deque[tuple[float, ErrorClass]] = deque(
-            maxlen=max(policy.window_requests, policy.timeout_window_requests)
+            maxlen=max(
+                policy.window_requests, policy.timeout_window_requests, policy.ratio_window_capacity
+            )
         )
         self.state: State = "available"
         self.cooling_until: float | None = None
@@ -48,38 +55,38 @@ class ProviderHealth:
         self._probe_pending = False
         self.last_reason: str | None = None
 
+    def _maybe_recover(self, now: float) -> None:
+        """Transition ``cooling`` -> ``available`` once the cooldown has
+        elapsed in wall-clock terms, arming a recovery probe.
+
+        Idempotent, and shared by the two places a recovery can be observed:
+        :meth:`should_skip` (pre-flight, before the router even attempts a
+        call) and :meth:`record` (post-hoc, when a caller reports an outcome
+        -- typically ``"ok"`` -- without a prior `should_skip` check having
+        run the transition). No-op while still cooling or once available.
+        """
+        if self.state != "cooling" or self.cooling_until is None:
+            return
+        if now < self.cooling_until:
+            return
+        self.state = "available"
+        self.cooling_until = None
+        self._probe_pending = True
+
     def should_skip(self) -> bool:
         if self.state == "disabled":
             return True
         if self.state == "cooling":
-            if self.cooling_until is None:
-                return False
-            if self._clock() < self.cooling_until:
-                return True
-            self.state = "available"
-            self.cooling_until = None
-            self._probe_pending = True
+            self._maybe_recover(self._clock())
+            return self.cooling_until is not None
         return False
 
     def record(self, error_class: ErrorClass, *, retry_after_seconds: float | None = None) -> None:
         now = self._clock()
         self._recent.append((now, error_class))
         if error_class == "ok":
-            cooldown_elapsed = (
-                self.state == "cooling"
-                and self.cooling_until is not None
-                and now >= self.cooling_until
-            )
-            if cooldown_elapsed:
-                # The cooldown has already elapsed in wall-clock terms even
-                # though nothing has called `should_skip` yet to perform the
-                # cooling -> available transition; a direct success report
-                # still counts as the recovery probe.
-                self.state = "available"
-                self.cooling_until = None
-                self._probe_pending = False
-                self.consecutive_cooldowns = 0
-            elif self._probe_pending:
+            self._maybe_recover(now)
+            if self._probe_pending:
                 self.consecutive_cooldowns = 0
                 self._probe_pending = False
             return
@@ -130,6 +137,10 @@ class ProviderHealth:
         self.last_reason = reason
 
     def snapshot(self) -> dict[str, object]:
+        """Return diagnostic state: ``state``, ``cooling_until``,
+        ``consecutive_cooldowns``, ``last_reason``, and ``recent`` -- the
+        outcome labels (:data:`ErrorClass` strings, oldest first) currently
+        held in the sliding window, not a count."""
         return {
             "state": self.state,
             "cooling_until": self.cooling_until,

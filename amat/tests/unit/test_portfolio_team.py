@@ -354,7 +354,7 @@ def test_package_has_no_broker_or_process_execution_imports():
 
 def test_llmrouter_has_no_broker_or_process_execution_imports():
     package = Path(__file__).resolve().parents[2] / "src/llmrouter"
-    forbidden = {"executor", "subprocess", "requests", "httpx", "alpaca"}
+    forbidden = {"executor", "subprocess", "requests", "httpx", "alpaca", "portfolio_team"}
     for source in package.glob("*.py"):
         for node in ast.walk(ast.parse(source.read_text())):
             if isinstance(node, ast.Import):

@@ -84,6 +84,37 @@ def test_success_after_cooldown_resets_backoff() -> None:
     assert health.consecutive_cooldowns == 0
 
 
+def test_snapshot_reports_state_after_a_trip() -> None:
+    health, clock = _health(cooldown_seconds=10)
+    for _ in range(3):
+        health.record("server")
+    assert health.snapshot() == {
+        "state": "cooling",
+        "cooling_until": clock.now + 10,
+        "consecutive_cooldowns": 1,
+        "last_reason": "unknown_errors",
+        "recent": [],  # `_trip` clears the window it tripped from
+    }
+
+
+def test_failure_ratio_window_is_not_truncated_by_request_count() -> None:
+    """Eleven requests -- more than the count-based windows' size -- with six
+    failures, the first two of which are old enough that a deque bounded to
+    ``window_requests`` (10, unused here since it is overridden to 99) would
+    have evicted them by the 11th request. The ratio path is time-bounded,
+    not count-bounded, so it must still see them: excluding the first two
+    failures the last-10-only ratio would be 5/10 = 0.5 (no trip); including
+    them, the true ratio is 6/11 > 0.5 (trip).
+    """
+    health, _clock = _health(unknown_error_threshold=99, window_requests=99)
+    outcomes = ["server", "server", "ok", "ok", "ok", "ok", "ok", "server", "server", "server"]
+    for outcome in outcomes:
+        health.record(outcome)
+    assert not health.should_skip()
+    health.record("server")
+    assert health.should_skip()
+
+
 def test_http_classification() -> None:
     assert classify_http(401, "") == "auth"
     assert classify_http(404, '{"error":{"message":"model not found"}}') == "auth"
