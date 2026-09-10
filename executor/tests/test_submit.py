@@ -412,15 +412,24 @@ def test_preflight_refuses_when_session_notional_exceeds_cap() -> None:
 
 
 def test_preflight_refuses_when_order_count_exceeds_cap() -> None:
-    plan = parse_plan(_plan_payload())
+    """`_plan_payload()` carries exactly one intent, which cannot exercise this
+    cap: `max(len(intents) - 1, 0) or 1` always evaluates to 1, the cap is
+    never exceeded, and the test would still pass with the check deleted. A
+    second intent makes the cap genuinely binding."""
+    base_intent = _plan_payload()["intents"][0]
+    second_intent = {**base_intent, "symbol": "QQQ", "notional": "8000.00"}
+    plan = parse_plan(_plan_payload(intents=[base_intent, second_intent]))
+    assert len(plan.intents) == 2
     reason = _preflight(
         plan,
         _account(),
         plan.earliest_execution_session,
         _now(),
-        limits=_limits(max_orders_per_session=max(len(plan.intents) - 1, 0) or 1),
+        # Notional caps stay at `_limits()`'s generous defaults so only the
+        # order-count check -- checked before either notional cap -- can fire.
+        limits=_limits(max_orders_per_session=1),
     )
-    assert "MAX_ORDERS_PER_SESSION" in reason if len(plan.intents) > 1 else reason == ""
+    assert "MAX_ORDERS_PER_SESSION" in reason
 
 
 def test_preflight_refuses_when_one_symbol_exceeds_cap() -> None:
