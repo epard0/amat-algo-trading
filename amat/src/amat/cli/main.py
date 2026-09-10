@@ -325,7 +325,15 @@ def _add_window_arguments(parser: argparse.ArgumentParser) -> None:
         "--snapshot", type=Path, required=True, help="Snapshot directory under data/snapshots/."
     )
     parser.add_argument(
-        "--start", type=dt.date.fromisoformat, default=None, help="First session (inclusive)."
+        "--start",
+        type=dt.date.fromisoformat,
+        default=None,
+        help=(
+            "First session loaded (inclusive). Feature warm-up consumes the first "
+            "warmup.min_completed_sessions loaded sessions, so measured performance "
+            "begins later; read sample.first_session in the result for the measured "
+            "start."
+        ),
     )
     parser.add_argument(
         "--end", type=dt.date.fromisoformat, default=None, help="Last session (inclusive)."
@@ -769,7 +777,15 @@ def _add_market_data_commands(subparsers: argparse._SubParsersAction) -> None:  
         help="Opening equity for each per-asset sleeve (default 100,000).",
     )
     study.add_argument(
-        "--start", type=dt.date.fromisoformat, default=None, help="First session (inclusive)."
+        "--start",
+        type=dt.date.fromisoformat,
+        default=None,
+        help=(
+            "First session loaded (inclusive). Feature warm-up consumes the first "
+            "warmup.min_completed_sessions loaded sessions, so measured performance "
+            "begins later; read sample.first_session in the result for the measured "
+            "start."
+        ),
     )
     study.add_argument(
         "--end", type=dt.date.fromisoformat, default=None, help="Last session (inclusive)."
@@ -848,7 +864,15 @@ def _add_market_data_commands(subparsers: argparse._SubParsersAction) -> None:  
         help="Opening cash balance (default 100,000, matching the v1 study funding).",
     )
     study_v4.add_argument(
-        "--start", type=dt.date.fromisoformat, default=None, help="First session (inclusive)."
+        "--start",
+        type=dt.date.fromisoformat,
+        default=None,
+        help=(
+            "First session loaded (inclusive). Feature warm-up consumes the first "
+            "warmup.min_completed_sessions loaded sessions, so measured performance "
+            "begins later; read sample.first_session in the result for the measured "
+            "start."
+        ),
     )
     study_v4.add_argument(
         "--end", type=dt.date.fromisoformat, default=None, help="Last session (inclusive)."
@@ -1125,6 +1149,8 @@ def _command_validate_config(path: Path) -> int:
     The schema that matched is printed, because "valid" without saying *against
     what* is the ambiguity that hid this in the first place.
     """
+    from amat.config.models import learned_regime_warmup_warning  # noqa: PLC0415
+
     resolved, extra_sections = _resolve_config_for_inspection(path)
     schema = _schema_label(extra_sections)
     detail = f" (+{', '.join(extra_sections)})" if extra_sections else ""
@@ -1135,6 +1161,9 @@ def _command_validate_config(path: Path) -> int:
         f"sha256 {resolved.content_sha256[:12]}) "
         f"[{schema}{detail}]"
     )
+    warmup_warning = learned_regime_warmup_warning(resolved.strategy)
+    if warmup_warning is not None:
+        print(f"Warning: {warmup_warning}")
     return _EXIT_OK
 
 

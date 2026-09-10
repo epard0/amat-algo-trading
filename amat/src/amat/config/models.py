@@ -42,6 +42,7 @@ __all__ = [
     "UniverseSpec",
     "VolatilityConfig",
     "WarmupConfig",
+    "learned_regime_warmup_warning",
 ]
 
 _MODEL_CONFIG = ConfigDict(frozen=True, extra="forbid", strict=False)
@@ -638,6 +639,35 @@ class LearnedRegimeConfig(BaseModel):
                 "learned_regime.refit_every_sessions must not exceed fit_window_sessions"
             )
         return self
+
+
+def learned_regime_warmup_warning(strategy: StrategyConfig) -> str | None:
+    """Explicit warning when the regime layer is inert through warm-up.
+
+    ``learned_regime.fit_window_sessions`` trailing history is required before
+    :func:`~amat.validation.conditioning.regime_scalars` produces its first fit;
+    until then every scalar is ``unknown_scalar``. Nothing validates that
+    ``warmup.min_completed_sessions`` covers that window, so a configuration
+    with a shorter warm-up is not invalid -- it is just silently running the
+    regime layer as a no-op for its opening measured sessions. That is worth
+    recording rather than absorbing without comment, and is deliberately a
+    warning rather than a validator: existing hashed configurations (for
+    example ``amat_v12_adaptive11.toml``, warmup 378 against a 504-session fit
+    window) must keep validating.
+    """
+    learned = strategy.learned_regime
+    if not learned.enabled:
+        return None
+    warmup_sessions = strategy.warmup.min_completed_sessions
+    if warmup_sessions >= learned.fit_window_sessions:
+        return None
+    inert = learned.fit_window_sessions - warmup_sessions
+    return (
+        f"learned_regime: inert for the first {inert} measured sessions because "
+        f"fit_window_sessions ({learned.fit_window_sessions}) exceeds "
+        f"warmup.min_completed_sessions ({warmup_sessions}); "
+        f"the unknown_scalar {learned.unknown_scalar} applies until the first fit"
+    )
 
 
 class WarmupConfig(BaseModel):

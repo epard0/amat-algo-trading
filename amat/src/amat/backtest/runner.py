@@ -32,7 +32,7 @@ import numpy as np
 from amat.backtest.accounting import SessionAccountant
 from amat.backtest.exits import ExitPolicy, apply_exit_rules, track_entry_bases
 from amat.backtest.panel import MarketPanel
-from amat.config.models import StrategyConfig
+from amat.config.models import StrategyConfig, learned_regime_warmup_warning
 from amat.domain.actions import ActionKind, CorporateAction
 from amat.domain.fills import Fill, MissedFill, MissedFillReason
 from amat.domain.instruments import Universe
@@ -880,6 +880,9 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
 
     records: list[SessionRecord] = []
     warnings: list[str] = []
+    regime_warmup_warning = learned_regime_warmup_warning(strategy)
+    if regime_warmup_warning is not None:
+        warnings.append(regime_warmup_warning)
     pending: dict[SessionDate, list[SimulatedOrder]] = {}
     pending_missed: dict[SessionDate, list[MissedFill]] = {}
 
