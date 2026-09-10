@@ -16,8 +16,10 @@ must be a reviewed code change, not an environment variable.
 from __future__ import annotations
 
 import os
+import re
 import shlex
 from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from executor.errors import ConfigurationError
@@ -26,6 +28,7 @@ from executor.plan_source import DEFAULT_PLAN_COMMAND
 __all__ = [
     "PAPER_TRADING_HOST",
     "ExecutorSettings",
+    "RiskLimits",
     "SmtpSettings",
 ]
 
@@ -67,6 +70,89 @@ def _positive_int(name: str, default: int) -> int:
         message = f"{name} must be positive, got {value}"
         raise ConfigurationError(message)
     return value
+
+
+def _required_positive_int(name: str) -> int:
+    _require(name)  # raises ConfigurationError naming `name` when unset
+    return _positive_int(name, 0)
+
+
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def _positive_decimal(name: str) -> Decimal:
+    raw = _require(name)
+    try:
+        value = Decimal(raw)
+    except InvalidOperation as exc:
+        message = f"{name} must be a decimal number, got {raw!r}"
+        raise ConfigurationError(message) from exc
+    if not value.is_finite() or value <= 0:
+        message = f"{name} must be positive, got {raw!r}"
+        raise ConfigurationError(message)
+    return value
+
+
+def _fraction(name: str, default: str) -> Decimal:
+    raw = _optional(name, default)
+    try:
+        value = Decimal(raw)
+    except InvalidOperation as exc:
+        message = f"{name} must be a decimal fraction, got {raw!r}"
+        raise ConfigurationError(message) from exc
+    if not value.is_finite() or value < 0 or value > 1:
+        message = f"{name} must be within [0, 1], got {raw!r}"
+        raise ConfigurationError(message)
+    return value
+
+
+def _digest_set(name: str) -> frozenset[str]:
+    raw = _require(name)
+    digests = {item.strip().lower() for item in raw.split(",") if item.strip()}
+    bad = sorted(item for item in digests if not _SHA256.match(item))
+    if bad or not digests:
+        message = (
+            f"{name} must be a comma-separated list of 64-character hex SHA-256 digests "
+            f"(`sha256sum configs/strategy/<file>.toml` in the strategy checkout); "
+            f"rejected {bad or ['<empty>']}"
+        )
+        raise ConfigurationError(message)
+    return frozenset(digests)
+
+
+@dataclass(frozen=True, slots=True)
+class RiskLimits:
+    """Limits the executor owns, independent of anything a plan asserts.
+
+    Every field is required from the environment except the two with safe
+    defaults. An unset limit is a configuration error, never permission.
+    """
+
+    #: Raw-file SHA-256 digests of the strategy configurations this executor
+    #: may trade. A plan whose ``config_sha256`` is not listed is refused.
+    authorized_config_sha256: frozenset[str]
+    #: Global switch. True refuses every submission while leaving reports on.
+    disabled: bool
+    #: Ceiling on the summed reference notional of all intents in one session.
+    max_session_notional: Decimal
+    #: Ceiling on the number of intents that may be submitted in one session.
+    max_orders_per_session: int
+    #: Ceiling on any single intent's reference notional.
+    max_symbol_notional: Decimal
+    #: Maximum relative difference between the equity the plan was sized on and
+    #: the broker's equity at submission time.
+    equity_tolerance: Decimal
+
+    @classmethod
+    def from_environment(cls) -> RiskLimits:
+        return cls(
+            authorized_config_sha256=_digest_set("AUTHORIZED_CONFIG_SHA256"),
+            disabled=_optional("EXECUTOR_DISABLED", "false").lower() == "true",
+            max_session_notional=_positive_decimal("MAX_SESSION_NOTIONAL"),
+            max_orders_per_session=_required_positive_int("MAX_ORDERS_PER_SESSION"),
+            max_symbol_notional=_positive_decimal("MAX_SYMBOL_NOTIONAL"),
+            equity_tolerance=_fraction("EQUITY_TOLERANCE", "0.01"),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,6 +273,8 @@ class ExecutorSettings:
     dry_run: bool
 
     smtp: SmtpSettings | None
+    #: Risk limits the executor owns, independent of anything a plan asserts.
+    limits: RiskLimits
     #: Optional short-lived artifact produced by ``newsdesk discover-assets``.
     news_assets: Path | None = None
 
@@ -259,6 +347,7 @@ class ExecutorSettings:
             plan_command=_plan_command(),
             dry_run=_optional("DRY_RUN", "false").lower() == "true",
             smtp=SmtpSettings.from_environment(),
+            limits=RiskLimits.from_environment(),
             news_assets=news_assets,
         )
 
@@ -272,5 +361,6 @@ class ExecutorSettings:
             f"amat_root={self.amat_root!r}, strategy_config={self.strategy_config!r}, "
             f"snapshot={self.snapshot!r}, state_root={self.state_root!r}, "
             f"report_retention_days={self.report_retention_days}, "
-            f"plan_command={self.plan_command!r}, dry_run={self.dry_run})"
+            f"plan_command={self.plan_command!r}, dry_run={self.dry_run}, "
+            f"limits={self.limits!r})"
         )

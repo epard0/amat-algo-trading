@@ -12,12 +12,13 @@ from __future__ import annotations
 import datetime as dt
 import json
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
 
 from executor.broker import CalendarSession
-from executor.config import ExecutorSettings
+from executor.config import ExecutorSettings, RiskLimits
 from executor.daemon import Daemon
 from executor.journal import Journal
 
@@ -77,6 +78,14 @@ def _settings(tmp_path: Path) -> ExecutorSettings:
         plan_command=("true",),
         dry_run=True,
         smtp=None,
+        limits=RiskLimits(
+            authorized_config_sha256=frozenset({"2712f694227321e4" + "0" * 48}),
+            disabled=False,
+            max_session_notional=Decimal("1000000"),
+            max_orders_per_session=100,
+            max_symbol_notional=Decimal("1000000"),
+            equity_tolerance=Decimal("1"),
+        ),
     )
 
 

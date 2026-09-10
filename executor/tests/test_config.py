@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -22,6 +23,13 @@ def amat_root(tmp_path: Path) -> Path:
     return root
 
 
+def _limits_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AUTHORIZED_CONFIG_SHA256", "a" * 64 + ", " + "b" * 64)
+    monkeypatch.setenv("MAX_SESSION_NOTIONAL", "60000")
+    monkeypatch.setenv("MAX_ORDERS_PER_SESSION", "12")
+    monkeypatch.setenv("MAX_SYMBOL_NOTIONAL", "25000")
+
+
 @pytest.fixture
 def base_env(
     monkeypatch: pytest.MonkeyPatch, amat_root: Path, tmp_path: Path
@@ -38,6 +46,12 @@ def base_env(
         "DRY_RUN",
         "STRATEGY_CONFIG",
         "NEWS_ASSETS",
+        "AUTHORIZED_CONFIG_SHA256",
+        "EXECUTOR_DISABLED",
+        "MAX_SESSION_NOTIONAL",
+        "MAX_ORDERS_PER_SESSION",
+        "MAX_SYMBOL_NOTIONAL",
+        "EQUITY_TOLERANCE",
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("ALPACA_PAPER_API_KEY", "key-value")
@@ -45,6 +59,7 @@ def base_env(
     monkeypatch.setenv("AMAT_ROOT", str(amat_root))
     monkeypatch.setenv("SNAPSHOT", str(amat_root / "data" / "snapshots" / "snap-1"))
     monkeypatch.setenv("STATE_ROOT", str(tmp_path / "state"))
+    _limits_env(monkeypatch)
     return monkeypatch
 
 
@@ -178,3 +193,54 @@ def test_smtp_password_never_appears_in_a_repr(base_env: pytest.MonkeyPatch) -> 
 
 def test_the_broker_host_is_the_paper_host() -> None:
     assert PAPER_TRADING_HOST.startswith("paper-")
+
+
+# -- Risk limits --------------------------------------------------------------
+
+
+def test_risk_limits_resolve_from_environment(base_env: pytest.MonkeyPatch) -> None:
+    settings = ExecutorSettings.from_environment()
+    limits = settings.limits
+    assert limits.authorized_config_sha256 == frozenset({"a" * 64, "b" * 64})
+    assert limits.disabled is False
+    assert limits.max_session_notional == Decimal("60000")
+    assert limits.max_orders_per_session == 12
+    assert limits.max_symbol_notional == Decimal("25000")
+    assert limits.equity_tolerance == Decimal("0.01")
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        "AUTHORIZED_CONFIG_SHA256",
+        "MAX_SESSION_NOTIONAL",
+        "MAX_ORDERS_PER_SESSION",
+        "MAX_SYMBOL_NOTIONAL",
+    ],
+)
+def test_risk_limits_fail_closed_when_unset(base_env: pytest.MonkeyPatch, missing: str) -> None:
+    base_env.delenv(missing)
+    with pytest.raises(ConfigurationError, match=missing):
+        ExecutorSettings.from_environment()
+
+
+@pytest.mark.parametrize("bad", ["not-hex", "abc", "A" * 64 + "x"])
+def test_a_malformed_digest_is_rejected(base_env: pytest.MonkeyPatch, bad: str) -> None:
+    base_env.setenv("AUTHORIZED_CONFIG_SHA256", bad)
+    with pytest.raises(ConfigurationError, match="AUTHORIZED_CONFIG_SHA256"):
+        ExecutorSettings.from_environment()
+
+
+def test_disabled_switch_and_tolerance_parse(base_env: pytest.MonkeyPatch) -> None:
+    base_env.setenv("EXECUTOR_DISABLED", "TRUE")
+    base_env.setenv("EQUITY_TOLERANCE", "0.02")
+    limits = ExecutorSettings.from_environment().limits
+    assert limits.disabled is True
+    assert limits.equity_tolerance == Decimal("0.02")
+
+
+@pytest.mark.parametrize("value", ["0", "-5", "abc"])
+def test_non_positive_notional_is_rejected(base_env: pytest.MonkeyPatch, value: str) -> None:
+    base_env.setenv("MAX_SESSION_NOTIONAL", value)
+    with pytest.raises(ConfigurationError, match="MAX_SESSION_NOTIONAL"):
+        ExecutorSettings.from_environment()
