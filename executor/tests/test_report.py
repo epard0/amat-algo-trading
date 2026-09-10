@@ -8,9 +8,11 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
+from tests.test_plan_source import _plan_payload
 
-from executor.broker import Account
+from executor.broker import Account, Order
 from executor.journal import Journal
+from executor.plan_source import parse_plan
 from executor.report.daily import (
     _MEANINGFUL_SAMPLE,
     build_daily_report,
@@ -18,6 +20,7 @@ from executor.report.daily import (
     prune_old_reports,
     write_report,
 )
+from executor.report.metrics import compute_execution_quality
 
 
 def _curve(*equities: str) -> list[dict[str, object]]:
@@ -59,14 +62,50 @@ def test_a_monotonic_curve_has_no_drawdown() -> None:
 
 def test_dispersion_needs_two_returns() -> None:
     stats = compute_stats(_curve("100000", "101000"))
-    assert stats.annualized_volatility == 0.0
-    assert stats.sharpe_ratio == 0.0
+    assert stats.annualized_volatility is None
+    assert stats.sharpe_ratio is None
 
 
 def test_a_flat_curve_has_zero_volatility_and_no_divide_by_zero() -> None:
     stats = compute_stats(_curve("100000", "100000", "100000"))
     assert stats.annualized_volatility == 0.0
     assert stats.sharpe_ratio == 0.0
+
+
+def test_extended_observation_gap_suppresses_annualized_metrics() -> None:
+    curve = [
+        {"session": "2026-08-27", "equity": "100000"},
+        {"session": "2026-09-08", "equity": "101000"},
+    ]
+    stats = compute_stats(curve)
+
+    assert stats.day_return == pytest.approx(0.01)
+    assert stats.latest_interval_calendar_days == 12
+    assert stats.has_extended_gap
+    assert stats.annualized_return is None
+    assert stats.annualized_volatility is None
+    assert stats.historical_var_95 is None
+
+
+def test_downside_and_tail_metrics_are_reported_on_a_daily_curve() -> None:
+    stats = compute_stats(_curve("100", "102", "100", "103", "99"))
+
+    assert stats.annualized_downside_deviation is not None
+    assert stats.sortino_ratio is not None
+    assert stats.historical_var_95 is not None
+    assert stats.historical_cvar_95 is not None
+    assert stats.ulcer_index > 0
+    assert stats.negative_days == 2
+    assert stats.gain_to_pain_ratio is not None
+
+
+def test_equity_sessions_must_be_strictly_increasing() -> None:
+    curve = [
+        {"session": "2026-08-03", "equity": "100"},
+        {"session": "2026-08-03", "equity": "101"},
+    ]
+    with pytest.raises(ValueError, match="strictly increasing"):
+        compute_stats(curve)
 
 
 def test_short_samples_are_labelled_not_meaningful() -> None:
@@ -175,6 +214,79 @@ def test_write_report_emits_both_forms(tmp_path: Path) -> None:
     assert markdown_path.name == "2026-08-11.md"
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["stats"]["sessions"] == 2
+    assert payload["execution"]["reconciliation_complete"]
+
+
+# -- execution reconciliation ------------------------------------------------
+
+
+def _order(**overrides: object) -> Order:
+    payload = {
+        "id": "order-1",
+        "client_order_id": "amat-2026-08-10-SPY-buy-test",
+        "symbol": "SPY",
+        "side": "buy",
+        "qty": "15.9684",
+        "filled_qty": "15.9684",
+        "filled_avg_price": "780.00",
+        "status": "filled",
+        "submitted_at": "2026-08-11T13:30:00Z",
+    }
+    payload.update(overrides)
+    return Order.from_payload(payload)
+
+
+def test_execution_quality_reconciles_fill_and_adverse_markout() -> None:
+    plan = parse_plan(_plan_payload())
+    quality = compute_execution_quality(plan, (_order(),))
+
+    expected_bps = (780.0 / 772.99 - 1.0) * 10_000.0
+    assert quality.reconciliation_complete
+    assert quality.filled_order_count == 1
+    assert quality.reference_notional_fill_rate == pytest.approx(1.0, rel=1e-4)
+    assert quality.decision_to_fill_slippage_bps == pytest.approx(expected_bps)
+
+
+def test_execution_quality_flags_an_unmatched_plan_intent() -> None:
+    quality = compute_execution_quality(parse_plan(_plan_payload()), ())
+
+    assert not quality.reconciliation_complete
+    assert quality.unmatched_intent_count == 1
+    assert quality.reference_notional_fill_rate == 0.0
+
+
+def test_execution_quality_flags_unmatched_and_overfilled_orders() -> None:
+    plan = parse_plan(_plan_payload())
+    overfill = _order(filled_qty="16.0000")
+    unrelated = _order(
+        id="order-2",
+        client_order_id="amat-2026-08-10-QQQ-buy-test",
+        symbol="QQQ",
+        qty="1",
+        filled_qty="1",
+    )
+
+    quality = compute_execution_quality(plan, (overfill, unrelated))
+
+    assert not quality.reconciliation_complete
+    assert quality.overfilled_order_count == 1
+    assert quality.unmatched_order_count == 1
+
+
+def test_report_warns_when_broker_reconciliation_is_incomplete() -> None:
+    report = build_daily_report(
+        session=dt.date(2026, 8, 11),
+        now=dt.datetime(2026, 8, 11, 20, 15, tzinfo=dt.UTC),
+        account=_account(),
+        positions=(),
+        equity_curve=_curve("100000", "101000"),
+        submission=None,
+        plan=parse_plan(_plan_payload()),
+        orders=(),
+    )
+
+    assert any("reconciliation is incomplete" in warning for warning in report.warnings)
+    assert "Execution quality" in report.to_markdown()
 
 
 # -- retention --------------------------------------------------------------

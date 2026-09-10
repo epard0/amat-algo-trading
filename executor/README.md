@@ -51,6 +51,9 @@ calendar rather than hardcoded weekdays or market hours:
 A delayed morning phase may catch up until `SUBMIT_CUTOFF_MINUTES` before that
 session's close. It records the delay so an intraday fill is not represented as
 an opening fill. Alpaca's calendar naturally handles holidays and half-days.
+On restart the daemon requests a 14-calendar-day lookback, marks every skipped
+phase in the seven-trading-day audit horizon as missed exactly once, and never
+submits an order for a session whose submit window has already closed.
 
 ## Current measured performance
 
@@ -59,61 +62,59 @@ volume. They are a dated operational snapshot, not static project claims.
 
 ### Paper-account results
 
-Snapshot source: `/var/lib/amat-executor/reports/2026-08-26.json`, generated
-`2026-08-26T20:15:00Z`.
+Snapshot source: `/var/lib/amat-executor/reports/2026-08-27.json`, generated
+`2026-08-27T20:15:00Z`. The service then had an operational gap before its
+2026-09-07 recovery; the gap-aware reporter suppresses annualized and tail
+statistics until uninterrupted observations resume.
 
 | Metric | Measured value |
 |---|---:|
-| Observed sessions | 8 (`2026-08-17` through `2026-08-26`) |
+| Observed sessions | 9 (`2026-08-17` through `2026-08-27`) |
 | Starting equity | $100,769.59 |
-| Ending equity | $100,845.72 |
-| Net change | +$76.13 |
-| Total return | +0.0755% |
-| Latest session return | -0.0405% |
+| Ending equity | $101,009.34 |
+| Net change | +$239.75 |
+| Total return | +0.2379% |
+| Latest observed-period return | +0.1622% |
 | Maximum observed drawdown | -0.1777% |
-| Annualized volatility | 2.1095% |
-| Sharpe ratio, assuming 0% cash return | 1.30 |
+| Annualized volatility | Suppressed after extended observation gap |
+| Sharpe ratio, assuming 0% cash return | Suppressed after extended observation gap |
 | Best session | +0.2733% |
 | Worst session | -0.1702% |
-| Positive return intervals | 2 of 7 |
-| Ending cash | $57,072.67 |
-| Ending gross exposure | 43.41% |
-| Ending positions | 10 |
+| Positive return intervals | 3 of 8 |
+| Ending cash | $64,190.66 |
+| Ending gross exposure | 36.45% |
+| Ending positions | 9 |
 
 > [!WARNING]
-> Eight sessions is **not a meaningful statistical sample**. The report marks
+> Nine sessions is **not a meaningful statistical sample**. The report marks
 > samples below 20 sessions accordingly. In particular, the annualized
-> volatility, Sharpe ratio, and drawdown describe this short observation window
-> and should not be used as expected performance.
+> and tail metrics are unavailable after the extended observation gap; drawdown
+> describes only this short observation window and is not expected performance.
 
-The `2026-08-26` rebalance bought IEF and filled, but the submit phase started
-33 minutes late. The report warns that its fill reflects an intraday price and
+The `2026-08-27` rebalance sold IEF and filled, but the submit phase started
+84 minutes late. The report warns that its fill reflects an intraday price and
 is not directly comparable with the backtest's assumed opening fill. The plan
-also appended 11 sessions beyond the frozen snapshot manifest, and its code
+also appended 12 sessions beyond the frozen snapshot manifest, and its code
 revision was undetected because the mounted AMAT checkout did not expose usable
 Git metadata. Both points matter when reviewing provenance.
 
 ### Container health and resource use
 
-Docker snapshot captured `2026-08-26T23:35:57Z`:
+Docker was recovered and checked on `2026-09-07`:
 
 | Metric | Measured value |
 |---|---:|
-| Container status | Running and healthy |
-| Started | `2026-08-24T19:15:28Z` |
-| Restarts since start | 0 |
-| CPU at sample time | 0.00% |
-| Memory at sample time | 152.5 MiB (0.48% of the Docker-reported 31.01 GiB limit) |
-| Processes | 2 |
-| Cumulative network I/O | 6.71 MB received / 1.46 MB sent |
-| Cumulative block I/O | 950 MB read / 254 kB written |
-| Image size | 248,106,041 bytes (about 236.6 MiB) |
+| Container status | Running and healthy after forced recreation |
+| Paper broker account | Active and trading permitted |
+| Strategy/snapshot | v6 / `alpaca-sip-2026-08-11` |
+| Current plan | Valid; three intents for the next session |
 | Persistent executor state | about 17 MiB |
-| Equity observations | 8 |
-| Journal records | 55,227 valid NDJSON records |
+| Equity observations | 9 |
+| Retained broker orders | 13 of 13 filled |
+| Journal records | 55,235 valid NDJSON records at audit time |
 
 The high journal-record count is historical, not normal throughput: 41,456
-`phase_missed` and 13,695 `report_written` entries came from the earlier
+`phase_missed` and 13,696 `report_written` entries came from the earlier
 scheduler-ledger defect described in `tests/test_daemon.py`. The defect is fixed
 and the journal now rotates at 32 MiB, retaining one prior generation.
 
@@ -157,8 +158,9 @@ The end-to-end flow is:
    approved intents through the one broker adapter.
 6. `journal.py` durably records decisions, refusals, submissions, and one
    end-of-day equity point per session.
-7. `report/daily.py` computes measured performance and writes Markdown plus
-   JSON. `report/email.py` optionally delivers the already-persisted report.
+7. `report/metrics.py` computes gap-aware return/risk statistics and reconciles
+   plan intents with broker orders/fills. `report/daily.py` writes Markdown plus
+   JSON, and `report/email.py` optionally delivers the persisted report.
 
 ## Repository guide
 
@@ -205,7 +207,8 @@ separately because they should not be committed.
 | File | What it does |
 |---|---|
 | `src/executor/report/__init__.py` | Exposes report building, statistics, persistence, pruning, and email functions |
-| `src/executor/report/daily.py` | Computes equity-curve statistics, labels short samples, assembles daily Markdown/JSON reports, and prunes date-paired plans/reports |
+| `src/executor/report/metrics.py` | Computes gap-aware performance/risk statistics and plan-to-order execution reconciliation |
+| `src/executor/report/daily.py` | Labels short/gapped samples, assembles daily Markdown/JSON reports, and prunes date-paired plans/reports |
 | `src/executor/report/email.py` | Sends persisted reports through SMTP with TLS options; delivery failures are returned for journaling and never crash the trading loop |
 
 ### Tests
@@ -217,7 +220,7 @@ separately because they should not be committed.
 | `tests/test_daemon.py` | Scheduler windows, half-days, late/missed phases, one-time execution, state-ledger migration/bounds, and restart behavior |
 | `tests/test_integration.py` | Real offline AMAT v6 plan generation followed by plan-to-submit-to-report-to-prune behavior against a controlled fake broker |
 | `tests/test_plan_source.py` | Plan subprocess arguments, JSON extraction, schema validation, versions, dates, quantities, and unrecognized holdings |
-| `tests/test_report.py` | Equity/statistics calculations, meaningful-sample labeling, order/report content, idempotent observations, and retention pairing |
+| `tests/test_report.py` | Equity/risk statistics, gap suppression, execution reconciliation, report content, idempotent observations, and retention pairing |
 | `tests/test_submit.py` | Preflight refusals, long-only sizing, fractional rounding, deterministic IDs, dry runs, duplicates, submissions, and journaling |
 
 ### Generated and local-only files
@@ -427,8 +430,8 @@ uv run mypy src
 uv run pytest -q
 ```
 
-At the time of this README update, the suite passes with **126 tests** and
-strict mypy reports no issues in 13 source files.
+At the time of this README update, the suite passes with **135 tests** and
+strict mypy reports no issues in 14 source files.
 
 To apply formatting:
 
@@ -594,13 +597,15 @@ These properties are enforced by code and tests:
 | Conservative rounding | Non-fractionable and wire-precision quantities round down |
 | Idempotent intent | Deterministic client order IDs prevent the same plan from doubling a position |
 | Restart-safe scheduling | Completed phases use a durable bounded ledger |
-| Performance integrity | At most one equity observation per session; short samples are labeled |
+| Performance integrity | At most one equity observation per session; short/gapped samples are labeled and misleading annualization is suppressed |
+| Execution reconciliation | Reports match intents to orders/fills and permanently journal the aggregate result |
 | Credential hygiene | Secrets come from the environment and are redacted from representations |
 
 ## Known limitations
 
 - Paper fills do not model real spreads, market impact, or adverse selection.
-- The current performance history has only eight observations.
+- The current performance history has only nine observations and an extended
+  operational gap.
 - The default v6 strategy carries a documented hindsight-selection caveat
   around removing TLT; paper time is out-of-sample evidence, not a cure for
   that caveat.

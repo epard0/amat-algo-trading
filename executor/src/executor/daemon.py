@@ -67,6 +67,7 @@ from executor.errors import ExecutorError
 from executor.journal import Journal
 from executor.plan_source import build_plan
 from executor.report import (
+    DailyReport,
     build_daily_report,
     prune_old_reports,
     send_report,
@@ -82,12 +83,19 @@ LOGGER = logging.getLogger("executor.daemon")
 #: damage a mid-sleep clock adjustment can do.
 _MAX_SLEEP_SECONDS = 240.0
 
+#: Past calendar horizon requested from the broker. A one-day lookback made a
+#: daemon that restarted after a long weekend or host outage permanently blind
+#: to the intervening sessions: it neither ran them (correct) nor recorded them
+#: as missed (incorrect). Fourteen calendar days covers the seven-trading-day
+#: artifact/audit horizon with room for weekends and exchange holidays.
+_CALENDAR_LOOKBACK_DAYS = 14
+
 #: How long after its scheduled instant the report phase may still run. The
 #: report only observes; running it late costs nothing but timeliness.
 _REPORT_GRACE = dt.timedelta(hours=6)
 
 #: How many completed (phase, session) pairs the state file keeps. The calendar
-#: window the loop can see is eleven days wide, so anything older can never be
+#: window the loop can see is twenty-four days wide, so anything older can never be
 #: reconsidered; this is generous enough that it never truncates something
 #: still in view, and bounded so the file cannot grow without limit.
 _LEDGER_LIMIT = 64
@@ -217,14 +225,16 @@ class Daemon:
     def _sessions(self, today: dt.date) -> tuple[CalendarSession, ...]:
         """Trading sessions around ``today``, cached for the day.
 
-        The window reaches back one day and forward ten so a Friday evening
-        knows about Monday, and a long holiday weekend does not leave the loop
-        without a next event to sleep toward.
+        The window reaches back fourteen calendar days so a restart after a
+        host outage records every skipped phase inside the seven-trading-day
+        audit horizon. It reaches forward ten so a Friday evening knows about
+        Monday and a long holiday weekend still has a next event to sleep toward.
         """
         if self._calendar_cache is not None and self._calendar_cache[0] == today:
             return self._calendar_cache[1]
         sessions = self._client.get_calendar(
-            today - dt.timedelta(days=1), today + dt.timedelta(days=10)
+            today - dt.timedelta(days=_CALENDAR_LOOKBACK_DAYS),
+            today + dt.timedelta(days=10),
         )
         self._calendar_cache = (today, sessions)
         return sessions
@@ -462,6 +472,11 @@ class Daemon:
         markdown_path, json_path = write_report(report, settings.reports_dir)
         LOGGER.info("wrote %s", markdown_path)
 
+        # Reports and plans are retention-window artifacts; the journal is the
+        # permanent operational record. Persist the compact reconciliation so
+        # fill quality remains analyzable after the rendered report is pruned.
+        self._record_execution_reconciliation(session, report)
+
         delivered, detail = (False, "SMTP is not configured")
         if settings.smtp is not None:
             delivered, detail = send_report(report, settings.smtp)
@@ -476,22 +491,35 @@ class Daemon:
         if not delivered and settings.smtp is not None:
             LOGGER.warning("report mail not delivered: %s", detail)
 
+        self._prune_artifacts(session)
+
+    def _record_execution_reconciliation(self, session: dt.date, report: DailyReport) -> None:
+        """Keep fill evidence after retention prunes the rendered report."""
+        self._journal.record(
+            "execution_reconciled",
+            session=session,
+            **report.execution.as_dict(),
+        )
+
+    def _prune_artifacts(self, session: dt.date) -> None:
+        settings = self._settings
         removed = prune_old_reports(
             (settings.reports_dir, settings.plans_dir),
             retain_days=settings.report_retention_days,
         )
-        if removed:
-            self._journal.record(
-                "artifacts_pruned",
-                session=session,
-                retained_days=settings.report_retention_days,
-                removed=[str(path) for path in removed],
-            )
-            LOGGER.info(
-                "pruned %d artifact(s) beyond the %d-day window",
-                len(removed),
-                settings.report_retention_days,
-            )
+        if not removed:
+            return
+        self._journal.record(
+            "artifacts_pruned",
+            session=session,
+            retained_days=settings.report_retention_days,
+            removed=[str(path) for path in removed],
+        )
+        LOGGER.info(
+            "pruned %d artifact(s) beyond the %d-day window",
+            len(removed),
+            settings.report_retention_days,
+        )
 
     def _last_submission_for(self, session: dt.date) -> dict[str, Any]:
         """Reconstruct the day's submission summary from the journal."""

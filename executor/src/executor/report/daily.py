@@ -25,10 +25,7 @@ what the window applies to.
 from __future__ import annotations
 
 import datetime as dt
-import itertools
 import json
-import math
-import statistics
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -36,137 +33,31 @@ from typing import Any
 
 from executor.broker import Account, Order, Position
 from executor.plan_source import ExecutionPlan
+from executor.report.metrics import (
+    _MEANINGFUL_SAMPLE,
+    ExecutionQuality,
+    PerformanceStats,
+    compute_execution_quality,
+    compute_stats,
+)
 from executor.submit import SubmissionResult
 
 __all__ = [
     "DailyReport",
+    "ExecutionQuality",
     "PerformanceStats",
     "build_daily_report",
     "prune_old_reports",
 ]
 
-#: Below this many observations, dispersion statistics (volatility, Sharpe,
-#: drawdown) describe the sample and essentially nothing else. They are still
-#: computed -- hiding them invites recomputing them badly elsewhere -- but they
-#: are labelled.
-_MEANINGFUL_SAMPLE = 20
-
-_TRADING_DAYS_PER_YEAR = 252
-
-#: Standard deviation is undefined below two observations.
-_MIN_RETURNS_FOR_DISPERSION = 2
+_COMPLETE_FILL_RATE = 0.999
 
 
-@dataclass(frozen=True, slots=True)
-class PerformanceStats:
-    """Measured statistics over the executor's own equity curve."""
-
-    sessions: int
-    first_session: str
-    last_session: str
-    starting_equity: Decimal
-    current_equity: Decimal
-    total_return: float
-    day_return: float
-    max_drawdown: float
-    annualized_volatility: float
-    sharpe_ratio: float
-    best_day: float
-    worst_day: float
-    positive_days: int
-
-    @property
-    def is_meaningful(self) -> bool:
-        """Whether the sample supports the dispersion statistics."""
-        return self.sessions >= _MEANINGFUL_SAMPLE
-
-    def as_dict(self) -> dict[str, Any]:
-        return {
-            "sessions": self.sessions,
-            "first_session": self.first_session,
-            "last_session": self.last_session,
-            "starting_equity": str(self.starting_equity),
-            "current_equity": str(self.current_equity),
-            "total_return": self.total_return,
-            "day_return": self.day_return,
-            "max_drawdown": self.max_drawdown,
-            "annualized_volatility": self.annualized_volatility,
-            "sharpe_ratio": self.sharpe_ratio,
-            "best_day": self.best_day,
-            "worst_day": self.worst_day,
-            "positive_days": self.positive_days,
-            "sample_is_meaningful": self.is_meaningful,
-        }
-
-
-def compute_stats(equity_curve: list[dict[str, Any]]) -> PerformanceStats:
-    """Compute statistics from the append-only equity curve.
-
-    A cash-return assumption of zero is used for the Sharpe ratio, matching the
-    strategy's primary cash assumption (``[cash] constant_annualized_rate =
-    0.0``). Using a different risk-free rate here than the backtest used would
-    make the two numbers quietly incomparable.
-    """
-    if not equity_curve:
-        zero = Decimal("0")
-        return PerformanceStats(
-            sessions=0,
-            first_session="",
-            last_session="",
-            starting_equity=zero,
-            current_equity=zero,
-            total_return=0.0,
-            day_return=0.0,
-            max_drawdown=0.0,
-            annualized_volatility=0.0,
-            sharpe_ratio=0.0,
-            best_day=0.0,
-            worst_day=0.0,
-            positive_days=0,
-        )
-
-    equities = [Decimal(str(entry["equity"])) for entry in equity_curve]
-    starting = equities[0]
-    current = equities[-1]
-
-    returns: list[float] = [
-        float(latest / previous) - 1.0
-        for previous, latest in itertools.pairwise(equities)
-        if previous > 0
-    ]
-
-    peak = equities[0]
-    max_drawdown = 0.0
-    for equity in equities:
-        peak = max(peak, equity)
-        if peak > 0:
-            drawdown = float(equity / peak) - 1.0
-            max_drawdown = min(max_drawdown, drawdown)
-
-    volatility = 0.0
-    sharpe = 0.0
-    if len(returns) >= _MIN_RETURNS_FOR_DISPERSION:
-        daily_sigma = statistics.stdev(returns)
-        volatility = daily_sigma * math.sqrt(_TRADING_DAYS_PER_YEAR)
-        mean_daily = statistics.fmean(returns)
-        if daily_sigma > 0:
-            sharpe = (mean_daily / daily_sigma) * math.sqrt(_TRADING_DAYS_PER_YEAR)
-
-    return PerformanceStats(
-        sessions=len(equity_curve),
-        first_session=str(equity_curve[0].get("session", "")),
-        last_session=str(equity_curve[-1].get("session", "")),
-        starting_equity=starting,
-        current_equity=current,
-        total_return=(float(current / starting) - 1.0) if starting > 0 else 0.0,
-        day_return=returns[-1] if returns else 0.0,
-        max_drawdown=max_drawdown,
-        annualized_volatility=volatility,
-        sharpe_ratio=sharpe,
-        best_day=max(returns) if returns else 0.0,
-        worst_day=min(returns) if returns else 0.0,
-        positive_days=sum(1 for value in returns if value > 0),
-    )
+def _number(value: float | None, *, percent: bool = False) -> str:
+    """Render an unavailable metric honestly instead of coercing it to zero."""
+    if value is None:
+        return "not available"
+    return f"{value:.2%}" if percent else f"{value:.2f}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -181,6 +72,7 @@ class DailyReport:
     submission: dict[str, Any]
     plan_summary: dict[str, Any]
     orders: tuple[dict[str, Any], ...]
+    execution: ExecutionQuality
     warnings: tuple[str, ...]
 
     @property
@@ -189,7 +81,7 @@ class DailyReport:
         alarm = " [ATTENTION]" if self.warnings else ""
         return (
             f"AMAT paper {self.session.isoformat()}: "
-            f"{self.stats.day_return:+.2%} day, "
+            f"{self.stats.day_return:+.2%} observed period, "
             f"equity {self.stats.current_equity:,.2f}{alarm}"
         )
 
@@ -203,6 +95,7 @@ class DailyReport:
             "submission": self.submission,
             "plan": self.plan_summary,
             "orders": list(self.orders),
+            "execution": self.execution.as_dict(),
             "warnings": list(self.warnings),
         }
 
@@ -230,7 +123,8 @@ class DailyReport:
                 "|---|---:|",
                 f"| Equity | {stats.current_equity:,.2f} |",
                 f"| Cash | {Decimal(str(self.account.get('cash', '0'))):,.2f} |",
-                f"| Day return | {stats.day_return:+.2%} |",
+                f"| Return since prior observation | {stats.day_return:+.2%} |",
+                f"| Observation interval | {stats.latest_interval_calendar_days} calendar day(s) |",
                 f"| Gross exposure | {float(self.account.get('gross_exposure', 0.0)):.2%} |",
                 "",
                 "## Performance since inception",
@@ -242,12 +136,27 @@ class DailyReport:
                 "| Statistic | Value |",
                 "|---|---:|",
                 f"| Total return | {stats.total_return:+.2%} |",
+                f"| Annualized return | {_number(stats.annualized_return, percent=True)} |",
                 f"| Max drawdown | {stats.max_drawdown:.2%} |",
-                f"| Annualized volatility | {stats.annualized_volatility:.2%} |",
-                f"| Sharpe ratio (0% cash) | {stats.sharpe_ratio:.2f} |",
-                f"| Best day | {stats.best_day:+.2%} |",
-                f"| Worst day | {stats.worst_day:+.2%} |",
-                f"| Positive days | {stats.positive_days} / {max(stats.sessions - 1, 0)} |",
+                f"| Current drawdown | {stats.current_drawdown:.2%} |",
+                f"| Drawdown duration | "
+                f"{stats.current_drawdown_duration_observations} observation(s) |",
+                f"| Ulcer index | {stats.ulcer_index:.2%} |",
+                f"| Annualized volatility | {_number(stats.annualized_volatility, percent=True)} |",
+                f"| Downside deviation | "
+                f"{_number(stats.annualized_downside_deviation, percent=True)} |",
+                f"| Sharpe ratio (0% cash) | {_number(stats.sharpe_ratio)} |",
+                f"| Sortino ratio (0% target) | {_number(stats.sortino_ratio)} |",
+                f"| Calmar ratio | {_number(stats.calmar_ratio)} |",
+                f"| Historical 95% VaR | {_number(stats.historical_var_95, percent=True)} |",
+                f"| Historical 95% CVaR | {_number(stats.historical_cvar_95, percent=True)} |",
+                f"| Best observed period | {stats.best_day:+.2%} |",
+                f"| Worst observed period | {stats.worst_day:+.2%} |",
+                f"| Positive periods | {stats.positive_days} / {stats.return_observations} |",
+                f"| Gain-to-pain ratio | {_number(stats.gain_to_pain_ratio)} |",
+                "",
+                "> Returns are changes in raw account equity. Deposits and withdrawals are "
+                "not adjusted because broker account activities are not yet ingested.",
                 "",
             ]
         )
@@ -255,10 +164,21 @@ class DailyReport:
         if not stats.is_meaningful:
             lines.extend(
                 [
-                    f"> **Not a meaningful sample.** Volatility, Sharpe, and drawdown above are "
-                    f"computed from {stats.sessions} session(s), fewer than the "
-                    f"{_MEANINGFUL_SAMPLE} this report treats as a floor. They describe this "
-                    f"sample and support no inference about the strategy.",
+                    f"> **Not a meaningful sample.** Annualized, dispersion, and tail statistics "
+                    f"need at least {_MEANINGFUL_SAMPLE} sessions with no extended gap; "
+                    f"this report has {stats.sessions} session(s). Any values shown describe "
+                    "this sample and support no inference about the strategy.",
+                    "",
+                ]
+            )
+
+        if stats.has_extended_gap:
+            lines.extend(
+                [
+                    f"> **Observation gap.** The longest interval is "
+                    f"{stats.longest_interval_calendar_days} calendar days. Annualized return, "
+                    "volatility, Sharpe, Sortino, Calmar, VaR, and CVaR are suppressed because "
+                    "treating that interval as one trading day would be misleading.",
                     "",
                 ]
             )
@@ -331,6 +251,35 @@ class DailyReport:
                 )
             lines.append("")
 
+        execution = self.execution
+        lines.extend(
+            [
+                "### Execution quality",
+                "",
+                "| Measure | Value |",
+                "|---|---:|",
+                f"| Planned / broker orders | {execution.planned_order_count} / "
+                f"{execution.broker_order_count} |",
+                f"| Filled / partial / open | {execution.filled_order_count} / "
+                f"{execution.partially_filled_order_count} / {execution.open_order_count} |",
+                f"| Unmatched intents / orders / overfills | "
+                f"{execution.unmatched_intent_count} / {execution.unmatched_order_count} / "
+                f"{execution.overfilled_order_count} |",
+                f"| Planned reference notional | {execution.planned_reference_notional:,.2f} |",
+                f"| Filled notional | {execution.filled_notional:,.2f} |",
+                f"| Reference-notional fill rate | "
+                f"{_number(execution.reference_notional_fill_rate, percent=True)} |",
+                f"| Decision-close-to-fill adverse markout | "
+                f"{_number(execution.decision_to_fill_slippage_bps)} bps |",
+                f"| Reconciliation complete | "
+                f"{'yes' if execution.reconciliation_complete else 'NO'} |",
+                "",
+                "> The markout benchmark is the prior decision-session close. It includes the "
+                "overnight move; it is not opening-VWAP implementation shortfall.",
+                "",
+            ]
+        )
+
         if self.positions:
             lines.extend(
                 [
@@ -382,6 +331,7 @@ def build_daily_report(
 ) -> DailyReport:
     """Assemble one day's report from state the caller already fetched."""
     stats = compute_stats(equity_curve)
+    execution = compute_execution_quality(plan, orders)
     equity = account.equity
 
     position_rows = tuple(
@@ -420,6 +370,22 @@ def build_daily_report(
         warnings.append(
             f"Broker account is not accepting orders (status={account.status}, "
             f"trading_blocked={account.trading_blocked})."
+        )
+    if not execution.reconciliation_complete:
+        warnings.append(
+            "Plan-to-broker reconciliation is incomplete: "
+            f"{execution.unmatched_intent_count} unmatched intent(s), "
+            f"{execution.unmatched_order_count} unmatched order(s), and "
+            f"{execution.open_order_count} open order(s), and "
+            f"{execution.overfilled_order_count} overfilled order(s)."
+        )
+    if (
+        execution.reference_notional_fill_rate is not None
+        and execution.reference_notional_fill_rate < _COMPLETE_FILL_RATE
+    ):
+        warnings.append(
+            "Broker fills covered only "
+            f"{execution.reference_notional_fill_rate:.2%} of planned reference notional."
         )
 
     plan_summary: dict[str, Any] = {}
@@ -469,6 +435,7 @@ def build_daily_report(
             }
             for order in orders
         ),
+        execution=execution,
         warnings=tuple(warnings),
     )
 

@@ -188,13 +188,36 @@ def test_a_missed_phase_is_recorded_once_not_on_every_tick(tmp_path: Path) -> No
     missed = _events(daemon._settings, "phase_missed")
     keys = {(entry["phase"], entry["session"]) for entry in missed}
     assert len(missed) == len(keys), "a settled phase was reconsidered on a later tick"
-    # 08-18 is outside the calendar window, which reaches back only one day:
-    # a session the loop cannot see is one it has nothing left to do about.
+    # The restart window reaches far enough back to settle every phase in the
+    # retained audit horizon, including a multi-day host outage.
     assert keys == {
         (phase, session)
         for phase in ("submit", "report")
-        for session in ("2026-08-19", "2026-08-20")
+        for session in ("2026-08-18", "2026-08-19", "2026-08-20")
     }
+
+
+def test_restart_records_every_session_missed_during_a_weeklong_outage(tmp_path: Path) -> None:
+    sessions = tuple(_session(f"2026-08-{day:02d}") for day in range(24, 29))
+    client = _FakeClient(sessions, _at("2026-09-01", 10, 0))
+    daemon = _daemon(tmp_path, client)
+
+    # One missed phase is settled per tick only insofar as due work returns
+    # early; missed work is intentionally drained in a single pass.
+    daemon.tick()
+
+    missed = _events(daemon._settings, "phase_missed")
+    keys = {(entry["phase"], entry["session"]) for entry in missed}
+    assert keys == {
+        (phase, session.date.isoformat())
+        for phase in ("submit", "report")
+        for session in sessions
+    }
+    assert all(
+        daemon._already_done(phase, session.date)
+        for session in sessions
+        for phase in ("submit", "report")
+    )
 
 
 def test_a_past_session_is_never_due(tmp_path: Path) -> None:
