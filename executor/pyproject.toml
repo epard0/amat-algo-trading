@@ -76,6 +76,11 @@ ignore = [
 # is NoReturn, so a trailing `return` would be dead code -- mypy rejects it,
 # ruff's flow analysis does not know the annotation.
 "src/executor/cli.py" = ["T201", "PLR0911", "RET503"]
+# `_preflight` is deliberately a flat, ordered sequence of guarded refusals --
+# see the module docstring and the function's own docstring for why the order
+# matters. Collapsing it into fewer return points would hide that ordering,
+# not clarify it.
+"src/executor/submit.py" = ["PLR0911"]
 # Markdown assembly is inherently a long sequence of optional sections.
 "src/executor/report/daily.py" = ["PLR0912"]
 

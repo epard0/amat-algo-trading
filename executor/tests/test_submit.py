@@ -9,9 +9,33 @@ import pytest
 from tests.test_plan_source import _plan_payload
 
 from executor.broker import Account, Order
+from executor.config import RiskLimits
 from executor.journal import Journal
 from executor.plan_source import PlanIntent, parse_plan
 from executor.submit import _preflight, _resolve_quantity, client_order_id_for, submit_plan
+
+_DIGEST = "2712f694227321e4" + "0" * 48
+
+
+def _limits(**overrides: object) -> RiskLimits:
+    payload: dict[str, object] = {
+        "authorized_config_sha256": frozenset({_DIGEST}),
+        "disabled": False,
+        "max_session_notional": Decimal("100000"),
+        "max_orders_per_session": 10,
+        "max_symbol_notional": Decimal("50000"),
+        "equity_tolerance": Decimal("0.01"),
+    }
+    payload.update(overrides)
+    return RiskLimits(**payload)  # type: ignore[arg-type]
+
+
+def _now() -> dt.datetime:
+    # Within the default `_plan_payload()` window (earliest execution session
+    # 2026-08-11, expires 2026-08-14): a literal "today" would land past
+    # `expires_at` and every test below would see "expired" instead of the
+    # refusal it is actually exercising.
+    return dt.datetime(2026, 8, 11, 13, 40, tzinfo=dt.UTC)
 
 
 def _account(**overrides: object) -> Account:
@@ -142,6 +166,7 @@ def test_preflight_passes_on_a_normal_day() -> None:
         _account(),
         dt.date(2026, 8, 11),
         dt.datetime(2026, 8, 11, 13, 30, tzinfo=dt.UTC),
+        limits=_limits(),
     )
     assert reason == ""
 
@@ -153,6 +178,7 @@ def test_preflight_refuses_an_expired_plan() -> None:
         _account(),
         dt.date(2026, 8, 17),
         dt.datetime(2026, 8, 17, 13, 30, tzinfo=dt.UTC),
+        limits=_limits(),
     )
     assert "expired" in reason
 
@@ -164,6 +190,7 @@ def test_preflight_refuses_before_the_earliest_execution_session() -> None:
         _account(),
         dt.date(2026, 8, 10),
         dt.datetime(2026, 8, 10, 13, 30, tzinfo=dt.UTC),
+        limits=_limits(),
     )
     assert "may not execute before" in reason
 
@@ -176,6 +203,7 @@ def test_preflight_refuses_when_the_account_holds_something_unrecognized() -> No
         _account(),
         dt.date(2026, 8, 11),
         dt.datetime(2026, 8, 11, 13, 30, tzinfo=dt.UTC),
+        limits=_limits(),
     )
     assert "ARKK" in reason
     assert "denominator" in reason
@@ -192,6 +220,7 @@ def test_preflight_refuses_a_blocked_account(field: str, value: object) -> None:
         _account(**{field: value}),
         dt.date(2026, 8, 11),
         dt.datetime(2026, 8, 11, 13, 30, tzinfo=dt.UTC),
+        limits=_limits(),
     )
     assert "will not accept orders" in reason
 
@@ -203,6 +232,7 @@ def test_preflight_reports_an_empty_plan_as_a_non_event() -> None:
         _account(),
         dt.date(2026, 8, 11),
         dt.datetime(2026, 8, 11, 13, 30, tzinfo=dt.UTC),
+        limits=_limits(),
     )
     assert "already matches the target" in reason
 
@@ -277,6 +307,7 @@ def test_dry_run_sends_nothing_but_records_every_decision(tmp_path) -> None:
         now=dt.datetime(2026, 8, 11, 13, 30, tzinfo=dt.UTC),
         journal=journal,
         dry_run=True,
+        limits=_limits(),
     )
 
     assert client.submitted == []
@@ -298,6 +329,7 @@ def test_a_live_run_submits_and_journals(tmp_path) -> None:
         now=dt.datetime(2026, 8, 11, 13, 30, tzinfo=dt.UTC),
         journal=journal,
         dry_run=False,
+        limits=_limits(),
     )
 
     assert len(client.submitted) == 1
@@ -319,6 +351,7 @@ def test_a_refused_plan_submits_nothing(tmp_path) -> None:
         now=dt.datetime(2026, 8, 11, 13, 30, tzinfo=dt.UTC),
         journal=journal,
         dry_run=False,
+        limits=_limits(),
     )
 
     assert client.submitted == []
@@ -340,7 +373,89 @@ def test_a_whole_share_broker_withholds_a_sub_share_intent(tmp_path) -> None:
         now=dt.datetime(2026, 8, 11, 13, 30, tzinfo=dt.UTC),
         journal=journal,
         dry_run=False,
+        limits=_limits(),
     )
 
     assert client.submitted == []
     assert result.outcomes[0].status == "withheld"
+
+
+# -- risk limits: authorization, kill switch, and caps -----------------------
+
+
+def test_preflight_refuses_an_unauthorized_config_digest() -> None:
+    plan = parse_plan(_plan_payload(config_sha256="f" * 64))
+    reason = _preflight(plan, _account(), plan.earliest_execution_session, _now(), limits=_limits())
+    assert "not authorised" in reason
+    assert "f" * 12 in reason
+
+
+def test_preflight_refuses_when_disabled() -> None:
+    plan = parse_plan(_plan_payload())
+    reason = _preflight(
+        plan, _account(), plan.earliest_execution_session, _now(), limits=_limits(disabled=True)
+    )
+    assert reason.startswith("EXECUTOR_DISABLED")
+
+
+def test_preflight_refuses_when_session_notional_exceeds_cap() -> None:
+    plan = parse_plan(_plan_payload())
+    total = sum(intent.notional for intent in plan.intents)
+    reason = _preflight(
+        plan,
+        _account(),
+        plan.earliest_execution_session,
+        _now(),
+        limits=_limits(max_session_notional=total - Decimal("1")),
+    )
+    assert "MAX_SESSION_NOTIONAL" in reason
+
+
+def test_preflight_refuses_when_order_count_exceeds_cap() -> None:
+    plan = parse_plan(_plan_payload())
+    reason = _preflight(
+        plan,
+        _account(),
+        plan.earliest_execution_session,
+        _now(),
+        limits=_limits(max_orders_per_session=max(len(plan.intents) - 1, 0) or 1),
+    )
+    assert "MAX_ORDERS_PER_SESSION" in reason if len(plan.intents) > 1 else reason == ""
+
+
+def test_preflight_refuses_when_one_symbol_exceeds_cap() -> None:
+    plan = parse_plan(_plan_payload())
+    biggest = max(intent.notional for intent in plan.intents)
+    reason = _preflight(
+        plan,
+        _account(),
+        plan.earliest_execution_session,
+        _now(),
+        limits=_limits(max_symbol_notional=biggest - Decimal("1")),
+    )
+    assert "MAX_SYMBOL_NOTIONAL" in reason
+
+
+def test_preflight_refuses_when_broker_equity_drifted_from_plan_equity() -> None:
+    plan = parse_plan(_plan_payload())
+    drifted = plan.account_equity * Decimal("1.05")
+    reason = _preflight(
+        plan,
+        _account(equity=str(drifted)),
+        plan.earliest_execution_session,
+        _now(),
+        limits=_limits(),
+    )
+    assert "EQUITY_TOLERANCE" in reason
+
+
+def test_preflight_passes_within_all_limits() -> None:
+    plan = parse_plan(_plan_payload())
+    reason = _preflight(
+        plan,
+        _account(equity=str(plan.account_equity)),
+        plan.earliest_execution_session,
+        _now(),
+        limits=_limits(),
+    )
+    assert reason == ""

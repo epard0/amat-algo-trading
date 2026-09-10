@@ -37,6 +37,14 @@ which :mod:`executor.submit` refuses to trade past; lateness costs execution
 quality against the backtest's assumed open fill, which is a caveat for the
 report, not grounds for skipping the day's rebalance entirely.
 
+Startup authorization
+---------------------
+Before the loop runs at all, the pinned strategy file's digest must be in
+``AUTHORIZED_CONFIG_SHA256``. The same check happens again on every plan at
+submit time (:mod:`executor.submit`), but checking it here too turns a
+misconfigured deployment into a startup failure a human sees immediately,
+rather than a quiet day of refused submissions discovered only in the report.
+
 Restart safety
 --------------
 Which phases have run for which session is persisted, keyed by *both* phase and
@@ -52,6 +60,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime as dt
+import hashlib
 import json
 import logging
 import signal
@@ -63,7 +72,7 @@ from zoneinfo import ZoneInfo
 
 from executor.broker import AlpacaPaperClient, CalendarSession
 from executor.config import ExecutorSettings
-from executor.errors import ExecutorError
+from executor.errors import ConfigurationError, ExecutorError
 from executor.journal import Journal
 from executor.plan_source import build_plan
 from executor.report import (
@@ -143,6 +152,7 @@ class Daemon:
         self._client = AlpacaPaperClient(settings.trading_key_id, settings.trading_secret_key)
         settings.ensure_directories()
         self._journal = Journal(settings.journal_path, settings.equity_curve_path)
+        self._verify_authorized_config()
         self._state_path = settings.state_root / "daemon_state.json"
         self._stop = threading.Event()
         self._calendar_cache: tuple[dt.date, tuple[CalendarSession, ...]] | None = None
@@ -160,6 +170,30 @@ class Daemon:
     def install_signal_handlers(self) -> None:
         for received in (signal.SIGTERM, signal.SIGINT):
             signal.signal(received, self.request_stop)
+
+    def _verify_authorized_config(self) -> None:
+        """Refuse to start if the pinned strategy file is not on the allowlist.
+
+        The plan will carry the same digest and be refused again at submit time;
+        checking here turns a misconfiguration into a loud startup failure
+        instead of a quiet day of refused submissions.
+        """
+        digest = hashlib.sha256(self._settings.strategy_config.read_bytes()).hexdigest()
+        authorized = self._settings.limits.authorized_config_sha256
+        self._journal.record(
+            "authorization_check",
+            strategy_config=str(self._settings.strategy_config),
+            config_sha256=digest,
+            authorized=digest in authorized,
+            authorized_count=len(authorized),
+            disabled=self._settings.limits.disabled,
+        )
+        if digest not in authorized:
+            message = (
+                f"STRATEGY_CONFIG {self._settings.strategy_config} has sha256 {digest}, "
+                f"which is not in AUTHORIZED_CONFIG_SHA256"
+            )
+            raise ConfigurationError(message)
 
     # -- persisted state ----------------------------------------------------
 
@@ -359,6 +393,7 @@ class Daemon:
             now=dt.datetime.now(dt.UTC),
             journal=self._journal,
             dry_run=settings.dry_run,
+            limits=settings.limits,
         )
         # Counted by actual status rather than by `not submitted`, so a dry run
         # does not report ten withheld intents when nothing was withheld.

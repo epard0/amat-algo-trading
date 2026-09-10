@@ -19,6 +19,19 @@ prevents is silent:
   sell can reduce or close, never cross through zero into a short.
 * **Order IDs are deterministic.** Running the same plan twice is rejected by
   the broker as a duplicate rather than doubling the position.
+* **Only an authorised configuration is traded.** A plan whose
+  ``config_sha256`` is not in ``AUTHORIZED_CONFIG_SHA256`` is refused, so a
+  strategy change never reaches the broker without a human adding its digest
+  to the allowlist.
+* **The operator's kill switch is checked first.** ``EXECUTOR_DISABLED``
+  refuses every submission before anything else is evaluated.
+* **Broker equity and plan equity may not drift apart.** The plan was sized on
+  an equity value fetched earlier; if the broker's current equity has moved
+  more than ``EQUITY_TOLERANCE``, the plan was sized on a different account
+  state and is not safe to execute.
+* **Session and per-symbol notional, and order count, are capped.** These caps
+  exist independent of anything the plan itself asserts, so a strategy defect
+  that emits an oversized plan is caught here rather than at the broker.
 """
 
 from __future__ import annotations
@@ -30,6 +43,7 @@ from decimal import ROUND_DOWN, Decimal
 from typing import TYPE_CHECKING
 
 from executor.broker import Account, AlpacaPaperClient, Order
+from executor.config import RiskLimits
 from executor.errors import BrokerError
 from executor.plan_source import ExecutionPlan, PlanIntent
 
@@ -144,8 +158,24 @@ def _preflight(
     account: Account,
     session: dt.date,
     now: dt.datetime,
+    *,
+    limits: RiskLimits,
 ) -> str:
-    """Return a refusal reason, or the empty string when it is safe to trade."""
+    """Return a refusal reason, or the empty string when it is safe to trade.
+
+    Order matters: the operator's own switches come first, then identity, then
+    staleness, then account state, then size. Each refusal names the limit that
+    produced it so the journal entry is actionable without reading this code.
+    """
+    if limits.disabled:
+        return "EXECUTOR_DISABLED is true: every submission is refused by operator switch"
+    digest = plan.config_sha256.lower()
+    if digest not in limits.authorized_config_sha256:
+        return (
+            f"strategy configuration {digest[:12]}... is not authorised for this executor "
+            f"(AUTHORIZED_CONFIG_SHA256 lists {len(limits.authorized_config_sha256)} digest(s)); "
+            f"a plan from an unlisted configuration is never traded"
+        )
     if not account.is_tradable:
         return (
             f"broker will not accept orders: status={account.status} "
@@ -168,8 +198,31 @@ def _preflight(
             f"universe does not contain. Their value sits in the denominator of every "
             f"target weight in this plan, so no trade is safe until a human resolves it."
         )
+    if plan.account_equity > 0:
+        drift = abs(account.equity - plan.account_equity) / plan.account_equity
+        if drift > limits.equity_tolerance:
+            return (
+                f"broker equity {account.equity} differs from the plan's sizing equity "
+                f"{plan.account_equity} by {drift:.4%}, beyond EQUITY_TOLERANCE "
+                f"{limits.equity_tolerance}; the plan was sized on a different account"
+            )
     if not plan.intents:
         return "no trades: the account already matches the target within the rebalance band"
+    if len(plan.intents) > limits.max_orders_per_session:
+        return (
+            f"plan carries {len(plan.intents)} intents, above MAX_ORDERS_PER_SESSION "
+            f"{limits.max_orders_per_session}"
+        )
+    session_notional = sum((intent.notional for intent in plan.intents), Decimal("0"))
+    if session_notional > limits.max_session_notional:
+        return (
+            f"plan reference notional {session_notional} exceeds MAX_SESSION_NOTIONAL "
+            f"{limits.max_session_notional}"
+        )
+    oversized = [intent for intent in plan.intents if intent.notional > limits.max_symbol_notional]
+    if oversized:
+        names = ", ".join(f"{item.symbol}={item.notional}" for item in oversized)
+        return f"intent notional above MAX_SYMBOL_NOTIONAL {limits.max_symbol_notional}: {names}"
     return ""
 
 
@@ -237,6 +290,7 @@ def submit_plan(
     now: dt.datetime,
     journal: Journal,
     dry_run: bool = False,
+    limits: RiskLimits,
 ) -> SubmissionResult:
     """Execute ``plan`` against the paper account, or refuse and record why.
 
@@ -250,11 +304,12 @@ def submit_plan(
         dry_run: Perform every check and every sizing decision, then stop
             short of the POST. Used to rehearse a deployment against a real
             account without touching it.
+        limits: Risk limits the executor owns, independent of the plan.
 
     Returns:
         The outcome for every intent, including the ones deliberately withheld.
     """
-    refusal = _preflight(plan, account, session, now)
+    refusal = _preflight(plan, account, session, now, limits=limits)
     if refusal:
         journal.record(
             "submission_refused",

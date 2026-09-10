@@ -10,6 +10,7 @@ expired before a suspended host woke up.
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import json
 from dataclasses import dataclass
 from decimal import Decimal
@@ -20,7 +21,14 @@ import pytest
 from executor.broker import CalendarSession
 from executor.config import ExecutorSettings, RiskLimits
 from executor.daemon import Daemon
+from executor.errors import ConfigurationError
 from executor.journal import Journal
+
+#: The digest of the plan payload used throughout `tests/test_plan_source.py`
+#: and `tests/test_submit.py` -- kept in every `_settings()`'s allowlist too,
+#: alongside the digest of the strategy file `_settings()` actually writes, so
+#: submit-phase tests built on that plan payload remain valid.
+_PLAN_PAYLOAD_DIGEST = "2712f694227321e4" + "0" * 48
 
 NEW_YORK = "America/New_York"
 REGULAR_OPEN = dt.time(9, 30)
@@ -64,11 +72,16 @@ def _session(date: str, close: dt.time = REGULAR_CLOSE) -> CalendarSession:
 
 
 def _settings(tmp_path: Path) -> ExecutorSettings:
+    strategy_config = tmp_path / "amat" / "config.toml"
+    strategy_config.parent.mkdir(parents=True, exist_ok=True)
+    content = b"[strategy]\nname = 'amat-etf-regime-quality'\n"
+    strategy_config.write_bytes(content)
+    strategy_digest = hashlib.sha256(content).hexdigest()
     return ExecutorSettings(
         trading_key_id="key",
         trading_secret_key="secret",
         amat_root=tmp_path / "amat",
-        strategy_config=tmp_path / "amat" / "config.toml",
+        strategy_config=strategy_config,
         snapshot=tmp_path / "amat" / "snapshot",
         state_root=tmp_path / "state",
         report_retention_days=7,
@@ -79,7 +92,7 @@ def _settings(tmp_path: Path) -> ExecutorSettings:
         dry_run=True,
         smtp=None,
         limits=RiskLimits(
-            authorized_config_sha256=frozenset({"2712f694227321e4" + "0" * 48}),
+            authorized_config_sha256=frozenset({_PLAN_PAYLOAD_DIGEST, strategy_digest}),
             disabled=False,
             max_session_notional=Decimal("1000000"),
             max_orders_per_session=100,
@@ -93,6 +106,17 @@ def _daemon(tmp_path: Path, client: _FakeClient) -> Daemon:
     daemon = Daemon(_settings(tmp_path))
     daemon._client = client  # type: ignore[assignment]
     return daemon
+
+
+# -- startup authorization ----------------------------------------------------
+
+
+def test_daemon_refuses_to_start_with_an_unauthorized_strategy_file(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    settings.strategy_config.parent.mkdir(parents=True, exist_ok=True)
+    settings.strategy_config.write_text("[strategy]\nname='x'\n", encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="not in AUTHORIZED_CONFIG_SHA256"):
+        Daemon(settings)
 
 
 def _at(date: str, hour: int, minute: int) -> dt.datetime:
@@ -218,9 +242,7 @@ def test_restart_records_every_session_missed_during_a_weeklong_outage(tmp_path:
     missed = _events(daemon._settings, "phase_missed")
     keys = {(entry["phase"], entry["session"]) for entry in missed}
     assert keys == {
-        (phase, session.date.isoformat())
-        for phase in ("submit", "report")
-        for session in sessions
+        (phase, session.date.isoformat()) for phase in ("submit", "report") for session in sessions
     }
     assert all(
         daemon._already_done(phase, session.date)

@@ -327,6 +327,12 @@ CLI flags, preventing them from appearing in shell history or process listings.
 | `REPORT_DELAY_MINUTES` | No | `15` | Minutes after close when reporting becomes due |
 | `SUBMIT_CUTOFF_MINUTES` | No | `30` | Refuse automatic catch-up within this many minutes of close |
 | `DRY_RUN` | No | `false` | Exact value `true` skips order POSTs; `.env.example` deliberately sets it to `true` |
+| `AUTHORIZED_CONFIG_SHA256` | Yes | None | Comma-separated raw-file SHA-256 digests of strategy TOMLs this executor may trade. Compute with `sha256sum configs/strategy/amat_v6.toml` in the `amat` checkout. A plan from any other digest is refused, and the daemon refuses to start if `STRATEGY_CONFIG` is unlisted |
+| `EXECUTOR_DISABLED` | No | `false` | `true` refuses every submission; reports keep running |
+| `MAX_SESSION_NOTIONAL` | Yes | None | USD ceiling on the sum of intent reference notionals per session |
+| `MAX_ORDERS_PER_SESSION` | Yes | None | Ceiling on intents per session |
+| `MAX_SYMBOL_NOTIONAL` | Yes | None | USD ceiling per intent |
+| `EQUITY_TOLERANCE` | No | `0.01` | Max relative gap between plan sizing equity and broker equity |
 | `SMTP_HOST` | No | Disabled | SMTP relay; reports remain on disk when unset |
 | `SMTP_PORT` | No | `587` | SMTP port; `465` selects implicit TLS |
 | `SMTP_USERNAME` | No | Empty | Optional SMTP login and default sender |

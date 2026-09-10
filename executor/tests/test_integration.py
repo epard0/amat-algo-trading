@@ -19,6 +19,7 @@ from pathlib import Path
 import pytest
 
 from executor.broker import Account, Order
+from executor.config import RiskLimits
 from executor.journal import Journal
 from executor.plan_source import build_plan
 from executor.report import build_daily_report, prune_old_reports, write_report
@@ -116,6 +117,14 @@ def test_plan_to_submit_to_report_to_prune(tmp_path: Path, real_plan) -> None:
         }
     )
 
+    limits = RiskLimits(
+        authorized_config_sha256=frozenset({real_plan.config_sha256}),
+        disabled=False,
+        max_session_notional=Decimal("100000000"),
+        max_orders_per_session=1000,
+        max_symbol_notional=Decimal("100000000"),
+        equity_tolerance=Decimal("1"),
+    )
     result = submit_plan(
         real_plan,
         broker,  # type: ignore[arg-type]
@@ -124,6 +133,7 @@ def test_plan_to_submit_to_report_to_prune(tmp_path: Path, real_plan) -> None:
         now=now,
         journal=journal,
         dry_run=False,
+        limits=limits,
     )
 
     assert result.executed
