@@ -352,6 +352,17 @@ def test_package_has_no_broker_or_process_execution_imports():
                 assert (node.module or "").split(".")[0] not in forbidden
 
 
+def test_llmrouter_has_no_broker_or_process_execution_imports():
+    package = Path(__file__).resolve().parents[2] / "src/llmrouter"
+    forbidden = {"executor", "subprocess", "requests", "httpx", "alpaca"}
+    for source in package.glob("*.py"):
+        for node in ast.walk(ast.parse(source.read_text())):
+            if isinstance(node, ast.Import):
+                assert not {item.name.split(".")[0] for item in node.names} & forbidden
+            if isinstance(node, ast.ImportFrom):
+                assert (node.module or "").split(".")[0] not in forbidden
+
+
 def test_cli_requires_explicit_openai_model_and_credential(setup, monkeypatch):
     root, _ = setup
     (root / "pyproject.toml").touch()
