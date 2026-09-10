@@ -178,7 +178,9 @@ warn_unreachable = false
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
-addopts = "-ra --strict-markers --strict-config"
+# tests/live exercises real provider SDKs (LLMROUTER_LIVE=1 opt-in only) and
+# must never be collected by a default or gate run, even as a skipped item.
+addopts = "-ra --strict-markers --strict-config --ignore=tests/live"
 markers = [
   "network: requires network access; never part of a default or gate run",
   "slow: long-running validation or robustness test",
