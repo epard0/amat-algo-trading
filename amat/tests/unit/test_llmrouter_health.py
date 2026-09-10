@@ -98,15 +98,23 @@ def test_snapshot_reports_state_after_a_trip() -> None:
 
 
 def test_failure_ratio_window_is_not_truncated_by_request_count() -> None:
-    """Eleven requests -- more than the count-based windows' size -- with six
-    failures, the first two of which are old enough that a deque bounded to
-    ``window_requests`` (10, unused here since it is overridden to 99) would
-    have evicted them by the 11th request. The ratio path is time-bounded,
-    not count-bounded, so it must still see them: excluding the first two
-    failures the last-10-only ratio would be 5/10 = 0.5 (no trip); including
-    them, the true ratio is 6/11 > 0.5 (trip).
+    """Eleven requests at the *default* ``window_requests`` (10) and
+    ``timeout_window_requests`` (5) -- so a `_recent` deque bounded to
+    ``max(window_requests, timeout_window_requests)`` (10, the pre-fix
+    formula) would evict the first request by the 11th. Only
+    ``unknown_error_threshold`` is raised, to keep the count-based trip path
+    from firing on its own and isolate the ratio path.
+
+    Six of the eleven are failures, with the first two old enough to be the
+    ones a `maxlen=10` deque would evict: excluding them, the last 10 records
+    alone are 5 failures / 10 = 0.5 -- at, not over, the strict `> 0.5`
+    threshold, so a truncated window never trips. Including them (all 11
+    retained, as `ratio_window_capacity` requires), the true ratio is
+    6 / 11 (~0.545) > 0.5, and it trips. This fails without
+    `ratio_window_capacity` folded into the deque bound; see the fix report
+    for the confirming run with `ratio_window_capacity=10`.
     """
-    health, _clock = _health(unknown_error_threshold=99, window_requests=99)
+    health, _clock = _health(unknown_error_threshold=99)
     outcomes = ["server", "server", "ok", "ok", "ok", "ok", "ok", "server", "server", "server"]
     for outcome in outcomes:
         health.record(outcome)
