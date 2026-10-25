@@ -5,9 +5,9 @@
 
 FROM python:3.12-slim-bookworm
 
-# `uv` runs the strategy subprocess. Pinned by digest-bearing tag rather than
-# `latest` so an image rebuild cannot silently change the build tool.
-COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /uvx /usr/local/bin/
+# `uv` runs the strategy subprocess. Pin its verified image digest so a tag
+# change cannot silently replace the build tool.
+COPY --from=ghcr.io/astral-sh/uv:0.5.11@sha256:0ac957607303916420297a4c9c213bb33fbd3c888f9cd7f4f7273596ebf42b85 /uv /uvx /usr/local/bin/
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -33,11 +33,12 @@ RUN useradd --create-home --uid 10001 executor
 # volumes are created root-owned and the unprivileged process cannot write its
 # journal -- which surfaces as a PermissionError on the first tick, not at
 # build time.
-RUN mkdir -p /var/lib/amat-executor/plans \
+RUN mkdir -p /var/lib/amat-executor-live \
+             /var/lib/amat-executor/plans \
              /var/lib/amat-executor/reports \
              /home/executor/.cache/uv \
              /home/executor/amat-venv \
-    && chown -R executor:executor /var/lib/amat-executor /home/executor
+    && chown -R executor:executor /var/lib/amat-executor-live /var/lib/amat-executor /home/executor
 
 WORKDIR /opt/executor
 
@@ -54,4 +55,4 @@ ENV PATH="/opt/executor/.venv/bin:${PATH}"
 USER executor
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["executor", "daemon"]
+CMD ["executor", "run"]

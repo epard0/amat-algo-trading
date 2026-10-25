@@ -1,0 +1,160 @@
+{
+  "baseline_cash": "43022.73",
+  "baseline_positions": {
+    "DBC": "435.24931938",
+    "EEM": "64.093011019",
+    "EFA": "64.154701552",
+    "SPY": "14.509234231",
+    "USO": "36.619948056",
+    "UUP": "538.071161382"
+  },
+  "activities": [
+    {
+      "activity_type": "FEE",
+      "net_amount": "-0.01",
+      "status": "executed",
+      "id": "activity-0"
+    },
+    {
+      "activity_type": "FEE",
+      "net_amount": "-0.23",
+      "status": "executed",
+      "id": "activity-1"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "DBC",
+      "qty": "108",
+      "price": "33.41",
+      "side": "buy",
+      "id": "activity-2"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "DBC",
+      "qty": "0.506046356",
+      "price": "33.41",
+      "side": "buy",
+      "id": "activity-3"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "SPY",
+      "qty": "23",
+      "price": "770.73",
+      "side": "buy",
+      "id": "activity-4"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "SPY",
+      "qty": "0.735195345",
+      "price": "770.73",
+      "side": "buy",
+      "id": "activity-5"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EFA",
+      "qty": "64",
+      "price": "104.35",
+      "side": "sell",
+      "id": "activity-6"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EFA",
+      "qty": "0.154701552",
+      "price": "104.35",
+      "side": "sell",
+      "id": "activity-7"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "USO",
+      "qty": "61",
+      "price": "159",
+      "side": "buy",
+      "id": "activity-8"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EEM",
+      "qty": "7",
+      "price": "63.79",
+      "side": "sell",
+      "id": "activity-9"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "USO",
+      "qty": "8",
+      "price": "159.08",
+      "side": "buy",
+      "id": "activity-10"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "USO",
+      "qty": "0.91122293",
+      "price": "159.08",
+      "side": "buy",
+      "id": "activity-11"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EEM",
+      "qty": "39",
+      "price": "63.7",
+      "side": "sell",
+      "id": "activity-12"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EEM",
+      "qty": "3",
+      "price": "63.66",
+      "side": "sell",
+      "id": "activity-13"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EEM",
+      "qty": "13",
+      "price": "63.67",
+      "side": "sell",
+      "id": "activity-14"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EEM",
+      "qty": "1",
+      "price": "63.7",
+      "side": "sell",
+      "id": "activity-15"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EEM",
+      "qty": "1",
+      "price": "63.7",
+      "side": "sell",
+      "id": "activity-16"
+    },
+    {
+      "activity_type": "FILL",
+      "symbol": "EEM",
+      "qty": "0.093011019",
+      "price": "63.7",
+      "side": "sell",
+      "id": "activity-17"
+    }
+  ],
+  "observed_cash": "20764.65",
+  "observed_positions": {
+    "DBC": "543.755365736",
+    "SPY": "38.244429576",
+    "USO": "106.531170986",
+    "UUP": "538.071161382"
+  }
+}

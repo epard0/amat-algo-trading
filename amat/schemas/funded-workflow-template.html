@@ -1,0 +1,83 @@
+<div id="funded-workflow-v1">
+  <style>
+    #funded-workflow-v1 .workflow-lanes{list-style:none;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:20px 0}
+    #funded-workflow-v1 .workflow-lanes li{display:flex;flex-direction:column;gap:6px}
+    #funded-workflow-v1 .workflow-lanes .step-index{color:var(--muted-foreground)}
+    #funded-workflow-v1 .strategy-line{margin:14px 0;display:flex;gap:10px;flex-wrap:wrap}
+    #funded-workflow-v1 .history-wrap{margin-top:22px}
+    #funded-workflow-v1 .status-row{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0}
+    #funded-workflow-v1 .controls{max-width:480px;margin:18px 0}
+    #funded-workflow-v1 .workflow-footer{margin-top:14px}
+  </style>
+  <h3>MNQ research · workflow and best-run history</h3>
+  <div class="status-row"><span class="viz-badge">20 batches · 53 candidates</span><span class="viz-badge">Research only</span><span class="viz-badge">Gemini: quota blocked</span></div>
+  <div class="controls">
+    <label class="form-label" for="fw-history">Recorded best run</label>
+    <select class="form-select" id="fw-history"></select>
+  </div>
+  <div class="strategy-line" aria-live="polite" id="fw-policy"></div>
+  <div class="viz-grid">
+    <div class="card viz-stat"><div>Training score · USD</div><div class="viz-stat-value tabular-nums" id="fw-score"></div><div class="text-small">Worst scenario mean, with failure penalty</div></div>
+    <div class="card viz-stat"><div>Validation mean · USD</div><div class="viz-stat-value tabular-nums" id="fw-validation"></div><div class="text-small" id="fw-validation-label"></div></div>
+  </div>
+  <ol class="workflow-lanes" aria-label="Stateful research workflow">
+    <li><span class="step-index">01 →</span><button class="btn" type="button" data-stage="freeze">Freeze inputs</button><span class="text-small">Data · rules · costs · split</span></li>
+    <li><span class="step-index">02 →</span><button class="btn" type="button" data-stage="propose">Propose changes</button><span class="text-small">Gemini / deterministic ablation</span></li>
+    <li><span class="step-index">03 →</span><button class="btn" type="button" data-stage="simulate">Replay MNQ</button><span class="text-small">30-day accounts · integer contracts</span></li>
+    <li><span class="step-index">04 →</span><button class="btn" type="button" data-stage="rank">Rank training</button><span class="text-small">Base / adverse · EOD / intraday</span></li>
+    <li><span class="step-index">05 ↺</span><button class="btn" type="button" data-stage="record">Record best</button><span class="text-small">Append history · cache · checkpoint</span></li>
+    <li><span class="step-index">06 →</span><button class="btn" type="button" data-stage="validate">Validate selection</button><span class="text-small">Final comparison · 0/12 targets</span></li>
+    <li><span class="step-index">07</span><button class="btn" type="button" data-stage="gate">Readiness gate</button><span class="text-small">Blocked: negative validation</span></li>
+  </ol>
+  <div class="card" id="fw-detail" aria-live="polite"></div>
+  <div class="history-wrap">
+    <h3>Previous best runs · retained</h3>
+    <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Batch</th><th class="text-end">Training score · USD</th><th>Change</th></tr></thead><tbody id="fw-history-rows"></tbody></table></div>
+  </div>
+  <div class="workflow-footer text-small">Append-only research history · saved selection · short, previously inspected sample · assumed costs</div>
+  <script>
+    (() => {
+      const root=document.getElementById('funded-workflow-v1');
+      const data=__DATA__;
+      const history=data.best_history;
+      const picker=root.querySelector('#fw-history');
+      const money=x=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(x);
+      const latest=history[history.length-1];
+      let selected=latest.batch,stage='record';
+      const details={
+        freeze:'Frozen: $3,000 target, $2,000 drawdown and 30 calendar days. Public MNQ sample; contract rolls unverified.',
+        propose:'Gemini 4 Argon returned no successful reviews. Active key has free-tier request/token limits of zero. Deterministic bounded ablations supplied the candidates.',
+        simulate:'One entry per day; next-open fills; tick-rounded stops; four-contract cap. Every evaluation window starts with fresh account state.',
+        rank:'Selection uses training only. Score is the lowest base/adverse EOD/intraday mean window P&L, minus a failure penalty.',
+        record:'Each improved incumbent is appended to the durable database with its policy, score and evidence hash. Previous bests are retained across restarts and later campaigns.',
+        validate:'Latest selected policy: average adverse validation P&L −$185; zero of 12 windows reached $3,000. Historical sample was already inspected.',
+        gate:'Research candidate retained. Trading readiness is blocked by negative validation, unverified data provenance and assumed execution costs.'
+      };
+      history.forEach(item=>{
+        const option=document.createElement('option');option.value=String(item.batch);option.textContent=(item.batch===0?'Baseline':'Batch '+item.batch)+' · '+money(item.training_score);picker.appendChild(option);
+        const row=document.createElement('tr');
+        const prior=history[history.indexOf(item)-1];
+        const changed=prior?Object.keys(item.policy).filter(k=>item.policy[k]!==prior.policy[k]).map(k=>k.replaceAll('_',' ')+' → '+item.policy[k]).join('; '):'Initial 5-minute breakout';
+        [item.batch===0?'Baseline':String(item.batch),money(item.training_score),changed].forEach((value,index)=>{const cell=document.createElement('td');cell.textContent=value;if(index===1)cell.className='text-end tabular-nums';row.appendChild(cell)});
+        root.querySelector('#fw-history-rows').appendChild(row);
+      });
+      function render(){
+        const item=history.find(x=>x.batch===selected)||latest;selected=item.batch;picker.value=String(selected);
+        const p=item.policy;
+        root.querySelector('#fw-policy').textContent=p.opening_minutes+'-minute breakout · $'+p.risk+' planned risk · '+Math.round(p.stop_fraction*100)+'% stop distance · '+p.direction+' directions';
+        root.querySelector('#fw-score').textContent=money(item.training_score);
+        const isLatest=selected===latest.batch;
+        root.querySelector('#fw-validation').textContent=isLatest?money(data.summary.validation_selected.score):selected===0?money(data.summary.validation_baseline.score):'Not evaluated';
+        root.querySelector('#fw-validation-label').textContent=isLatest||selected===0?'Final comparison · dependent 30-day windows':'Intermediate bests were not selected using validation';
+        root.querySelector('#fw-detail').textContent=details[stage];
+        root.querySelectorAll('[data-stage]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.stage===stage)));
+      }
+      function restore(state){const s=state?.modelContent;if(s?.campaign_id===data.campaign_id&&history.some(x=>x.batch===s.selected_batch))selected=s.selected_batch;const saved=state?.privateContent?.stage;if(details[saved])stage=saved;render()}
+      function save(){const item=history.find(x=>x.batch===selected);if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{campaign_id:data.campaign_id,selected_batch:selected,policy:item.policy},privateContent:{stage}}).catch(()=>{})}
+      picker.addEventListener('change',()=>{selected=Number(picker.value);render();save()});
+      root.querySelectorAll('[data-stage]').forEach(b=>b.addEventListener('click',()=>{stage=b.dataset.stage;render();save()}));
+      window.addEventListener('openai:set_globals',e=>{if(e.detail?.globals?.widgetState)restore(e.detail.globals.widgetState)});
+      restore(window.openai?.widgetState);
+    })();
+  </script>
+</div>

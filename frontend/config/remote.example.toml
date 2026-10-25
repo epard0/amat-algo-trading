@@ -1,0 +1,20 @@
+# PLACEHOLDERS ONLY: copy to ignored frontend/.runtime/remote.toml and chmod 600.
+# All five identity fields are required; the application has no connection defaults.
+# Keep the actual key outside this checkout. Set its path here, never its contents.
+host = "your-vps.example.com"
+port = 22
+username = "your-operator"
+key_path = "~/.ssh/amat-vps"
+# Private-key decryption passphrase; never sent as the SSH login password.
+key_passphrase = ""
+known_hosts = "~/.ssh/known_hosts"
+container = "amat-executor"
+state_root = "/var/lib/amat-executor"
+docker_command = ["docker"]
+connect_timeout = 10
+command_timeout = 20
+max_output_bytes = 131072
+# Optional operator-defined diagnostic commands. Only named commands can be
+# invoked through the API; no browser-provided shell or environment is accepted.
+# [commands]
+# disk = "df -h /"

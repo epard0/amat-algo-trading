@@ -1,0 +1,781 @@
+{
+  "decisions": {
+    "basket_long_only": {
+      "annualized_log_return_delta_ci95": [
+        -0.018709081090032612,
+        0.004077083352734846
+      ],
+      "borrow_stress_passes": false,
+      "drawdown_passes": true,
+      "reason": "Fails a reference return, drawdown or borrow-stress floor",
+      "return_checks": [
+        {
+          "cost_bps": 2,
+          "difference": -0.3654055719176088,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.4865843411223585,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.31369482096423207,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.3667346890160159,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.21714815287960842,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.3628358930044202,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.21707866974423684,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.3062293551247701,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.2209139283589776,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.35213723459363555,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.23767162687782895,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.34253385273202497,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        }
+      ],
+      "status": "rejected"
+    },
+    "conditional_reference": {
+      "reason": "Unchanged comparison reference",
+      "status": "reference"
+    },
+    "core_daily": {
+      "reason": "Unchanged comparison reference",
+      "status": "incumbent"
+    },
+    "index_basket": {
+      "annualized_log_return_delta_ci95": [
+        -0.019871086808485813,
+        0.002712637801982074
+      ],
+      "borrow_stress_passes": false,
+      "drawdown_passes": true,
+      "reason": "Fails a reference return, drawdown or borrow-stress floor",
+      "return_checks": [
+        {
+          "cost_bps": 2,
+          "difference": -0.39460105243535715,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.5157798216401068,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.3217647482141799,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.37480461626596373,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.24772117357892665,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.3934089137037384,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.22642643613067648,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.31557712151120976,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.2550237014116665,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.38624700764632447,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.2500159389121124,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.3548781647663084,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        }
+      ],
+      "status": "rejected"
+    },
+    "iwm_breakout": {
+      "annualized_log_return_delta_ci95": [
+        -0.023896554273770847,
+        -0.003879242381222261
+      ],
+      "borrow_stress_passes": false,
+      "drawdown_passes": true,
+      "reason": "Fails a reference return, drawdown or borrow-stress floor",
+      "return_checks": [
+        {
+          "cost_bps": 2,
+          "difference": -0.5451599079696194,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.6663386771743691,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.3528559701309719,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.40589583818275576,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.3931201210659556,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.5388078611907674,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.25891575532573796,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.34806644070627124,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.3938615826302465,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.5250848888649045,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.28655274243661655,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.39141496829081257,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        }
+      ],
+      "status": "rejected"
+    },
+    "qqq_long_only": {
+      "annualized_log_return_delta_ci95": [
+        -0.018997684302013537,
+        0.015950035754228188
+      ],
+      "borrow_stress_passes": false,
+      "drawdown_passes": true,
+      "reason": "Fails a reference return, drawdown or borrow-stress floor",
+      "return_checks": [
+        {
+          "cost_bps": 2,
+          "difference": -0.1833837435008161,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.3045625127055658,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.2704425924477136,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.32348246049949747,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.03900535111806347,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.18469309124287525,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.16973223180081387,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.25888291718134715,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.04650085299382756,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.1777241592284855,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.18374801800612817,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.2886102438603242,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        }
+      ],
+      "status": "rejected"
+    },
+    "qqq_pullback": {
+      "annualized_log_return_delta_ci95": [
+        -0.020393341352470905,
+        -0.0035948234537780516
+      ],
+      "borrow_stress_passes": false,
+      "drawdown_passes": true,
+      "reason": "Fails a reference return, drawdown or borrow-stress floor",
+      "return_checks": [
+        {
+          "cost_bps": 2,
+          "difference": -0.5018085111689015,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.6229872803736511,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.30087616251634763,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.3539160305681315,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.3551507756698187,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.5008385157946305,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.21121531420800466,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.30036599958853794,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.3606348734589826,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.49185817969364054,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.24239956065887158,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.3472617865130676,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        }
+      ],
+      "status": "rejected"
+    },
+    "qqq_trend": {
+      "annualized_log_return_delta_ci95": [
+        -0.020026424622944062,
+        0.013567469591719157
+      ],
+      "borrow_stress_passes": false,
+      "drawdown_passes": true,
+      "reason": "Fails a reference return, drawdown or borrow-stress floor",
+      "return_checks": [
+        {
+          "cost_bps": 2,
+          "difference": -0.235207369732767,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.3563861389375167,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.27682770098460896,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.3298675690363928,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.09650075058243912,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.2421884907072509,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.18088506356277145,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.27003574894330473,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.1092369349013591,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.24046024113601705,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.2004985596687523,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.3053607855229483,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        }
+      ],
+      "status": "rejected"
+    },
+    "relative_pair": {
+      "annualized_log_return_delta_ci95": [
+        -0.023386530479726535,
+        -0.004085293380252959
+      ],
+      "borrow_stress_passes": false,
+      "drawdown_passes": true,
+      "reason": "Fails a reference return, drawdown or borrow-stress floor",
+      "return_checks": [
+        {
+          "cost_bps": 2,
+          "difference": -0.5418482403151748,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.6630270095199244,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.35119410270243945,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.4042339707542233,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.3989133620774732,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.544601102202285,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.26216035827996054,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.3513110436604938,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.4091089837242463,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.5403322899589043,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.29502999149870845,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.3998922173529045,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        }
+      ],
+      "status": "rejected"
+    },
+    "spy_trend": {
+      "annualized_log_return_delta_ci95": [
+        -0.019960723107909764,
+        0.007732860167818953
+      ],
+      "borrow_stress_passes": false,
+      "drawdown_passes": true,
+      "reason": "Fails a reference return, drawdown or borrow-stress floor",
+      "return_checks": [
+        {
+          "cost_bps": 2,
+          "difference": -0.3332533299933358,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.45443209919808547,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.2937407477048848,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 2,
+          "difference": -0.34678061575666863,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.18992079407144313,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.3356085341962549,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.19971868703879148,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 6,
+          "difference": -0.28886937241932475,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.19852280961225244,
+          "passes": false,
+          "period": "full",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.3297461158469104,
+          "passes": false,
+          "period": "full",
+          "reference": "conditional_reference"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.22236918116635307,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "core_daily"
+        },
+        {
+          "cost_bps": 10,
+          "difference": -0.3272314070205491,
+          "passes": false,
+          "period": "walk_forward",
+          "reference": "conditional_reference"
+        }
+      ],
+      "status": "rejected"
+    }
+  },
+  "protocol_sha256": "a1b134c2d14cec853ae76ffad8addc1e0dada7c863462ab179044142ce27efcc"
+}

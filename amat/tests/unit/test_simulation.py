@@ -112,6 +112,10 @@ def _strategy() -> StrategyConfig:
 
 
 class TestLatestCompletedSession:
+    def test_utc_midnight_does_not_admit_the_current_exchange_date(self) -> None:
+        now = dt.datetime(2026, 9, 21, 0, 5, tzinfo=dt.UTC)
+        assert latest_completed_session(now=now) == dt.date(2026, 9, 19)
+
     def test_it_never_returns_the_current_date(self) -> None:
         """A session still in progress is not a completed observation."""
         now = dt.datetime(2026, 8, 8, 18, 0, tzinfo=dt.UTC)

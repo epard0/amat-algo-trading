@@ -1,0 +1,1 @@
+"""Local AMAT terminal service."""

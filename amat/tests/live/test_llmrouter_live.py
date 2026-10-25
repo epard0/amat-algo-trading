@@ -43,7 +43,7 @@ _SCHEMA_JSON = json.dumps(
 # release -- update alongside that config when it moves.
 _CHAIN_MODELS = {
     "openai": "gpt-5.4-mini",
-    "gemini": "gemini-3.6-flash",
+    "gemini": "gemini-3.8-flash",
     "openrouter": "deepseek/deepseek-v4-flash",
     "nvidia": "nvidia/nemotron-3-super-120b-a12b",
 }

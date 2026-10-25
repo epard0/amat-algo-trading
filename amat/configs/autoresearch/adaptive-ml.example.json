@@ -1,0 +1,39 @@
+{
+  "hypothesis": "Test a five-session conditional ridge signal with liquidity-based selection for additions, leaving exits to the signal and risk rules.",
+  "signal": {
+    "learner": "ridge",
+    "horizon": 5,
+    "terms": [
+      {"feature": {"kind": "normalized_momentum", "lookback": 63, "secondary_lookback": 21}},
+      {"feature": {"kind": "close_location", "lookback": 5}},
+      {"feature": {"kind": "volume_price", "lookback": 20, "secondary_lookback": 10}},
+      {"feature": {"kind": "volatility_shock", "lookback": 63, "secondary_lookback": 10}}
+    ],
+    "interactions": [
+      {"left": 0, "right": 3, "operation": "product"},
+      {"left": 1, "right": 2, "operation": "product"}
+    ],
+    "policy": {
+      "entry_threshold": 0.52,
+      "exit_threshold": 0.49,
+      "confirmation_sessions": 2,
+      "min_hold_sessions": 5
+    },
+    "selection": {
+      "mode": "entries",
+      "top_k": 4,
+      "lookback": 20,
+      "min_dollar_volume": 10000000,
+      "min_window_dollar_volume": 250000,
+      "min_relative_volume": 0.65,
+      "max_relative_volume": 3.0,
+      "max_per_cluster": 2,
+      "retention_bonus": 0.015
+    }
+  },
+  "stage": "manual",
+  "research": {
+    "mechanism": "Candle close location and signed volume surprise may distinguish trend continuation from exhaustion, conditional on volatility shock. Eligible assets compete for a bounded set of positions before risk sizing.",
+    "falsification": "Reject if the selector fails to beat the identical ML signal without selection, the signal fails the exposure-matched baseline, or the advantage disappears under higher costs, execution delays or nearby selection settings."
+  }
+}

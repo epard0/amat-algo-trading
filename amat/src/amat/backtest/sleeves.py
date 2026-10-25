@@ -192,6 +192,8 @@ def run_sleeve_study(
     weight_scalars: np.ndarray | None = None,
     decision_overlay: DecisionOverlay | None = None,
     progress: Callable[[str], None] | None = None,
+    execution_start: SessionDate | None = None,
+    max_entry_window_participation: float | None = None,
 ) -> SleeveStudy:
     """Run the combined portfolio and one independent sleeve per symbol.
 
@@ -246,6 +248,8 @@ def run_sleeve_study(
         actions_by_session=actions_by_session,
         weight_scalars=weight_scalars,
         decision_overlay=decision_overlay,
+        execution_start=execution_start,
+        max_entry_window_participation=max_entry_window_participation,
     )
 
     outcomes: list[SleeveOutcome] = []

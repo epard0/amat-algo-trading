@@ -60,21 +60,30 @@ from __future__ import annotations
 
 import dataclasses
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import logging
+import os
 import signal
 import threading
+import time
 from dataclasses import dataclass
 from types import FrameType
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from executor.broker import AlpacaPaperClient, CalendarSession
+from executor.alerts import notify
+from executor.batch import BatchPolicy, advance_batch
+from executor.broker import CalendarSession, Clock, create_client
 from executor.config import ExecutorSettings
-from executor.errors import ConfigurationError, ExecutorError
+from executor.errors import BatchPendingError, ConfigurationError, ExecutorError
 from executor.journal import Journal
-from executor.plan_source import build_plan
+from executor.mailgun import send_mailgun
+from executor.operations import observe_operations
+from executor.order_registry import refresh_orders
+from executor.plan_source import build_plan, parse_plan
+from executor.portfolio_monitor import refresh_portfolio
 from executor.report import (
     DailyReport,
     build_daily_report,
@@ -82,7 +91,15 @@ from executor.report import (
     send_report,
     write_report,
 )
-from executor.submit import submit_plan
+from executor.report.trade_monitor import capture_report
+from executor.safety import (
+    atomic_json,
+    bind_account,
+    require_reconciled_portfolio,
+    submission_interlock,
+)
+from executor.submit import client_order_id_for, submit_plan
+from executor.telegram import send_telegram
 
 __all__ = ["Daemon", "run_daemon"]
 
@@ -127,6 +144,14 @@ _PHASE_RETRY_SECONDS = 300.0
 _MAX_PHASE_ATTEMPTS = 3
 
 
+def _watch_progress(progress: list[float], stop: threading.Event) -> None:
+    """Exit a hung process so Docker can restart it; receipts survive the exit."""
+    while not stop.wait(30):
+        if time.monotonic() - progress[0] > 1800:  # noqa: PLR2004
+            LOGGER.critical("daemon made no successful progress for 30 minutes; exiting")
+            os._exit(1)
+
+
 @dataclass(frozen=True, slots=True)
 class _Phase:
     """One scheduled action for one session, with the window it may run in.
@@ -161,7 +186,7 @@ class Daemon:
 
     def __init__(self, settings: ExecutorSettings) -> None:
         self._settings = settings
-        self._client = AlpacaPaperClient(settings.trading_key_id, settings.trading_secret_key)
+        self._client = create_client(settings)
         settings.ensure_directories()
         self._journal = Journal(settings.journal_path, settings.equity_curve_path)
         self._verify_authorized_config()
@@ -172,12 +197,16 @@ class Daemon:
         #: per tick was pure syscall overhead.
         self._ledger: set[str] | None = None
         #: Attempts made so far for each not-yet-settled phase, keyed by
-        #: ``_Phase.key``. In-memory only: a restart resets it, so a process
-        #: that crashed mid-retry gets a fresh set of attempts rather than
-        #: inheriting a count from before the crash. That is acceptable --
-        #: the window and the deterministic client order IDs still bound the
-        #: damage a restart-reset retry count could do.
+        #: ``_Phase.key``. Persisted before dispatch so restarting cannot reset
+        #: the cap. Existing version-2 ledgers migrate on their next write.
         self._attempts: dict[str, int] = {}
+        #: Earliest instant a failed, not-yet-settled phase may be attempted
+        #: again, keyed by ``_Phase.key``. A phase with an entry here that is
+        #: still in the future is skipped for the tick -- not run, not
+        #: settled -- so a slow retry cannot block other due phases from
+        #: running in the same tick, and it feeds the sleep calculation so
+        #: the loop wakes up in time for it. Persisted alongside ``_attempts``.
+        self._retry_not_before: dict[str, dt.datetime] = {}
 
     # -- lifecycle ----------------------------------------------------------
 
@@ -216,7 +245,7 @@ class Daemon:
 
     # -- persisted state ----------------------------------------------------
 
-    def _load_ledger(self) -> set[str]:
+    def _load_ledger(self) -> set[str]:  # noqa: PLR0912 - validated legacy migration
         """The set of ``phase:session`` pairs already settled.
 
         Reads the version-1 layout -- a single session per phase name -- as
@@ -233,12 +262,35 @@ class Daemon:
         if self._state_path.is_file():
             try:
                 payload = json.loads(self._state_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                # A corrupt state file must not wedge the daemon. Losing it
-                # means at worst re-examining a phase, which the idempotency
-                # key and the duplicate-equity guard both absorb.
-                LOGGER.warning("daemon state file unreadable; treating as empty")
-                payload = {}
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ConfigurationError(
+                    "daemon state unreadable; restore or reconcile it"
+                ) from exc
+            if not isinstance(payload, dict):
+                raise ConfigurationError("invalid daemon state object")
+            if payload.get("version") not in (None, 2, 3):
+                raise ConfigurationError("unsupported daemon state version")
+            if "version" in payload and (
+                not isinstance(payload.get("completed"), list)
+                or any(not isinstance(item, str) for item in payload["completed"])
+            ):
+                raise ConfigurationError("invalid completed-phase ledger")
+            if payload.get("version") == 3:  # noqa: PLR2004
+                try:
+                    attempts = payload["attempts"]
+                    if not isinstance(attempts, dict) or any(
+                        type(value) is not int or value < 0 for value in attempts.values()
+                    ):
+                        raise ValueError("invalid retry counts")
+                    self._attempts = attempts
+                    self._retry_not_before = {
+                        key: dt.datetime.fromisoformat(value)
+                        for key, value in payload["retry_not_before"].items()
+                    }
+                    if any(value.tzinfo is None for value in self._retry_not_before.values()):
+                        raise ValueError("naive retry timestamp")
+                except (ValueError, TypeError, KeyError, AttributeError) as exc:
+                    raise ConfigurationError("invalid persisted retry state") from exc
             if isinstance(payload, dict):
                 completed = payload.get("completed")
                 if isinstance(completed, list):
@@ -259,10 +311,19 @@ class Daemon:
         # Newest last, then truncated from the front: the entries that matter
         # are the ones inside the visible calendar window.
         retained = sorted(ledger, key=lambda item: item.split(":", 1)[::-1])[-_LEDGER_LIMIT:]
-        payload = {"version": 2, "completed": retained}
-        temporary = self._state_path.with_suffix(".tmp")
-        temporary.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-        temporary.replace(self._state_path)
+        payload = {
+            "version": 3,
+            "completed": retained,
+            "attempts": {
+                key: value for key, value in self._attempts.items() if key not in retained
+            },
+            "retry_not_before": {
+                key: value.isoformat()
+                for key, value in self._retry_not_before.items()
+                if key not in retained
+            },
+        }
+        atomic_json(self._state_path, payload)
         self._ledger = set(retained)
 
     def _mark_done(self, phase: str, session: dt.date) -> None:
@@ -345,6 +406,39 @@ class Daemon:
     # -- the two phases -----------------------------------------------------
 
     def run_submit(self, session: dt.date, *, minutes_late: int = 0) -> None:
+        """Serialize submissions and reuse the original session plan on retries."""
+        with (self._settings.state_root / "submission.lock").open("a") as handle:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise ConfigurationError("another submission process holds the state lock") from exc
+            refusal = submission_interlock(self._settings.state_root)
+            if refusal and not (
+                self._settings.execution_mode == "staged-v1"
+                and (self._settings.state_root / "batches" / f"{session}.json").is_file()
+                and refusal.startswith(("unresolved submission ", "STOP_SUBMISSIONS"))
+            ):
+                self._journal.record("submission_refused", session=session, reason=refusal)
+                return
+            self._run_submit(session, minutes_late=minutes_late)
+
+    def _submission_now(self, session: dt.date) -> dt.datetime:
+        """Enforce the exchange window even for one-shot CLI calls and slow planning."""
+        if self._stop.is_set():
+            raise ConfigurationError("shutdown requested; no further orders permitted")
+        clock = self._client.get_clock()
+        wall_now = dt.datetime.now(dt.UTC)
+        if abs((wall_now - clock.timestamp).total_seconds()) > 120:  # noqa: PLR2004
+            raise ConfigurationError("broker/host clock skew exceeds 120 seconds; check NTP")
+        zone = self._zone(clock)
+        now = clock.timestamp.astimezone(zone)
+        phases = self._phases(now, zone)
+        if not any(p.name == "submit" and p.session == session and p.is_due(now) for p in phases):
+            raise ConfigurationError("submission is outside the exchange session/cutoff window")
+        require_reconciled_portfolio(self._settings.state_root, wall_now)
+        return wall_now
+
+    def _run_submit(self, session: dt.date, *, minutes_late: int = 0) -> None:
         """Build today's plan from live account state and submit it.
 
         ``minutes_late`` is how far past the scheduled instant this run began.
@@ -355,6 +449,7 @@ class Daemon:
         """
         settings = self._settings
         LOGGER.info("submit phase for %s", session)
+        self._submission_now(session)
 
         if minutes_late >= _LATE_SUBMIT_MINUTES:
             LOGGER.warning(
@@ -371,6 +466,7 @@ class Daemon:
             )
 
         account = self._client.get_account()
+        bind_account(settings.state_root, account.account_number)
         positions = self._client.position_quantities()
         self._journal.record(
             "account_observed",
@@ -381,17 +477,25 @@ class Daemon:
             positions=positions,
         )
 
-        plan = build_plan(
-            amat_root=settings.amat_root,
-            strategy_config=settings.strategy_config,
-            snapshot=settings.snapshot,
-            equity=account.equity,
-            positions=positions,
-            offline=False,
-            news_assets=settings.news_assets,
-            plan_command=settings.plan_command,
-            out_path=settings.plans_dir / f"{session.isoformat()}.json",
-        )
+        plan_path = settings.plans_dir / f"{session.isoformat()}.json"
+        if plan_path.exists():
+            # A retry may observe partial fills. Replanning then would create
+            # different quantities and idempotency keys for the same session.
+            # Corrupt artifacts fail closed instead of triggering a new plan.
+            plan = parse_plan(json.loads(plan_path.read_text(encoding="utf-8")))
+            self._journal.record("plan_reused", session=session)
+        else:
+            plan = build_plan(
+                amat_root=settings.amat_root,
+                strategy_config=settings.strategy_config,
+                snapshot=settings.snapshot,
+                equity=account.equity,
+                positions=positions,
+                offline=False,
+                news_assets=settings.news_assets,
+                plan_command=settings.plan_command,
+                out_path=plan_path,
+            )
         self._journal.record(
             "plan_built",
             session=session,
@@ -404,16 +508,73 @@ class Daemon:
             gross_target_exposure=plan.gross_target_exposure,
         )
 
-        result = submit_plan(
-            plan,
-            self._client,
-            account=account,
-            session=session,
-            now=dt.datetime.now(dt.UTC),
-            journal=self._journal,
-            dry_run=settings.dry_run,
-            limits=settings.limits,
+        calendar = self._client.get_calendar(
+            session - dt.timedelta(days=_CALENDAR_LOOKBACK_DAYS), session
         )
+        previous = [item.date for item in calendar if item.date < session]
+        if (
+            not any(item.date == session for item in calendar)
+            or not previous
+            or plan.as_of_session != max(previous)
+        ):
+            self._journal.record(
+                "submission_refused",
+                session=session,
+                reason=(
+                    "plan does not use the immediately preceding exchange session, "
+                    "or session is closed"
+                ),
+            )
+            return
+
+        expected_ids = {client_order_id_for(plan, intent) for intent in plan.intents}
+        unrelated = [
+            order
+            for order in self._client.list_orders(status="open")
+            if order.client_order_id not in expected_ids
+        ]
+        if unrelated and settings.execution_mode == "legacy":
+            self._journal.record(
+                "submission_refused",
+                session=session,
+                reason=f"{len(unrelated)} open broker order(s) outside this session plan",
+            )
+            return
+
+        if settings.execution_mode == "staged-v1":
+            batch = advance_batch(
+                plan,
+                self._client,
+                session=session,
+                now=self._submission_now(session),
+                journal=self._journal,
+                limits=settings.limits,
+                policy=BatchPolicy(whole_share_buys=settings.whole_share_buys),
+                dry_run=settings.dry_run,
+                submission_time=lambda: self._submission_now(session),
+            )
+            result = batch.submission
+            if batch.pending:
+                raise BatchPendingError(f"batch {batch.state['batch_id']}: {batch.status}")
+        else:
+            result = submit_plan(
+                plan,
+                self._client,
+                account=self._client.get_account(),
+                session=session,
+                now=self._submission_now(session),
+                journal=self._journal,
+                dry_run=settings.dry_run,
+                limits=settings.limits,
+                current_positions=self._client.position_quantities(),
+                submission_time=lambda: self._submission_now(session),
+            )
+        if (
+            result.refusal_reason
+            and not result.refusal_reason.startswith("no trades:")
+            and not settings.limits.disabled
+        ):
+            notify(settings, "submission-refused", result.refusal_reason)
         # Counted by actual status rather than by `not submitted`, so a dry run
         # does not report ten withheld intents when nothing was withheld.
         tally: dict[str, int] = {}
@@ -428,6 +589,15 @@ class Daemon:
         )
 
     def run_report(self, session: dt.date) -> None:
+        """Serialize automatic and manual report/equity writers."""
+        with (self._settings.state_root / "report.lock").open("a") as handle:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise ConfigurationError("another report process holds the state lock") from exc
+            self._run_report(session)
+
+    def _run_report(self, session: dt.date) -> None:  # noqa: PLR0912, PLR0915 - ordered report transaction
         """Record the day's equity, write the report, mail it, prune old files."""
         settings = self._settings
         LOGGER.info("report phase for %s", session)
@@ -493,36 +663,61 @@ class Daemon:
                 f"{item['symbol']} ({str(item.get('detail', ''))[:120]})" for item in rejected
             )
             warnings.append(f"{len(rejected)} order(s) rejected by the broker: {detail}")
+        if any(
+            item.get("status") == "outcome_unknown"
+            for item in submission_payload.get("outcomes", [])
+        ):
+            warnings.append(
+                "Order outcome unknown: submissions halted until broker reconciliation."
+            )
 
         # Orders submitted today, so the report can show what actually filled
         # rather than only what was requested.
         zone = ZoneInfo(plan.exchange_timezone if plan else "America/New_York")
         since = dt.datetime.combine(session, dt.time(0, 0), tzinfo=zone)
+        orders_available = True
         try:
-            orders = tuple(
-                order
-                for order in self._client.list_orders(after=since)
-                if order.client_order_id.startswith("amat-")
-            )
+            orders = self._client.list_orders(after=since)
         except ExecutorError as exc:
             warnings.append(f"Could not list today's orders: {exc}")
             orders = ()
+            orders_available = False
 
+        equity_curve = self._journal.read_equity_curve()
+        if self._journal.unreadable_journal_lines or self._journal.unreadable_equity_lines:
+            warnings.append(
+                f"History contains {self._journal.unreadable_journal_lines} unreadable journal "
+                f"line(s) and {self._journal.unreadable_equity_lines} unreadable equity line(s). "
+                "Original files are preserved; reconstructed history is incomplete."
+            )
         report = dataclasses.replace(
             build_daily_report(
                 session=session,
                 now=dt.datetime.now(dt.UTC),
                 account=account,
                 positions=positions,
-                equity_curve=self._journal.read_equity_curve(),
+                equity_curve=equity_curve,
                 submission=None,
                 plan=plan,
                 orders=orders,
+                orders_available=orders_available,
+                market_is_open=self._client.get_clock().is_open,
                 extra_warnings=tuple(warnings),
             ),
             submission=submission_payload,
+            trading_mode=self._settings.trading_mode,
         )
 
+        try:
+            monitor = capture_report(
+                settings.state_root, report, plan, orders_available=orders_available
+            )
+            report = dataclasses.replace(report, trade_monitor=monitor["summary"])
+        except (OSError, ValueError, TypeError, KeyError, ExecutorError) as exc:
+            LOGGER.exception("trade monitoring could not be updated")
+            report = dataclasses.replace(
+                report, warnings=(*report.warnings, f"Trade monitor update failed: {exc}")
+            )
         markdown_path, json_path = write_report(report, settings.reports_dir)
         LOGGER.info("wrote %s", markdown_path)
 
@@ -532,7 +727,9 @@ class Daemon:
         self._record_execution_reconciliation(session, report)
 
         delivered, detail = (False, "SMTP is not configured")
-        if settings.smtp is not None:
+        if settings.mailgun is not None:
+            delivered, detail = send_mailgun(settings.mailgun, report.subject, report.to_markdown())
+        elif settings.smtp is not None:
             delivered, detail = send_report(report, settings.smtp)
         self._journal.record(
             "report_written",
@@ -542,8 +739,16 @@ class Daemon:
             mail_delivered=delivered,
             mail_detail=detail,
         )
-        if not delivered and settings.smtp is not None:
+        if not delivered and (settings.smtp is not None or settings.mailgun is not None):
             LOGGER.warning("report mail not delivered: %s", detail)
+
+        if settings.telegram is not None:
+            accepted, telegram_detail = send_telegram(
+                settings.telegram, report.subject, report.to_markdown()
+            )
+            self._journal.record(
+                "report_telegram", session=session, accepted=accepted, detail=telegram_detail
+            )
 
         self._prune_artifacts(session)
 
@@ -607,12 +812,18 @@ class Daemon:
                         "detail": str(entry.get("note", "") or ""),
                     }
                 )
-            elif event in {"intent_withheld", "order_rejected", "order_duplicate"}:
+            elif event in {
+                "intent_withheld",
+                "order_rejected",
+                "order_duplicate",
+                "order_outcome_unknown",
+            }:
                 executed = True
                 status = {
                     "intent_withheld": "withheld",
                     "order_rejected": "rejected",
                     "order_duplicate": "already_submitted",
+                    "order_outcome_unknown": "outcome_unknown",
                 }[str(event)]
                 outcomes.append(
                     {
@@ -640,7 +851,36 @@ class Daemon:
 
     # -- the loop -----------------------------------------------------------
 
-    def tick(self) -> float:
+    def _observe_account(self, clock: Clock, now: dt.datetime) -> None:
+        try:
+            refresh_orders(self._settings.state_root, self._client, clock, self._journal)
+        except (ExecutorError, OSError, ValueError) as exc:
+            LOGGER.warning("order registry refresh failed: %s", type(exc).__name__)
+            self._journal.record("order_registry_refresh_failed", error_type=type(exc).__name__)
+
+        try:
+            refresh_portfolio(self._settings.state_root, self._client, clock, self._journal)
+        except OSError as exc:
+            LOGGER.warning("portfolio monitor persistence failed: %s", type(exc).__name__)
+
+        try:
+            observe_operations(self._settings, now)
+        except OSError as exc:
+            LOGGER.warning("operations projection failed: %s", type(exc).__name__)
+
+        try:
+            require_reconciled_portfolio(self._settings.state_root, dt.datetime.now(dt.UTC))
+            issue = submission_interlock(self._settings.state_root)
+            if issue:
+                notify(self._settings, "submission-interlock", issue)
+        except (ConfigurationError, OSError):
+            notify(
+                self._settings,
+                "portfolio-monitor",
+                "Portfolio observation is stale or unreconciled.",
+            )
+
+    def tick(self) -> float:  # noqa: PLR0912, PLR0915 - ordered nonblocking phase scheduling
         """Run whatever is due, and return how long to sleep next.
 
         A failure inside one phase is journalled and swallowed: the daemon must
@@ -650,11 +890,15 @@ class Daemon:
         still open and its attempt count is below the cap, the failure is
         retried after a short delay rather than settled immediately -- a
         transient broker or subprocess error should not permanently skip the
-        day's rebalance.
+        day's rebalance. The retry delay only defers that one phase: it is
+        recorded as a "not before" instant rather than a blocking sleep, so
+        every other phase due in the same tick still runs.
         """
         clock = self._client.get_clock()
         zone = self._zone(clock)
         now = clock.timestamp.astimezone(zone)
+
+        self._observe_account(clock, now)
 
         phases = self._phases(now, zone)
         for phase in phases:
@@ -664,6 +908,8 @@ class Daemon:
                 # Mark it done so the loop does not reconsider it every tick,
                 # and record that it was skipped rather than performed.
                 self._mark_done(phase.name, phase.session)
+                self._attempts.pop(phase.key, None)
+                self._retry_not_before.pop(phase.key, None)
                 self._journal.record(
                     "phase_missed",
                     session=phase.session,
@@ -683,17 +929,46 @@ class Daemon:
                     phase.at,
                     phase.until,
                 )
+                notify(self._settings, "phase-missed", f"Missed {phase.name} for {phase.session}.")
                 continue
             if phase.is_due(now):
+                not_before = self._retry_not_before.get(phase.key)
+                if not_before is not None and now < not_before:
+                    # A retry is pending but not due yet; leave it alone this
+                    # tick so it does not starve other phases that are due,
+                    # and let the sleep calculation below wake up for it.
+                    continue
                 attempt = self._attempts.get(phase.key, 0) + 1
+                if attempt > _MAX_PHASE_ATTEMPTS:
+                    self._journal.record("phase_exhausted", session=phase.session, phase=phase.name)
+                    self._mark_done(phase.name, phase.session)
+                    continue
                 self._attempts[phase.key] = attempt
+                self._save_ledger(self._load_ledger())
                 try:
                     if phase.name == "submit":
                         self.run_submit(phase.session, minutes_late=phase.minutes_late(now))
                     else:
                         self.run_report(phase.session)
+                except BatchPendingError as exc:
+                    # Fills may take many ticks. Waiting consumes no failure budget.
+                    self._attempts[phase.key] = max(0, attempt - 1)
+                    retry_at = now + dt.timedelta(seconds=5)
+                    if retry_at <= phase.until:
+                        self._retry_not_before[phase.key] = retry_at
+                        self._save_ledger(self._load_ledger())
+                        self._journal.record(
+                            "batch_waiting", session=phase.session, detail=str(exc)
+                        )
+                        continue
+                    self._journal.record("batch_window_closed", session=phase.session)
                 except Exception as exc:
                     LOGGER.exception("%s phase failed for %s", phase.name, phase.session)
+                    notify(
+                        self._settings,
+                        "phase-failed",
+                        f"{phase.name} phase failed for {phase.session}: {type(exc).__name__}",
+                    )
                     self._journal.record(
                         "phase_failed",
                         session=phase.session,
@@ -703,6 +978,8 @@ class Daemon:
                     )
                     retry_at = now + dt.timedelta(seconds=_PHASE_RETRY_SECONDS)
                     if attempt < _MAX_PHASE_ATTEMPTS and retry_at <= phase.until:
+                        self._retry_not_before[phase.key] = retry_at
+                        self._save_ledger(self._load_ledger())
                         self._journal.record(
                             "phase_retry_scheduled",
                             session=phase.session,
@@ -711,12 +988,14 @@ class Daemon:
                             retry_at=retry_at.isoformat(),
                             window_closes_at=phase.until.isoformat(),
                         )
-                        return _PHASE_RETRY_SECONDS
+                        continue  # other due phases still get a turn this tick
                 self._mark_done(phase.name, phase.session)
                 self._attempts.pop(phase.key, None)
-                return 1.0  # re-evaluate immediately; another phase may also be due
+                self._retry_not_before.pop(phase.key, None)
+                continue  # this phase is settled; keep checking other due phases
 
         upcoming = [phase.at for phase in phases if phase.at > now]
+        upcoming.extend(self._retry_not_before.values())
         if not upcoming:
             return _MAX_SLEEP_SECONDS
         seconds = (min(upcoming) - now).total_seconds()
@@ -746,14 +1025,34 @@ class Daemon:
             retention_days=settings.report_retention_days,
         )
 
-        while not self._stop.is_set():
-            try:
-                sleep_for = self.tick()
-            except Exception as exc:
-                LOGGER.exception("tick failed; retrying")
-                self._journal.record("tick_failed", error=f"{type(exc).__name__}: {exc}")
-                sleep_for = 60.0
-            self._stop.wait(sleep_for)
+        progress = [time.monotonic()]
+        watchdog_stop = threading.Event()
+
+        threading.Thread(
+            target=_watch_progress,
+            args=(progress, watchdog_stop),
+            name="executor-watchdog",
+            daemon=True,
+        ).start()
+        heartbeat = settings.state_root / "heartbeat.json"
+        last_success: str | None = None
+        try:
+            while not self._stop.is_set():
+                try:
+                    sleep_for = self.tick()
+                    last_success = dt.datetime.now(dt.UTC).isoformat()
+                    atomic_json(heartbeat, {"status": "running", "last_success_at": last_success})
+                    progress[0] = time.monotonic()
+                except Exception as exc:
+                    atomic_json(heartbeat, {"status": "degraded", "last_success_at": last_success})
+                    LOGGER.exception("tick failed; retrying")
+                    notify(settings, "daemon-degraded", f"Daemon tick failed: {type(exc).__name__}")
+                    self._journal.record("tick_failed", error=f"{type(exc).__name__}: {exc}")
+                    sleep_for = 60.0
+                self._stop.wait(sleep_for)
+        finally:
+            watchdog_stop.set()
+            atomic_json(heartbeat, {"status": "stopped", "last_success_at": last_success})
 
         self._journal.record("daemon_stopped")
         LOGGER.info("stopped")
@@ -762,6 +1061,12 @@ class Daemon:
 
 def run_daemon(settings: ExecutorSettings) -> int:
     """Construct and run the daemon with signal handling installed."""
-    daemon = Daemon(settings)
-    daemon.install_signal_handlers()
-    return daemon.run_forever()
+    settings.ensure_directories()
+    with (settings.state_root / "daemon.lock").open("a") as handle:
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise ConfigurationError("another daemon holds this state directory") from exc
+        daemon = Daemon(settings)
+        daemon.install_signal_handlers()
+        return daemon.run_forever()

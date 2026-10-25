@@ -1,0 +1,31 @@
+# Live 20-iteration regression test; copied from the Gemini-first default.
+# Gemini-first research policy. Used for proposals, coding and reviews.
+# OpenRouter routes are explicitly free. Gemini/Groq use account billing/quota.
+# Frozen runs retain their recorded configuration; use --chain/--summary-chain overrides.
+[[targets]]
+provider = "gemini"
+model = "gemini-3.8-flash"
+
+[[targets]]
+provider = "gemini"
+model = "gemini-3.5-flash-lite"
+
+[[targets]]
+provider = "gemini"
+model = "gemini-3.1-flash-lite"
+
+[[targets]]
+provider = "openrouter"
+model = "openrouter/free"
+
+[[targets]]
+provider = "openrouter"
+model = "qwen/qwen3.8-27b:free"
+
+[[targets]]
+provider = "openrouter"
+model = "nvidia/nemotron-3-ultra-550b-a55b:free"
+
+[[targets]]
+provider = "groq"
+model = "openai/gpt-oss-120b"

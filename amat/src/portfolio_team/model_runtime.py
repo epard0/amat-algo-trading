@@ -21,7 +21,7 @@ from portfolio_team.providers import PROMPTS
 
 
 class ModelSettings(Record):
-    model: str = Field(min_length=1, max_length=200, pattern=r"^[a-zA-Z0-9._-]+$")
+    model: str = Field(min_length=1, max_length=200, pattern=r"^[a-zA-Z0-9/._:-]+$")
     request_timeout_seconds: float = Field(default=90, gt=0, le=120)
     review_timeout_seconds: float = Field(default=480, gt=0, le=600)
     max_output_tokens: int = Field(default=4096, ge=256, le=8192)
@@ -31,6 +31,15 @@ class ModelSettings(Record):
     max_output_reservation_per_review: int = Field(default=32768, ge=1)
     max_input_reservation_per_day: int = Field(default=2000000, ge=1)
     max_output_reservation_per_day: int = Field(default=100000, ge=1)
+
+    @property
+    def reservation_limits(self) -> tuple[int, int, int, int]:
+        return (
+            self.max_input_reservation_per_review,
+            self.max_output_reservation_per_review,
+            self.max_input_reservation_per_day,
+            self.max_output_reservation_per_day,
+        )
 
 
 class ModelRequest(Record):
@@ -279,6 +288,12 @@ class RemoteProvider:
             return ModelResponse(error_code="request_timeout", retryable=True)
         except Exception as exc:
             return ModelResponse(error_code=f"transport_{type(exc).__name__}")
+
+    def prepare_attempt(
+        self, role: Role, bundle: Bundle, previous: tuple[Assessment, ...], attempt: int
+    ) -> ModelRequest:
+        del attempt
+        return self.prepare(role, bundle, previous)
 
 
 class ModelRunError(EvidenceError):

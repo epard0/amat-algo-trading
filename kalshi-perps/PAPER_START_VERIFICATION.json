@@ -1,0 +1,109 @@
+{
+  "verified_at": "2026-10-19T22:33:26.534174-04:00",
+  "campaign": "20261019T222849-405390",
+  "unit": [
+    "ActiveState=active",
+    "SubState=running",
+    "MainPID=494392",
+    "NRestarts=0"
+  ],
+  "runner_active": true,
+  "heartbeat_age_seconds": 12.918,
+  "live_enabled": false,
+  "initial_equity_per_account": {
+    "btc-eth-reference": "10000",
+    "btc-long-pnl": "10000",
+    "doge-pnl": "10000",
+    "doge-sol-balanced": "10000",
+    "doge-sol-lower-drawdown": "10000",
+    "doge-sol-max-pnl": "10000",
+    "near-pnl": "10000",
+    "sol-profit": "10000",
+    "uni-pnl": "10000"
+  },
+  "comparison_report": "/home/supasuge/Documents/amat-workspace/kalshi-perps/runtime/comparisons/20261019T222849-405390/comparison.md",
+  "latest_metrics": {
+    "btc-eth-reference": {
+      "state": "running",
+      "net_pnl": "-29.859683839999999999999993",
+      "max_drawdown": "-0.0029859683839999999999999993",
+      "fees": "14.7264838400",
+      "funding": "0",
+      "effective_leverage": "3.693684565332551782067295801",
+      "take_profit_closes": 0
+    },
+    "btc-long-pnl": {
+      "state": "running",
+      "net_pnl": "0.0000",
+      "max_drawdown": "0",
+      "fees": "0",
+      "funding": "0",
+      "effective_leverage": "0",
+      "take_profit_closes": 0
+    },
+    "doge-pnl": {
+      "state": "running",
+      "net_pnl": "0.0000",
+      "max_drawdown": "0",
+      "fees": "0",
+      "funding": "0",
+      "effective_leverage": "0",
+      "take_profit_closes": 0
+    },
+    "doge-sol-balanced": {
+      "state": "running",
+      "net_pnl": "0.0000",
+      "max_drawdown": "0",
+      "fees": "0",
+      "funding": "0",
+      "effective_leverage": "0",
+      "take_profit_closes": 0
+    },
+    "doge-sol-lower-drawdown": {
+      "state": "running",
+      "net_pnl": "0.0000",
+      "max_drawdown": "0",
+      "fees": "0",
+      "funding": "0",
+      "effective_leverage": "0",
+      "take_profit_closes": 0
+    },
+    "doge-sol-max-pnl": {
+      "state": "running",
+      "net_pnl": "0.0000",
+      "max_drawdown": "0",
+      "fees": "0",
+      "funding": "0",
+      "effective_leverage": "0",
+      "take_profit_closes": 0
+    },
+    "near-pnl": {
+      "state": "running",
+      "net_pnl": "15.60298140000000000000000",
+      "max_drawdown": "-0.0030542237839999999999999998",
+      "fees": "10.0235186000",
+      "funding": "0",
+      "effective_leverage": "2.504534479510054593706141851",
+      "take_profit_closes": 0
+    },
+    "sol-profit": {
+      "state": "running",
+      "net_pnl": "0.0000",
+      "max_drawdown": "0",
+      "fees": "0",
+      "funding": "0",
+      "effective_leverage": "0",
+      "take_profit_closes": 0
+    },
+    "uni-pnl": {
+      "state": "running",
+      "net_pnl": "0.0000",
+      "max_drawdown": "0",
+      "fees": "0",
+      "funding": "0",
+      "effective_leverage": "0",
+      "take_profit_closes": 0
+    }
+  },
+  "tests_passed": 57
+}

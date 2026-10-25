@@ -1,0 +1,14 @@
+{
+  "scope": "research_only",
+  "engine": "autoresearch.crypto_signed_api.replay_configuration",
+  "capital": 10000,
+  "directions": {
+    "KXDOGEPERP": "both",
+    "KXSOLPERP": "both"
+  },
+  "leverage": "max",
+  "loss_guard_fraction": 0.35,
+  "baseline_config": "../kalshi-perps/deploy/paper.toml",
+  "fixed_rules": "Four-hour20day/10day;DOGE0.5ATR/SOLentry-lockedADX14>=20ladder;72h;25/75activeallocation;2%reserve",
+  "promotion_allowed": false
+}

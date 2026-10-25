@@ -582,11 +582,7 @@ class TestAlpacaNews:
         first = {"news": [alpaca_article()], "next_page_token": "next-token"}
         second = {"news": [alpaca_article(identifier=102)], "next_page_token": None}
         client = StubAlpaca([json.dumps(first).encode(), json.dumps(second).encode()])
-        pages = list(
-            client.news_pages(
-                ["XOM", "LMT"], start="2026-09-01", end="2026-09-02"
-            )
-        )
+        pages = list(client.news_pages(["XOM", "LMT"], start="2026-09-01", end="2026-09-02"))
         assert [page.number for page in pages] == [1, 2]
         assert "symbols=XOM%2CLMT" in client.urls[0]
         assert "page_token=next-token" in client.urls[1]
@@ -598,9 +594,7 @@ class TestAlpacaNews:
             list(client.news_pages(["XOM"], start="2026-09-01", end="2026-09-02"))
 
     def test_parse_normalizes_timestamp_and_symbol_tags(self) -> None:
-        records, rejected, reported = parse_alpaca_news_page(
-            {"news": [alpaca_article()]}
-        )
+        records, rejected, reported = parse_alpaca_news_page({"news": [alpaca_article()]})
         assert rejected == 0
         assert reported is None
         assert records[0].published_at == "2026-09-01T13:15:00.000Z"

@@ -14,7 +14,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-ProviderName = Literal["openai", "gemini", "openrouter", "nvidia"]
+ProviderName = Literal["openai", "gemini", "openrouter", "nvidia", "groq"]
 
 ErrorClass = Literal[
     "ok",
@@ -59,11 +59,20 @@ with warnings.catch_warnings():
         max_output_tokens: int = Field(ge=256, le=65536)
         timeout_seconds: float = Field(gt=0, le=600)
         reasoning_effort: str | None = None
+        task_class: Literal["routine", "complex", "coding", "judge"] = Field(
+            default="routine", exclude_if=lambda value: value == "routine"
+        )
+        json_object_mode: bool = Field(default=False, exclude_if=lambda value: not value)
+        prompt_json_mode: bool = Field(default=False, exclude_if=lambda value: not value)
+        persistence: Literal["full", "metadata_only"] = Field(
+            default="full", exclude_if=lambda value: value == "full"
+        )
 
 
 class ChatResponse(Record):
     provider: str
     model: str
+    served_model: str | None = Field(default=None, exclude_if=lambda value: value is None)
     text: str | None = None
     raw_json: str = "{}"
     input_tokens: int | None

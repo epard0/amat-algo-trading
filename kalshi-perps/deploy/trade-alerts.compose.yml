@@ -1,0 +1,33 @@
+name: kalshi-perps-trade-alerts
+services:
+  trade-alerts:
+    image: kalshi-perps:trade-alerts-20261022-v1
+    container_name: kalshi-perps-trade-alerts
+    command: [python, -m, kalshi_perps.trade_alerts]
+    env_file: [telegram.env]
+    environment:
+      TRADE_ALERT_ACCOUNTS: default
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.2
+    pids_limit: 32
+    volumes:
+      - default-state:/accounts/default:ro
+      - alert-state:/var/lib/trade-alerts
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '3'}
+    healthcheck:
+      test: [CMD, python, -c, "import json,time,datetime;from pathlib import Path;r=json.loads(Path('/var/lib/trade-alerts/status.json').read_text());assert 0<=time.time()-datetime.datetime.fromisoformat(r['updated_at']).timestamp()<90;assert all(a['state'] in ('armed','watching') for a in r['accounts'].values());assert not any(r['delivery_counts'].get(k,0) for k in ('failed','uncertain'))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+volumes:
+  default-state: {external: true, name: kalshi-perps_perps-state}
+  alert-state: {name: kalshi-perps-trade-alerts_state}

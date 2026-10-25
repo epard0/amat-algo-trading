@@ -73,6 +73,16 @@ def _intent(**overrides: object) -> PlanIntent:
 # -- quantity resolution ----------------------------------------------------
 
 
+def test_explicit_unlimited_caps_preserve_other_preflight_guards() -> None:
+    limits = _limits(
+        max_session_notional=None, max_symbol_notional=None, max_orders_per_session=None
+    )
+    plan = parse_plan(_plan_payload())
+    session = dt.date(2026, 8, 11)
+    assert _preflight(plan, _account(), session, _now(), limits=limits) == ""
+    assert "equity" in _preflight(plan, _account(equity="200000"), session, _now(), limits=limits)
+
+
 def test_fractional_quantity_survives_a_fractionable_symbol() -> None:
     quantity, note = _resolve_quantity(_intent(), fractionable=True, held=Decimal("0"))
     assert quantity == Decimal("15.9684")

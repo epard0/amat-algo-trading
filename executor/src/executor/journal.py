@@ -59,10 +59,9 @@ def _jsonable(value: Any) -> Any:
 class Journal:
     """Append-only NDJSON writer.
 
-    Every write is a single ``write()`` of one newline-terminated line followed
-    by an ``fsync``. One line is far below the pipe/file atomicity threshold, so
-    a process killed mid-run truncates at a record boundary rather than leaving
-    a half-written event that no reader can classify.
+    Writes are flushed and fsynced. Regular files do not provide the atomic
+    record guarantee of PIPE_BUF: interrupted records remain possible. Readers
+    preserve the source and expose corruption counts rather than hiding it.
     """
 
     def __init__(
@@ -75,8 +74,15 @@ class Journal:
         self._journal_path = journal_path
         self._equity_curve_path = equity_curve_path
         self._max_journal_bytes = max_journal_bytes
+        self.unreadable_journal_lines = 0
+        self.unreadable_equity_lines = 0
         for path in (journal_path, equity_curve_path):
             path.parent.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def state_root(self) -> Path:
+        """Directory containing persistent submission interlocks."""
+        return self._journal_path.parent
 
     @property
     def previous_journal_path(self) -> Path:
@@ -131,6 +137,7 @@ class Journal:
         must not make the surrounding history unreadable.
         """
         entries: list[dict[str, Any]] = []
+        self.unreadable_journal_lines = 0
         for path in (self.previous_journal_path, self._journal_path):
             if not path.is_file():
                 continue
@@ -141,9 +148,12 @@ class Journal:
                 try:
                     parsed = json.loads(stripped)
                 except json.JSONDecodeError:
+                    self.unreadable_journal_lines += 1
                     continue
                 if isinstance(parsed, dict):
                     entries.append(parsed)
+                else:
+                    self.unreadable_journal_lines += 1
         return entries
 
     def record_equity(
@@ -176,6 +186,7 @@ class Journal:
         final record from a hard kill must not make the whole history
         unreadable, and the report says how many lines were unreadable.
         """
+        self.unreadable_equity_lines = 0
         if not self._equity_curve_path.is_file():
             return []
         entries: list[dict[str, Any]] = []
@@ -186,9 +197,12 @@ class Journal:
             try:
                 parsed = json.loads(stripped)
             except json.JSONDecodeError:
+                self.unreadable_equity_lines += 1
                 continue
             if isinstance(parsed, dict) and "session" in parsed:
                 entries.append(parsed)
+            else:
+                self.unreadable_equity_lines += 1
         entries.sort(key=lambda item: str(item.get("session", "")))
         return entries
 

@@ -1,0 +1,2254 @@
+{
+  "schema": "screening-universe/1",
+  "purpose": "Historical strategy-condition discovery; no trading authorization",
+  "membership": "Curated on 2026-10-18 by instrument/sector diversity, not selected by measured returns. Current-symbol selection is survivorship-biased; no delisting-complete claim. Missing/late histories are retained, never backfilled.",
+  "start": "2010-01-04",
+  "end_exclusive": "2026-10-18",
+  "execution_start": "2024-01-02",
+  "entries": [
+    {
+      "symbol": "ACWI",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "AGG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "APA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "AR",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "AVAV",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "BA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "BIL",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "BNO",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "BOIL",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "CACI",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "CNX",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "COP",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "CVX",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "CW",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "DBA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "DBB",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "DBC",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "DVN",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EEM",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EFA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EMB",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EOG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EQT",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWC",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWH",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWJ",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWU",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWW",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWY",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EWZ",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "EZU",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "FANG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "FXA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "FXB",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "FXC",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "FXE",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "FXF",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "FXI",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "FXY",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "GD",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "GDX",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "GLD",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "HAL",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "HEI",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "HII",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "HYG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IEF",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IEFA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IEI",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IEMG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IEV",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IJH",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IJR",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "INDA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "ITA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IWD",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IWM",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "IYR",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "KMI",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "KOLD",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "KTOS",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "LDOS",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "LHX",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "LMT",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "LNG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "LQD",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "MBB",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "MDY",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "MPC",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "MRCY",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "MUB",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "NOC",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "OKE",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "OVV",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "OXY",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "PFF",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "PPA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "PPLT",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "PSX",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "QQQ",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "QUAL",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "REM",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "RSP",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "RTX",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "SCHH",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "SCO",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "SHV",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "SHY",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "SLB",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "SLV",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "SPLV",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "SPY",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "STIP",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "TDG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "TIP",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "TLT",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "TRGP",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "TXT",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "UCO",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "UGA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "UNG",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "USMV",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "USO",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "UUP",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "VEA",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "VLO",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "VLUE",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "VNQ",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "VTI",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "VWO",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "WMB",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "WOOD",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XAR",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLB",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLE",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLF",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLI",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLK",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLP",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLRE",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLU",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLV",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XLY",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XME",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XOM",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "XOP",
+      "group": "existing_expanded_universe"
+    },
+    {
+      "symbol": "VOO",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VT",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "DIA",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "QQQM",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SCHD",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VIG",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VYM",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "DGRO",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "DGRW",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VTV",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VUG",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VB",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VO",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SCHB",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SCHX",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SCHG",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SCHV",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IWB",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IWR",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IWS",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IWO",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IWN",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "ITOT",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IVV",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SPTM",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "XLC",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VGT",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VHT",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VFH",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VDE",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VIS",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VDC",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VCR",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VPU",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VAW",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VOX",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "FDN",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IGV",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SOXX",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SMH",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "XBI",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IBB",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "KRE",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "KBE",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "KIE",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "IYT",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "ITB",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "XHB",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "JETS",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "XRT",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "XSD",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "TAN",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "ICLN",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "LIT",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "BOTZ",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "ROBO",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "ARKK",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "ARKG",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "ARKW",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "ARKF",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "CIBR",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "HACK",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "SKYY",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "CLOU",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "FINX",
+      "group": "additional_equity_etfs"
+    },
+    {
+      "symbol": "VEU",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "VXUS",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "IXUS",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "SCZ",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "VSS",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EEMV",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EEMS",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EIDO",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWM",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "THD",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWS",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWT",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EZA",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "TUR",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "GREK",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EPOL",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWI",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWP",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWL",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWN",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWD",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EWO",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EIRL",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EIS",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "ECH",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EPU",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "ARGX",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "ASHR",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "KWEB",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "MCHI",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "AAXJ",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EPP",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "EUFN",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "DXJ",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "HEDJ",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "IHDG",
+      "group": "international_etfs"
+    },
+    {
+      "symbol": "SGOV",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "BILS",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "VGSH",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "VGIT",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "VGLT",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "SCHO",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "SCHR",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "SCHZ",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "GOVT",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "SPTL",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "SPTS",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "SPAB",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "IUSB",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "BIV",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "BLV",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "BSV",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "SCHP",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "VTIP",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "LTPZ",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "TIPS",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "NEAR",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "MINT",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "GSY",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "FLRN",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "FLOT",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "JPST",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "ANGL",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "FALN",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "SHYG",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "USHY",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "HYD",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "VTEB",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "VCLT",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "IGIB",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "IGSB",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "ICSH",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "TFLO",
+      "group": "fixed_income_etfs"
+    },
+    {
+      "symbol": "IAU",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "SGOL",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "SIVR",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "PALL",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "CPER",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "CORN",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "SOYB",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "WEAT",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "CANE",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "JO",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "BAL",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "COW",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "RJA",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "RJI",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "GCC",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "GSG",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "PDBC",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "COMT",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "DBO",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "DBE",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "DBP",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "GLTR",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "SPPP",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "REMX",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "URA",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "NLR",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "IGE",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "IGF",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "PAVE",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "MOO",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "CUT",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "LAND",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "VNQI",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "REET",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "RWO",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "RWR",
+      "group": "real_assets_etfs"
+    },
+    {
+      "symbol": "AAPL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MSFT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NVDA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AMD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "INTC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AVGO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TXN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MU",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AMAT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "LRCX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "KLAC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "QCOM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ADI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TSM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ORCL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CRM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ADBE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "IBM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CSCO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NOW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "INTU",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SAP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GOOGL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "META",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NFLX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DIS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CMCSA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "T",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "VZ",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TMUS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AMZN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "WMT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "COST",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TGT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "HD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "LOW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TJX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NKE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MCD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SBUX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BKNG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ABNB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "UBER",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TSLA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "F",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "HMC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "RIVN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CAT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "HON",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MMM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ETN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "EMR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PH",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CMI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "UNP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CSX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NSC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "UPS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "FDX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "WM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "RSG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "JPM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BAC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "WFC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "C",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SCHW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BLK",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SPGI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CME",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ICE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AXP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "V",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PYPL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "COF",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "USB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PNC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TFC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BK",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "STT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "JNJ",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PFE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MRK",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "LLY",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ABBV",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BMY",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AMGN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GILD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BIIB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "REGN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "VRTX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "UNH",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CVS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "HUM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ELV",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MDT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ABT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DHR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TMO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SYK",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BSX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ZTS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "KO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PEP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "KHC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MDLZ",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GIS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "K",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SJM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "KMB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "STZ",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DEO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ADM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CAG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "HSY",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NEE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DUK",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "D",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AEP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "EXC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "XEL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ED",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SRE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ETR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AEE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CEG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "VST",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "LIN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "APD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ECL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SHW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PPG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DOW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "FCX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NEM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GOLD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AEM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "WPM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NUE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "STLD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ALB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CTVA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MOS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CF",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PLD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AMT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "EQIX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DLR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "O",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SPG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PSA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "WELL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "VTR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AVB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "EQR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "VICI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CCI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SBAC",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AIG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ALL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TRV",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PGR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MET",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PRU",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AFL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "RNR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "WRB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ACN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ADP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PAYX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CTAS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ROP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ROL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "FAST",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GWW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ITW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PCAR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "URI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NVR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "LEN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DHI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PHM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TOL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "EBAY",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ETSY",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MELI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BABA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "JD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PDD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BIDU",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NVO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AZN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "GSK",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "UL",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "UNLYF",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SONY",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "RIO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BHP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "VALE",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SCCO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TECK",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CCJ",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SU",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CNQ",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ENB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TRP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CNI",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SHOP",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "RY",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BNS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BMO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "UBS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ING",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BBVA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SAN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "HDB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "IBN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "INFY",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "WIT",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "BNTX",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MRNA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ZM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DOCU",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SNOW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PLTR",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "COIN",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "HOOD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DASH",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "NET",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "DDOG",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "CRWD",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "PANW",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "ZS",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "OKTA",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "MDB",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TEAM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "TWLO",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SQ",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "AFRM",
+      "group": "diverse_large_company_stocks"
+    },
+    {
+      "symbol": "SOFI",
+      "group": "diverse_large_company_stocks"
+    }
+  ]
+}

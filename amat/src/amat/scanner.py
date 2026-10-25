@@ -34,9 +34,9 @@ import numpy as np
 
 from amat.backtest.panel import MarketPanel
 from amat.config.models import StrategyConfig
-from amat.errors import CausalityError
+from amat.errors import CausalityError, DataIntegrityError
 from amat.portfolio import precompute_decision_inputs
-from amat.portfolio.cross_section import horizon_agreement, select_cross_section
+from amat.portfolio.cross_section import horizon_agreement, select_cross_section, select_on_schedule
 
 __all__ = ["AssetScan", "ScanResult", "scan_universe"]
 
@@ -55,7 +55,7 @@ class AssetScan:
     horizons_positive: int
     annualized_volatility: float
     selected: bool
-    """Whether the configured selection rule would hold this asset."""
+    """Whether scheduled signal selection admits this asset before sizing and caps."""
     cluster: str
 
     def as_dict(self) -> dict[str, object]:
@@ -81,6 +81,9 @@ class ScanResult:
     selection_enabled: bool
     max_positions: int | None
     min_horizon_agreement: int
+    selection_interval_sessions: int
+    ranking_refresh_session: dt.date | None
+    """Last scheduled refresh; ranks themselves always describe the current session."""
 
     @property
     def eligible(self) -> tuple[AssetScan, ...]:
@@ -98,6 +101,11 @@ class ScanResult:
             "selection_enabled": self.selection_enabled,
             "max_positions": self.max_positions,
             "min_horizon_agreement": self.min_horizon_agreement,
+            "selection_interval_sessions": self.selection_interval_sessions,
+            "ranking_refresh_session": (
+                self.ranking_refresh_session.isoformat() if self.ranking_refresh_session else None
+            ),
+            "selection_scope": "signal_membership_before_sizing_and_caps",
             "eligible_count": len(self.eligible),
             "selected_count": len(self.selected),
             "assets": [asset.as_dict() for asset in self.assets],
@@ -150,19 +158,22 @@ def scan_universe(
     prefix = panel.adjusted_closes[: index + 1]
     from amat import features  # noqa: PLC0415 - peer layer; module-scope import cycles
 
-    precomputed = precompute_decision_inputs(strategy, prefix)
+    precomputed = precompute_decision_inputs(strategy, prefix, sessions=sessions[: index + 1])
     sigma_panel = precomputed.sigma_panel
-    horizons = features.horizon_trend_scores(
-        prefix,
-        sigma_panel,
-        strategy.trend,
-        annualization_sessions=strategy.volatility.annualization_sessions,
-    )
+    horizons = precomputed.horizon_scores
+    if horizons is None:
+        horizons = features.horizon_trend_scores(
+            prefix,
+            sigma_panel,
+            strategy.trend,
+            annualization_sessions=strategy.volatility.annualization_sessions,
+        )
 
     row = precomputed.long_scores[-1]
     sigma_row = sigma_panel[-1]
     horizon_row = horizons[:, -1, :]
-    safe = np.where(np.isfinite(row), np.nan_to_num(row, nan=0.0), 0.0)
+    usable = np.isfinite(row) & np.isfinite(sigma_row) & (sigma_row > 0)
+    safe = np.where(usable, row, 0.0)
     agreeing = horizon_agreement(horizon_row)
 
     selection = strategy.cross_sectional
@@ -171,6 +182,33 @@ def scan_universe(
         selection,
         horizon_z=horizon_row if selection.min_horizon_agreement > 0 else None,
     )
+
+    first_decision = max(
+        strategy.warmup.min_completed_sessions - 1, strategy.trend.max_horizon_sessions
+    )
+    selected_scores = safe
+    refresh_session = None
+    if selection.enabled:
+        selected_scores = select_on_schedule(
+            precomputed.long_scores,
+            sigma_panel,
+            selection,
+            decision_index=index,
+            first_decision_index=first_decision,
+            horizon_scores=horizons,
+        )
+        if index >= first_decision:
+            refresh_index = first_decision + (
+                (index - first_decision)
+                // selection.selection_interval_sessions
+                * selection.selection_interval_sessions
+            )
+            refresh_session = sessions[refresh_index]
+
+    if strategy.adaptive_rotation.enabled:
+        if precomputed.adaptive_scores is None:
+            raise DataIntegrityError("adaptive selection cache is missing")
+        selected_scores = precomputed.adaptive_scores[-1]
 
     cluster_of = {
         symbol: cluster.name for cluster in strategy.universe.clusters for symbol in cluster.symbols
@@ -184,7 +222,7 @@ def scan_universe(
             horizon_z=tuple(float(value) for value in horizon_row[:, column]),
             horizons_positive=int(agreeing[column]),
             annualized_volatility=float(sigma_row[column]),
-            selected=bool(outcome.selected[column]),
+            selected=bool(selected_scores[column] > 0),
             cluster=cluster_of.get(str(symbol), "<not in strategy universe>"),
         )
         for column, symbol in enumerate(panel.symbols)
@@ -200,4 +238,6 @@ def scan_universe(
         selection_enabled=selection.enabled,
         max_positions=selection.max_positions,
         min_horizon_agreement=selection.min_horizon_agreement,
+        selection_interval_sessions=selection.selection_interval_sessions,
+        ranking_refresh_session=refresh_session,
     )

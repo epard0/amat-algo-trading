@@ -45,7 +45,7 @@ from __future__ import annotations
 
 import datetime as dt
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -180,6 +180,7 @@ class ExecutionPlan:
     disagree about what is held, which a human must resolve."""
 
     caveats: tuple[str, ...]
+    monitoring: dict[str, Any] = field(default_factory=dict)
 
     @property
     def gross_target_exposure(self) -> float:
@@ -224,6 +225,7 @@ class ExecutionPlan:
             "withheld": [item.as_dict() for item in self.withheld],
             "unrecognized_holdings": list(self.unrecognized_holdings),
             "caveats": list(self.caveats),
+            "monitoring": self.monitoring,
         }
 
 

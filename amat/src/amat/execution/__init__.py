@@ -19,7 +19,12 @@ Contract for this package:
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from decimal import Decimal
+from dataclasses import replace
+from decimal import ROUND_DOWN, Decimal
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from amat.execution.budget import CashBudgetPolicy
 
 from amat.config.models import CostConfig, ExecutionConfig, RebalanceConfig
 from amat.domain.bars import ExecutionWindowBar
@@ -105,7 +110,11 @@ def build_instructions(
 
         held = positions.get(symbol)
         held_quantity = held.quantity if held is not None else Decimal(0)
-        held_quantity += in_flight.get(symbol, Decimal(0))
+        # A pending exit may exceed holdings after an earlier buy only partly
+        # filled or missed. Settlement clips that exit to the shares actually
+        # held; it cannot create a short. Do not size a replacement buy against
+        # a fictitious negative position while waiting for the exit to settle.
+        held_quantity = max(Decimal(0), held_quantity + in_flight.get(symbol, Decimal(0)))
         current_weight = float(held_quantity * mark / equity) if equity > 0 else 0.0
         target_weight = float(targets.get(symbol, 0.0))
 
@@ -164,6 +173,8 @@ class SimulatedExecutionModel:
         one_way_bps: float | None = None,
         max_entry_window_participation: float | None = None,
         drop_every_nth_fill: int | None = None,
+        cash_policy: CashBudgetPolicy | None = None,
+        whole_share_buys: bool = False,
     ) -> None:
         """Build the model.
 
@@ -180,6 +191,8 @@ class SimulatedExecutionModel:
                 stressed run reproduces exactly. ``None`` (the default, and
                 the only primary-run value) injects nothing.
         """
+        self._cash_policy = cash_policy
+        self._whole_share_buys = whole_share_buys
         self._execution = execution
         self._costs = costs
         self._one_way_bps = costs.baseline_one_way_bps if one_way_bps is None else one_way_bps
@@ -200,11 +213,12 @@ class SimulatedExecutionModel:
         """The cost actually applied, in basis points."""
         return self._one_way_bps
 
-    def execute(
+    def execute(  # noqa: PLR0912 - explicit fill outcomes
         self,
         instructions: Sequence[SimulatedOrder],
         windows: Mapping[Symbol, ExecutionWindowBar],
         available_cash: Cash | None = None,
+        account_equity: Cash | None = None,
     ) -> tuple[list[Fill], list[MissedFill]]:
         """Attempt each instruction against its execution window.
 
@@ -222,6 +236,10 @@ class SimulatedExecutionModel:
         Passing ``None`` disables the funding check and is intended only for
         isolated unit tests.
         """
+        if self._cash_policy is not None:
+            if available_cash is None or account_equity is None:
+                raise CausalityError("cash policy requires an actual supplied balance")
+            return self._execute_budgeted(instructions, windows, available_cash, account_equity)
         fills: list[Fill] = []
         missed: list[MissedFill] = []
 
@@ -261,6 +279,21 @@ class SimulatedExecutionModel:
                             reason=MissedFillReason.PARTICIPATION_CAP,
                         )
                     )
+            if self._whole_share_buys and (
+                instruction.side == Side.BUY
+                or instruction.reason != TradeReason.POSITION_TRANSITION
+            ):
+                rounded = quantity.to_integral_value(rounding=ROUND_DOWN)
+                if quantity > rounded:
+                    missed.append(
+                        replace(
+                            self._miss(instruction, MissedFillReason.QUANTITY_INCREMENT),
+                            requested_quantity=quantity - rounded,
+                        )
+                    )
+                quantity = rounded
+                if quantity <= 0:
+                    continue
             if self._drop_every_nth_fill is not None:
                 self._fill_counter += 1
                 if self._fill_counter % self._drop_every_nth_fill == 0:
@@ -291,6 +324,71 @@ class SimulatedExecutionModel:
                 )
             )
         return fills, missed
+
+    def _execute_budgeted(
+        self,
+        instructions: Sequence[SimulatedOrder],
+        windows: Mapping[Symbol, ExecutionWindowBar],
+        available_cash: Cash,
+        equity: Cash,
+    ) -> tuple[list[Fill], list[MissedFill]]:
+        """Aggregate-window proxy: confirmed simulated sales fund proportional buys.
+
+        This is not a claim of tick-level sequencing. The supplied window prices
+        are fill-model inputs, never earlier signal inputs.
+        """
+        from amat.execution.budget import budget_buys  # noqa: PLC0415 - avoid import cycle
+
+        base = SimulatedExecutionModel(
+            self._execution,
+            self._costs,
+            one_way_bps=self._one_way_bps,
+            max_entry_window_participation=self._max_entry_window_participation,
+            whole_share_buys=self._whole_share_buys,
+            drop_every_nth_fill=self._drop_every_nth_fill,
+        )
+        base._fill_counter = self._fill_counter
+        sells = [o for o in instructions if o.side is Side.SELL]
+        buys = [o for o in instructions if o.side is Side.BUY]
+        fills, missed = base.execute(sells, windows, available_cash=available_cash)
+        cash = available_cash + sum((f.cash_delta for f in fills), Decimal(0))
+        tradable = {
+            o.symbol: o
+            for o in buys
+            if o.symbol in windows
+            and windows[o.symbol].is_tradable
+            and windows[o.symbol].session_date == o.execution_session
+        }
+        if len({o.symbol for o in buys}) != len(buys):
+            raise CausalityError("cash-policy batch requires netted buy instructions")
+        prices = {str(s): self._fill_price(windows[s]) for s in tradable}
+        requested = {str(s): o.quantity for s, o in tradable.items()}
+        quantities, residual = budget_buys(
+            requested,
+            prices,
+            confirmed_cash=cash,
+            equity=equity,
+            one_way_bps=self._one_way_bps,
+            policy=self._cash_policy,
+        )
+        adjusted = []
+        for order in buys:
+            if order.symbol not in tradable:
+                adjusted.append(order)
+                continue
+            remaining = residual[str(order.symbol)]
+            if remaining > 0:
+                missed.append(
+                    replace(
+                        self._miss(order, MissedFillReason.INSUFFICIENT_CASH),
+                        requested_quantity=remaining,
+                    )
+                )
+            if quantities[str(order.symbol)] > 0:
+                adjusted.append(replace(order, quantity=quantities[str(order.symbol)]))
+        buy_fills, buy_missed = base.execute(adjusted, windows, available_cash=cash)
+        self._fill_counter = base._fill_counter
+        return [*fills, *buy_fills], [*missed, *buy_missed]
 
     def _fill_price(self, window: ExecutionWindowBar) -> Price:
         """Canonical fill price: the raw VWAP of the configured window."""

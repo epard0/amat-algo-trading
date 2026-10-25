@@ -18,6 +18,9 @@ classifiers = [
 # on the far side of the subprocess boundary in `executor.plan_source`.
 dependencies = []
 
+[project.optional-dependencies]
+remote = ["paramiko>=3.5,<5"]
+
 [project.scripts]
 executor = "executor.cli:main"
 
@@ -89,3 +92,7 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["paramiko", "paramiko.*"]
+ignore_missing_imports = true

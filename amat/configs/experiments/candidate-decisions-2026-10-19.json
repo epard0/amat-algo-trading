@@ -1,0 +1,78 @@
+{
+  "schema": "research-candidate-decisions/1",
+  "benchmark": "core_daily",
+  "benchmark_label": "Groups + daily \u00b7 core ETFs",
+  "protocol_sha256": "1d577aca25260cf96406d2669b3e65a6683003aeac601c25da6afe8bbc0646cb",
+  "primary_cost_bps_per_side": 2,
+  "criterion": "Match or exceed benchmark net return on the same primary cost and dates. References remain controls. Lower drawdown alone does not qualify.",
+  "benchmark_returns": {
+    "full": 2.6275044334632205,
+    "walk_forward": 1.9786856925354135
+  },
+  "rejected": [
+    {
+      "id": "groups",
+      "status": "rejected",
+      "reason": "Lower net return than core_daily in both registered long-history and walk-forward periods at primary 2bps/side",
+      "full_net_return": 2.5495581553366184,
+      "walk_forward_net_return": 1.9202409360285069
+    },
+    {
+      "id": "quality",
+      "status": "rejected",
+      "reason": "Lower net return than core_daily in both registered long-history and walk-forward periods at primary 2bps/side",
+      "full_net_return": 2.3528328785527184,
+      "walk_forward_net_return": 1.7563875883460818
+    },
+    {
+      "id": "rules",
+      "status": "rejected",
+      "reason": "Lower net return than core_daily in both registered long-history and walk-forward periods at primary 2bps/side",
+      "full_net_return": 2.0456541609996233,
+      "walk_forward_net_return": 1.6133580672814185
+    },
+    {
+      "id": "recovery",
+      "status": "rejected",
+      "reason": "Lower net return than core_daily in both registered long-history and walk-forward periods at primary 2bps/side",
+      "full_net_return": 1.7895934918541974,
+      "walk_forward_net_return": 1.415446637776975
+    },
+    {
+      "id": "ml",
+      "status": "rejected",
+      "reason": "Lower net return than core_daily in both registered long-history and walk-forward periods at primary 2bps/side",
+      "full_net_return": 2.189584015251854,
+      "walk_forward_net_return": 1.6190921184622398
+    },
+    {
+      "id": "ml_recovery",
+      "status": "rejected",
+      "reason": "Lower net return than core_daily in both registered long-history and walk-forward periods at primary 2bps/side",
+      "full_net_return": 2.0649086243689525,
+      "walk_forward_net_return": 1.5167162813417296
+    }
+  ],
+  "controls": [
+    "baseline",
+    "B1"
+  ],
+  "removed_profiles": [
+    "amat_group_selection_daily_quality.toml",
+    "amat_v14_adaptive_rotation.toml"
+  ],
+  "archive": "Immutable protocols, rejected run records and frozen sources retained solely as research audit evidence; not active strategy candidates.",
+  "cost_caveat": "Groups every 5 days beats daily groups in some higher-cost scenarios; that is retained as a sensitivity finding, not a primary-cost candidate promotion.",
+  "profile_evidence": {
+    "amat_group_selection_daily_quality.toml": {
+      "arm": "quality",
+      "study": "2026-10-19-daily-group-validation"
+    },
+    "amat_v14_adaptive_rotation.toml": {
+      "arm": "combined",
+      "study": "2026-10-19-adaptive-rotation",
+      "full_net_return": 1.069965652227546,
+      "protocol_sha256": "167599fcbcdf17ef77097b5d7667df7f7f7471bfdbcc45f4543c8db28fab26e9"
+    }
+  }
+}

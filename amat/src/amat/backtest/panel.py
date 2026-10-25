@@ -22,7 +22,11 @@ rather than substituting closes for highs, so a caller asking for levels on a
 panel that has none gets an error instead of a support level that is really just
 the lowest close.
 
-They are on the **adjusted** basis, and that is a correctness requirement rather
+``adjusted_opens`` is independently optional, for candle research.
+:meth:`MarketPanel.candle_inputs` requires actual opens, highs and lows and
+retains unavailable cells for strict propagation by the pattern evaluator.
+
+These prices are on the **adjusted** basis, and that is a correctness requirement rather
 than a preference. Levels are compared against ``adjusted_closes`` -- the series
 the trend signal uses -- so a raw high and an adjusted close would be
 incommensurable, and the comparison would drift further apart every year on a
@@ -67,6 +71,8 @@ class MarketPanel:
         source: Provider identifier propagated into the run manifest.
         adjusted_highs: Optional ``(T, N)`` session highs on the adjusted basis.
         adjusted_lows: Optional ``(T, N)`` session lows on the adjusted basis.
+        adjusted_opens: Optional ``(T, N)`` session opens on the adjusted basis.
+            Independent of context inputs; absent opens disable candle evaluation.
         session_volumes: Optional ``(T, N)`` full-session share volume. Distinct
             from ``window_volumes``, which covers only the execution window.
     """
@@ -81,6 +87,7 @@ class MarketPanel:
     adjusted_highs: np.ndarray | None = None
     adjusted_lows: np.ndarray | None = None
     session_volumes: np.ndarray | None = None
+    adjusted_opens: np.ndarray | None = None
 
     def __post_init__(self) -> None:
         shape = (len(self.sessions), len(self.symbols))
@@ -89,7 +96,7 @@ class MarketPanel:
             if array.shape != shape:
                 message = f"{name} has shape {array.shape}, expected {shape}"
                 raise DataIntegrityError(message)
-        for name in ("adjusted_highs", "adjusted_lows", "session_volumes"):
+        for name in ("adjusted_highs", "adjusted_lows", "session_volumes", "adjusted_opens"):
             array = getattr(self, name)
             if array is not None and array.shape != shape:
                 message = f"{name} has shape {array.shape}, expected {shape}"
@@ -200,6 +207,30 @@ class MarketPanel:
             raise DataIntegrityError(message)
         return self.adjusted_closes, self.adjusted_highs, self.adjusted_lows, self.session_volumes
 
+    @property
+    def has_candle_inputs(self) -> bool:
+        """Whether adjusted OHLC series exist (individual cells may be unavailable)."""
+        return (
+            self.adjusted_opens is not None
+            and self.adjusted_highs is not None
+            and self.adjusted_lows is not None
+        )
+
+    def candle_inputs(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Return ``(opens, highs, lows, closes)`` on one adjusted price basis.
+
+        Missing series fail closed. As with context inputs, nonfinite cells are
+        retained as unavailable observations for the evaluator to propagate;
+        they are never imputed from another field or another session.
+        """
+        if self.adjusted_opens is None or self.adjusted_highs is None or self.adjusted_lows is None:
+            message = (
+                "panel carries no complete adjusted OHLC inputs; load it with "
+                "load_panel(..., with_context=True) from a snapshot containing raw_open"
+            )
+            raise DataIntegrityError(message)
+        return self.adjusted_opens, self.adjusted_highs, self.adjusted_lows, self.adjusted_closes
+
     def slice_symbols(self, symbols: Sequence[Symbol]) -> MarketPanel:
         """Restrict to ``symbols``, preserving their given order."""
         index_of = {symbol: column for column, symbol in enumerate(self.symbols)}
@@ -223,6 +254,7 @@ class MarketPanel:
             adjusted_highs=narrow(self.adjusted_highs),
             adjusted_lows=narrow(self.adjusted_lows),
             session_volumes=narrow(self.session_volumes),
+            adjusted_opens=narrow(self.adjusted_opens),
         )
 
 

@@ -82,3 +82,9 @@ def valid_bar_rows() -> list[dict[str, str]]:
 def invalid_bar_rows() -> list[dict[str, str]]:
     """Rows of the hand-built invalid-bar fixture, each naming its violation."""
     return read_bar_rows(FIXTURES / "invalid_daily_bars.csv")
+
+
+@pytest.fixture(autouse=True)
+def isolated_cost_ledger(tmp_path, monkeypatch):
+    """Fixture provider attempts must not pollute application accounting."""
+    monkeypatch.setenv("AMAT_COST_LEDGER", str(tmp_path / "model-costs.sqlite3"))

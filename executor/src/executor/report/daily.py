@@ -26,12 +26,13 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from executor.broker import Account, Order, Position
+from executor.order_registry import order_state
 from executor.plan_source import ExecutionPlan
 from executor.report.metrics import (
     _MEANINGFUL_SAMPLE,
@@ -74,19 +75,22 @@ class DailyReport:
     orders: tuple[dict[str, Any], ...]
     execution: ExecutionQuality
     warnings: tuple[str, ...]
+    trade_monitor: dict[str, Any] = field(default_factory=dict)
+    trading_mode: str = "paper"
 
     @property
     def subject(self) -> str:
         """Email subject line: the day, the move, and any alarm."""
         alarm = " [ATTENTION]" if self.warnings else ""
         return (
-            f"AMAT paper {self.session.isoformat()}: "
+            f"AMAT {self.trading_mode} {self.session.isoformat()}: "
             f"{self.stats.day_return:+.2%} observed period, "
             f"equity {self.stats.current_equity:,.2f}{alarm}"
         )
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "trading_mode": self.trading_mode,
             "session": self.session.isoformat(),
             "generated_at": self.generated_at.isoformat(),
             "stats": self.stats.as_dict(),
@@ -97,13 +101,14 @@ class DailyReport:
             "orders": list(self.orders),
             "execution": self.execution.as_dict(),
             "warnings": list(self.warnings),
+            "trade_monitor": self.trade_monitor,
         }
 
-    def to_markdown(self) -> str:
+    def to_markdown(self) -> str:  # noqa: PLR0915 - render optional report sections
         """Render the human-readable report."""
         stats = self.stats
         lines: list[str] = [
-            f"# AMAT paper trading — {self.session.isoformat()}",
+            f"# AMAT {self.trading_mode} trading — {self.session.isoformat()}",
             "",
             f"*Generated {self.generated_at.isoformat(timespec='seconds')}*",
             "",
@@ -183,6 +188,48 @@ class DailyReport:
                 ]
             )
 
+        if self.trade_monitor:
+            monitor = self.trade_monitor
+            lines.extend(
+                [
+                    "## Trade performance monitor",
+                    "",
+                    f"- Recorded instruction events: {monitor['events']}",
+                    f"- This session: {monitor['latest_session_events']} instruction events, "
+                    f"{monitor['latest_session_attention_events']} with execution flags",
+                    f"- Historical events with execution flags: {monitor['attention_events']}",
+                    f"- Matured five-session price outcomes: {monitor['matured_5s']}",
+                    f"- Events without an explicit model forecast: "
+                    f"{monitor['events_without_forecasts']}",
+                    "",
+                    "Full history: `state/trade-monitor.json` and `state/trade-monitor.md`. "
+                    "These files survive daily-report retention. Instruction counts and "
+                    "price markouts are not closed-trade win rates or realized P&L.",
+                    "",
+                ]
+            )
+            if monitor["cohorts"]:
+                lines.extend(
+                    [
+                        "| Model | Side | Matured 5s | Dates | Mean (bps) | Sample |",
+                        "|---|---|---:|---:|---:|---|",
+                    ]
+                )
+                for cohort in monitor["cohorts"]:
+                    lines.append(
+                        f"| {cohort['model_id'][:16]} | {cohort['side']} | "
+                        f"{cohort['matured_5s']} | {cohort['matured_dates']} | "
+                        f"{_number(cohort['date_weighted_mean_5s_bps'])} | "
+                        f"{cohort['sample_status']} |"
+                    )
+                lines.extend(
+                    [
+                        "",
+                        "Means give equal weight to execution dates; positive means price "
+                        "rose after buying or fell after selling. One bp is 0.01%.",
+                        "",
+                    ]
+                )
         lines.extend(["## Today's decision", ""])
         plan = self.plan_summary
         if plan:
@@ -247,7 +294,8 @@ class DailyReport:
                 lines.append(
                     f"| {order['symbol']} | {order['side']} | {filled:,.4f} | "
                     f"{'—' if not price else f'{Decimal(str(price)):,.4f}'} | "
-                    f"{notional:,.2f} | {order.get('status', '')} |"
+                    f"{notional:,.2f} | {order.get('registry_status', order.get('status', ''))} "
+                    f"(broker: {order.get('status', '')}) |"
                 )
             lines.append("")
 
@@ -271,11 +319,12 @@ class DailyReport:
                 f"{_number(execution.reference_notional_fill_rate, percent=True)} |",
                 f"| Decision-close-to-fill adverse markout | "
                 f"{_number(execution.decision_to_fill_slippage_bps)} bps |",
-                f"| Reconciliation complete | "
+                f"| Plan-to-order reconciliation complete | "
                 f"{'yes' if execution.reconciliation_complete else 'NO'} |",
                 "",
                 "> The markout benchmark is the prior decision-session close. It includes the "
                 "overnight move; it is not opening-VWAP implementation shortfall.",
+                "> This check does not reconcile portfolio positions, cash, or account activities.",
                 "",
             ]
         )
@@ -327,11 +376,13 @@ def build_daily_report(
     submission: SubmissionResult | None,
     plan: ExecutionPlan | None,
     orders: tuple[Order, ...],
+    orders_available: bool = True,
+    market_is_open: bool | None = None,
     extra_warnings: tuple[str, ...] = (),
 ) -> DailyReport:
     """Assemble one day's report from state the caller already fetched."""
     stats = compute_stats(equity_curve)
-    execution = compute_execution_quality(plan, orders)
+    execution = compute_execution_quality(plan, orders, orders_available=orders_available)
     equity = account.equity
 
     position_rows = tuple(
@@ -352,6 +403,12 @@ def build_daily_report(
     )
 
     warnings: list[str] = list(extra_warnings)
+    if plan is None:
+        warnings.append(
+            "No plan is available for this session; reconciliation cannot be established."
+        )
+    if not orders_available:
+        warnings.append("Broker orders are unavailable; reconciliation cannot be established.")
     if submission is not None and not submission.executed:
         warnings.append(f"No orders placed: {submission.refusal_reason}")
     if submission is not None:
@@ -431,7 +488,10 @@ def build_daily_report(
                     None if order.filled_avg_price is None else str(order.filled_avg_price)
                 ),
                 "status": order.status,
+                "registry_status": order_state(order, market_is_open),
                 "client_order_id": order.client_order_id,
+                "submitted_at": order.submitted_at,
+                "filled_at": order.raw.get("filled_at"),
             }
             for order in orders
         ),

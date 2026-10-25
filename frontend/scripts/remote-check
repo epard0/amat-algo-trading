@@ -1,0 +1,9 @@
+#!/bin/sh
+# Run from any working directory using the terminal's managed environment.
+set -eu
+terminal_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$terminal_root"
+if [ -x "$terminal_root/.venv/bin/python" ]; then
+    exec "$terminal_root/.venv/bin/python" -m server.remote "$@"
+fi
+exec uv run --project "$terminal_root" python -m server.remote "$@"

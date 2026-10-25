@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:amat:funded-market-records:1.0.0",
+  "title": "Funded research canonical market and feature records",
+  "oneOf": [
+    {"$ref": "#/$defs/bar"},
+    {"$ref": "#/$defs/bbo"},
+    {"$ref": "#/$defs/feature"}
+  ],
+  "$defs": {
+    "id": {"type": "string", "minLength": 1, "maxLength": 200},
+    "timestamp": {"type": "integer", "minimum": 0},
+    "bar": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version","kind","dataset_id","partition_id","contract_id","session_id","start_at_ns","end_at_ns","available_at_ns","open_ticks","high_ticks","low_ticks","close_ticks","volume_contracts","trade_count","quality"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"}, "kind": {"const": "bar"},
+        "dataset_id": {"$ref": "#/$defs/id"}, "partition_id": {"$ref": "#/$defs/id"},
+        "contract_id": {"type": ["string","null"]}, "session_id": {"$ref": "#/$defs/id"},
+        "start_at_ns": {"$ref": "#/$defs/timestamp"}, "end_at_ns": {"$ref": "#/$defs/timestamp"},
+        "available_at_ns": {"$ref": "#/$defs/timestamp"},
+        "open_ticks": {"type": "integer"}, "high_ticks": {"type": "integer"},
+        "low_ticks": {"type": "integer"}, "close_ticks": {"type": "integer"},
+        "volume_contracts": {"type": "integer", "minimum": 0},
+        "trade_count": {"type": ["integer","null"], "minimum": 0},
+        "quality": {"enum": ["verified","inferred","invalid","unknown"]}
+      }
+    },
+    "bbo": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version","kind","dataset_id","partition_id","contract_id","event_at_ns","received_at_ns","sequence","bid_ticks","ask_ticks","bid_size_contracts","ask_size_contracts","quality"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"}, "kind": {"const": "bbo"},
+        "dataset_id": {"$ref": "#/$defs/id"}, "partition_id": {"$ref": "#/$defs/id"},
+        "contract_id": {"$ref": "#/$defs/id"},
+        "event_at_ns": {"$ref": "#/$defs/timestamp"},
+        "received_at_ns": {"type": ["integer","null"], "minimum": 0},
+        "sequence": {"type": "integer", "minimum": 0},
+        "bid_ticks": {"type": "integer"}, "ask_ticks": {"type": "integer"},
+        "bid_size_contracts": {"type": "integer", "minimum": 0},
+        "ask_size_contracts": {"type": "integer", "minimum": 0},
+        "quality": {"enum": ["verified","inferred","invalid","unknown"]}
+      }
+    },
+    "feature": {
+      "type": "object", "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "measured"}}, "required": ["status"]},
+          "then": {"properties": {"value": {"type": "number"}}},
+          "else": {"properties": {"value": {"type": "null"}}}
+        }
+      ],
+      "required": ["schema_version","kind","feature_definition_id","input_partition_id","contract_id","session_id","decision_at_ns","max_input_available_at_ns","available_at_ns","value","unit","status"],
+      "properties": {
+        "schema_version": {"const": "1.0.0"}, "kind": {"const": "feature"},
+        "feature_definition_id": {"$ref": "#/$defs/id"}, "input_partition_id": {"$ref": "#/$defs/id"},
+        "contract_id": {"type": ["string","null"]}, "session_id": {"$ref": "#/$defs/id"},
+        "decision_at_ns": {"$ref": "#/$defs/timestamp"},
+        "max_input_available_at_ns": {"$ref": "#/$defs/timestamp"},
+        "available_at_ns": {"$ref": "#/$defs/timestamp"},
+        "value": {"type": ["number","null"]}, "unit": {"type": "string", "minLength": 1},
+        "status": {"enum": ["measured","warmup","missing","invalid"]}
+      }
+    }
+  }
+}

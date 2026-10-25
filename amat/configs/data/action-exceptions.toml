@@ -1,3 +1,10 @@
+# 2026-09-14: The SHY choice below is superseded for NEW research by the
+# issuer's 2021 distribution summary, page 3: total 0.049913 on 2021-12-01.
+# Both vendor components belong in that total. Entries remain unchanged for
+# historical reproducibility; use the new verified snapshot for new studies.
+# Evidence and impact: docs/data-extension-2026-09-14.md.
+# https://www.ishares.com/us/literature/tax-information/2021-ishares-distribution-summary.pdf
+#
 # Per-record decisions about ambiguous corporate actions.
 #
 # `load_corporate_actions` fails closed when a snapshot records two different

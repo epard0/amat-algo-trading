@@ -11,7 +11,7 @@ from types import TracebackType
 from typing import Any, Self
 
 from portfolio_team.contracts import Assessment, Bundle, Decision
-from portfolio_team.evidence import EvidenceError, sha256
+from portfolio_team.evidence import BudgetDeferredError, EvidenceError, sha256
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS artifacts (
@@ -46,6 +46,11 @@ CREATE TABLE IF NOT EXISTS model_calls (
     FOREIGN KEY(review_id,role,attempt) REFERENCES attempts(review_id,role,attempt)
 );
 """
+
+
+def budget_now() -> dt.datetime:
+    """UTC reservation clock, isolated for deterministic rollover tests."""
+    return dt.datetime.now(dt.UTC)
 
 
 class Store:
@@ -197,21 +202,25 @@ class Store:
         return Assessment.model_validate_json(row[0]) if row else None
 
     def begin_attempt(self, review_id: str, role: str, limit: int) -> int:
+        attempt = self.next_attempt(review_id, role)
+        if attempt > limit:
+            raise EvidenceError(f"attempt budget exhausted for {role}")
+        with self.db:
+            self._insert_attempt(review_id, role, attempt)
+        return attempt
+
+    def next_attempt(self, review_id: str, role: str) -> int:
         row = self.db.execute(
             "SELECT COALESCE(MAX(attempt),0) FROM attempts WHERE review_id=? AND role=?",
             (review_id, role),
         ).fetchone()
-        attempt = int(row[0]) + 1
-        if attempt > limit:
-            raise EvidenceError(f"attempt budget exhausted for {role}")
-        with self.db:
-            self.db.execute(
-                "INSERT INTO attempts VALUES(?,?,?,'running',NULL,NULL)", (review_id, role, attempt)
-            )
-            self.event(
-                "attempt_started", {"review_id": review_id, "role": role, "attempt": attempt}
-            )
-        return attempt
+        return int(row[0]) + 1
+
+    def _insert_attempt(self, review_id: str, role: str, attempt: int) -> None:
+        self.db.execute(
+            "INSERT INTO attempts VALUES(?,?,?,'running',NULL,NULL)", (review_id, role, attempt)
+        )
+        self.event("attempt_started", {"review_id": review_id, "role": role, "attempt": attempt})
 
     def finish_attempt(
         self,
@@ -246,6 +255,15 @@ class Store:
                 (error, review_id),
             )
             self.event("review_failed", {"review_id": review_id, "error": error})
+
+    def defer(self, review_id: str, budget: dict[str, Any]) -> None:
+        with self.db:
+            self.db.execute(
+                "UPDATE reviews SET status='deferred_budget',error=? "
+                "WHERE id=? AND decision IS NULL",
+                (json.dumps(budget, sort_keys=True), review_id),
+            )
+            self.event("review_deferred_budget", {"review_id": review_id, "budget": budget})
 
     def complete(self, decision: Decision) -> None:
         with self.db:
@@ -283,39 +301,89 @@ class Store:
             ],
         }
 
-    def reserve_model_call(
+    def model_budget(
+        self,
+        review_id: str,
+        *,
+        input_tokens: int,
+        output_tokens: int,
+        limits: tuple[int, int, int, int],
+    ) -> dict[str, Any]:
+        """Read-only snapshot. It does not reserve tokens or consume attempts."""
+        now = budget_now()
+        day = now.date().isoformat()
+        review = self.db.execute(
+            "SELECT COALESCE(SUM(charged_input),0),COALESCE(SUM(charged_output),0) "
+            "FROM model_calls WHERE review_id=?",
+            (review_id,),
+        ).fetchone()
+        daily = self.db.execute(
+            "SELECT COALESCE(SUM(charged_input),0),COALESCE(SUM(charged_output),0) "
+            "FROM model_calls WHERE day=?",
+            (day,),
+        ).fetchone()
+        names = ("review_input", "review_output", "daily_input", "daily_output")
+        requested = (input_tokens, output_tokens, input_tokens, output_tokens)
+        dimensions = {
+            name: {
+                "charged": charged,
+                "requested": reserve,
+                "limit": limit,
+                "available": max(0, limit - charged),
+                "allowed": charged + reserve <= limit,
+            }
+            for name, charged, reserve, limit in zip(
+                names, (*review, *daily), requested, limits, strict=True
+            )
+        }
+        blocked = [name for name in names if not dimensions[name]["allowed"]]
+        retry_after = None
+        if blocked and all(
+            name.startswith("daily_") and dimensions[name]["requested"] <= dimensions[name]["limit"]
+            for name in blocked
+        ):
+            retry_after = dt.datetime.combine(
+                now.date() + dt.timedelta(days=1), dt.time(), tzinfo=dt.UTC
+            ).isoformat()
+        return {
+            "day": day,
+            "allowed": not blocked,
+            "blocked_dimensions": blocked,
+            "retry_after_utc": retry_after,
+            "dimensions": dimensions,
+        }
+
+    def begin_model_attempt(
         self,
         review_id: str,
         role: str,
-        attempt: int,
+        limit: int,
         *,
         request_json: str,
         input_tokens: int,
         output_tokens: int,
         limits: tuple[int, int, int, int],
-    ) -> None:
-        """Reserve before dispatch; interrupted/unknown usage never counts as zero."""
-        day = dt.datetime.now(dt.UTC).date().isoformat()
-        request_hash = self.record_artifact(request_json.encode())
+    ) -> int:
+        """Atomically record an attempt, exact request and token reservation.
+
+        A budget deferral writes none of these. The single-writer OS lock prevents
+        another process from consuming budget between the check and reservation.
+        """
+        attempt = self.next_attempt(review_id, role)
+        if attempt > limit:
+            raise EvidenceError(f"attempt budget exhausted for {role}")
+        request_hash = sha256(request_json.encode())
         with self.db:
-            review = self.db.execute(
-                "SELECT COALESCE(SUM(charged_input),0),COALESCE(SUM(charged_output),0) "
-                "FROM model_calls WHERE review_id=?",
-                (review_id,),
-            ).fetchone()
-            daily = self.db.execute(
-                "SELECT COALESCE(SUM(charged_input),0),COALESCE(SUM(charged_output),0) "
-                "FROM model_calls WHERE day=?",
-                (day,),
-            ).fetchone()
-            proposed = (
-                review[0] + input_tokens,
-                review[1] + output_tokens,
-                daily[0] + input_tokens,
-                daily[1] + output_tokens,
+            budget = self.model_budget(
+                review_id, input_tokens=input_tokens, output_tokens=output_tokens, limits=limits
             )
-            if any(value > limit for value, limit in zip(proposed, limits, strict=True)):
-                raise EvidenceError("model token reservation budget exhausted")
+            if not budget["allowed"]:
+                raise BudgetDeferredError(budget)
+            self.db.execute(
+                "INSERT OR IGNORE INTO artifacts VALUES(?,?)", (request_hash, request_json.encode())
+            )
+            self.artifact(request_hash)
+            self._insert_attempt(review_id, role, attempt)
             self.db.execute(
                 "INSERT INTO model_calls(review_id,role,attempt,day,request_hash,reserved_input,"
                 "reserved_output,charged_input,charged_output) VALUES(?,?,?,?,?,?,?,?,?)",
@@ -323,7 +391,7 @@ class Store:
                     review_id,
                     role,
                     attempt,
-                    day,
+                    budget["day"],
                     request_hash,
                     input_tokens,
                     output_tokens,
@@ -331,6 +399,7 @@ class Store:
                     output_tokens,
                 ),
             )
+        return attempt
 
     def finish_model_call(
         self,

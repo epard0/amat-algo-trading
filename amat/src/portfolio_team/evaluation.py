@@ -15,7 +15,7 @@ from pydantic import Field
 
 from portfolio_team.contracts import Record
 from portfolio_team.coordinator import PROTOCOL_SHA256, run_review
-from portfolio_team.evidence import EvidenceError, sha256
+from portfolio_team.evidence import BudgetDeferredError, EvidenceError, sha256
 from portfolio_team.model_runtime import RemoteProvider
 from portfolio_team.providers import Provider
 from portfolio_team.reports import _write_once, export_review
@@ -96,6 +96,17 @@ def evaluate(
                         "call_seconds": sum(call["elapsed_seconds"] or 0 for call in calls),
                     }
                 )
+            except BudgetDeferredError as exc:
+                rows.append(
+                    {
+                        "case": case.id,
+                        "mode": mode,
+                        "covered": None,
+                        "expected": len(expected),
+                        "status": "deferred_budget",
+                        "budget": exc.budget,
+                    }
+                )
             except ValueError as exc:
                 rows.append(
                     {
@@ -132,7 +143,7 @@ def evaluate(
     for row in rows:
         lines.append(
             f"| {row['case']} | {row['mode']} | {row['covered']}/{row['expected']} "
-            f"| {row.get('calls', 'failed')} |"
+            f"| {row.get('calls', row.get('status', 'failed'))} |"
         )
     _write_once(target / "report.md", "\n".join(lines).encode())
     return target

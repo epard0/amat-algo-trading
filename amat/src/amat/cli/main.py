@@ -222,10 +222,22 @@ def build_parser() -> argparse.ArgumentParser:
         "-v",
         "--strategy-version",
         dest="strategy_version",
-        required=True,
-        choices=("v1", "v2", "v3", "v4", "v5", "v6"),
+        default="daily-volatility",
+        choices=(
+            "daily-volatility",
+            "daily-core",
+            "daily-all-groups",
+            "v1",
+            "v2",
+            "v3",
+            "v4",
+            "v5",
+            "v6",
+        ),
         help=(
-            "Strategy version: v1 frozen trend core; v2 refuses (rejected "
+            "Defaults to daily-volatility; daily-all-groups is a retained "
+            "native research variant; "
+            "v1 frozen trend core; v2 refuses (rejected "
             "2026-08-10, runner removed -- the registry entry is the record); "
             "v3 = v1 conditioned by --scalars (without the file it is "
             "numerically identical to v1); v4 stance switching; v5 breadth "
@@ -890,7 +902,7 @@ def _add_market_data_commands(subparsers: argparse._SubParsersAction) -> None:  
     study_v4.add_argument(
         "--advisory",
         action="store_true",
-        help="Append the labelled Gemini advisory page to the PDF (requires --pdf).",
+        help="Append the labelled model advisory page to the PDF (requires --pdf).",
     )
     _add_record_arguments(study_v4)
     _add_holdout_argument(study_v4)
@@ -1027,6 +1039,14 @@ def _add_scan_command(subparsers: argparse._SubParsersAction) -> None:  # type: 
         help="Show only the strongest N. Default: every asset with a live trend.",
     )
     scan.add_argument("--json", action="store_true", help="Emit JSON instead of a table.")
+    scan.add_argument(
+        "--condition-sessions",
+        type=int,
+        help=(
+            "Find assets qualifying for this many past completed sessions (1-252). "
+            "Scans the saved universe; no trading authorization."
+        ),
+    )
 
 
 def _command_scan(args: argparse.Namespace) -> int:
@@ -1037,6 +1057,21 @@ def _command_scan(args: argparse.Namespace) -> int:
     resolved = _load_any_strategy_config(args.config)
     strategy = resolved.strategy
     snapshot = args.snapshot or _newest_snapshot()
+    if args.condition_sessions is not None:
+        from amat.condition_screen import screen_conditions  # noqa: PLC0415
+
+        if args.symbols:
+            raise ValueError("duration discovery scans the saved universe; omit --symbols")
+        payload = screen_conditions(
+            strategy,
+            snapshot,
+            session=args.session,
+            condition_sessions=args.condition_sessions,
+            top=20 if args.top is None else args.top,
+        )
+        payload["config_sha256"] = resolved.content_sha256
+        print(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False))
+        return _EXIT_OK
 
     if args.symbols:
         symbols = [token.strip().upper() for token in args.symbols.split(",") if token.strip()]
@@ -1067,13 +1102,20 @@ def _command_scan(args: argparse.Namespace) -> int:
             rule += (
                 f", >= {result.min_horizon_agreement} of {len(result.horizons)} horizons positive"
             )
-        print(f"  selection   {rule} -> {len(result.selected)} held")
+        print(f"  selection   {rule} -> {len(result.selected)} admitted before sizing/caps")
+        print(
+            f"  rank refresh {result.ranking_refresh_session} "
+            f"(every {result.selection_interval_sessions} sessions)"
+        )
     else:
         print("  selection   off (every asset with a live trend is sized)")
 
     rows = result.eligible if args.top is None else result.eligible[: args.top]
     if not rows:
-        print("\nNo asset has a trend outside the dead-band at this session: 100% cash.")
+        print(
+            "\nNo asset is currently eligible by signal. "
+            "Existing holdings require a separate account plan."
+        )
         return _EXIT_OK
 
     print(f"\n  {'#':>3} {'SYM':<6} {'score':>7} {horizons} {'+h':>3} {'vol':>7}  {'':1} cluster")
@@ -1537,6 +1579,9 @@ def _month_end(text: str) -> dt.date:
 
 #: The checked-in configuration each `amat backtest -v` version resolves to.
 _BACKTEST_VERSION_CONFIGS: dict[str, Path] = {
+    "daily-volatility": Path("configs/strategy/amat_group_selection_volatility.toml"),
+    "daily-core": Path("configs/strategy/amat_group_selection_daily.toml"),
+    "daily-all-groups": Path("configs/strategy/amat_group_selection_all_groups.toml"),
     "v1": Path("configs/strategy/amat_v1.toml"),
     "v3": Path("configs/strategy/amat_v3.toml"),
     "v4": Path("configs/strategy/amat_v4.toml"),
@@ -1587,7 +1632,15 @@ def _command_backtest(args: argparse.Namespace) -> int:
         if args.out is not None
         else Path("outputs/reports") / f"{version}-{dt.datetime.now(tz=dt.UTC).date():%Y%m%d}.pdf"
     )
-    snapshot: Path = args.snapshot if args.snapshot is not None else _newest_snapshot()
+    core_snapshot = _SNAPSHOT_ROOT / "alpaca-sip-core-2026-10-13-verified"
+    snapshot: Path = (
+        args.snapshot
+        if args.snapshot is not None
+        else core_snapshot
+        if version in {"daily-volatility", "daily-core", "daily-all-groups"}
+        and core_snapshot.is_dir()
+        else _newest_snapshot()
+    )
     config = _BACKTEST_VERSION_CONFIGS[version]
     print(
         f"  backtest {version}: config={config}  snapshot={snapshot}  pdf={out}",
@@ -1614,11 +1667,12 @@ def _command_backtest(args: argparse.Namespace) -> int:
         "no_run_record": args.no_run_record,
         "allow_holdout": args.allow_holdout,
     }
-    if version in ("v1", "v3", "v5"):
+    if version in ("daily-volatility", "daily-core", "daily-all-groups", "v1", "v3", "v5"):
         study_args = argparse.Namespace(
             engine="v1",
             sleeve_equity=Decimal("100000"),
-            no_sleeves=args.no_sleeves,
+            no_sleeves=args.no_sleeves
+            or version in {"daily-volatility", "daily-core", "daily-all-groups"},
             html=None,
             scalars=args.scalars,
             falsify_universe=None,
@@ -1762,6 +1816,27 @@ def _command_backtest_v6(args: argparse.Namespace, *, out: Path, snapshot: Path)
     return _EXIT_OK
 
 
+def _measurement_execution_start(
+    strategy: StrategyConfig, panel: MarketPanel, start: dt.date | None
+) -> dt.date | None:
+    """Keep all signal context but open adaptive accounts at the requested executable date."""
+    if not strategy.adaptive_rotation.enabled or start is None:
+        return None
+    earliest = (
+        strategy.warmup.min_completed_sessions
+        - 1
+        + strategy.execution.signal_to_execution_lag_sessions
+    )
+    result = next(
+        (day for i, day in enumerate(panel.sessions) if i >= earliest and day >= start), None
+    )
+    if result is None:
+        raise ConfigurationError(
+            "Requested daily-core period has no executable session after warmup"
+        )
+    return result
+
+
 def _command_study(args: argparse.Namespace) -> int:
     """Run the requested engines and their per-asset sleeves on real market data."""
     from amat.backtest.sleeves import (  # noqa: PLC0415
@@ -1798,6 +1873,8 @@ def _command_study(args: argparse.Namespace) -> int:
     weight_scalars = _load_study_scalars(args, panel, say)
     caveats = _study_caveats(args, strategy, manifest, action_count, weight_scalars)
 
+    execution_start = _measurement_execution_start(strategy, panel, args.start)
+
     rendered: list[StudyRendering] = []
     combined_by_engine: dict[str, object] = {}
     for engine in STUDY_ENGINES[args.engine]:
@@ -1811,6 +1888,8 @@ def _command_study(args: argparse.Namespace) -> int:
             actions_by_session=actions,
             weight_scalars=weight_scalars,
             progress=say,
+            execution_start=execution_start,
+            max_entry_window_participation=0.01 if strategy.adaptive_rotation.enabled else None,
         )
         combined_by_engine[engine] = study.combined
         report = build_report(
@@ -2069,7 +2148,7 @@ def _write_study_pdf(
             request_advisory,
         )
 
-        say("advisory: requesting Gemini commentary (aggregate statistics only)")
+        say("advisory: requesting free-first model commentary (aggregate statistics only)")
         outcome = request_advisory(advisory_payload(report, metrics, insights, sleeves))
         if outcome.available:
             advisory_text = outcome.text
@@ -2474,9 +2553,9 @@ def _load_measurement_inputs(
     panel, manifest = load_panel(
         args.snapshot,
         symbols,
-        start=args.start,
+        start=None if strategy.adaptive_rotation.enabled else args.start,
         end=args.end,
-        with_context=strategy.learned_regime.enabled,
+        with_context=strategy.learned_regime.enabled or strategy.adaptive_rotation.enabled,
     )
 
     def say(message: str) -> None:

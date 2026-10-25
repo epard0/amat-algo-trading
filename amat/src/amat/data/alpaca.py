@@ -230,9 +230,7 @@ class AlpacaMarketData:
 
         # The path is echoed without its query string so date ranges and symbol
         # lists stay out of the message; credentials were never in it.
-        message = (
-            f"market-data request to {path} failed after {_MAX_ATTEMPTS} attempts: {last_error}"
-        )
+        message = f"market-data request to {path} failed after {attempt + 1} attempts: {last_error}"
         raise DataIntegrityError(message)
 
     def _paginate(self, path: str, params: dict[str, str | int]) -> Iterator[dict[str, Any]]:
@@ -268,14 +266,20 @@ class AlpacaMarketData:
         The strategy contract requires both, kept distinct.
         """
         zone = ZoneInfo(exchange_timezone)
+        # Daily bars are indexed by their exchange-local session opening date.
+        # An explicit timestamp selects the inclusive final daily bar without
+        # a date-only end being expanded into still-future intraday SIP time.
+        # Completion is enforced by the caller's completed-session cutoff.
+        first_stamp = dt.datetime.combine(start, dt.time.min, zone).astimezone(dt.UTC)
+        last_stamp = dt.datetime.combine(end, dt.time.min, zone).astimezone(dt.UTC)
         bars: list[DailyBar] = []
         for page in self._paginate(
             "/v2/stocks/bars",
             {
                 "symbols": ",".join(symbols),
                 "timeframe": "1Day",
-                "start": start.isoformat(),
-                "end": end.isoformat(),
+                "start": first_stamp.isoformat().replace("+00:00", "Z"),
+                "end": last_stamp.isoformat().replace("+00:00", "Z"),
                 "feed": self._feed,
                 "adjustment": adjustment,
                 "limit": _MAX_PAGE,

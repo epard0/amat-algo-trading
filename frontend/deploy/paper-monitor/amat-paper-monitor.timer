@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep paper monitoring independent of desktop and SSH sessions
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Persistent=true
+AccuracySec=1s
+Unit=amat-paper-monitor.service
+
+[Install]
+WantedBy=timers.target

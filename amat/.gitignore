@@ -47,3 +47,7 @@ credentials/
 
 # Claude Code worktrees
 worktrees/
+
+# Share blank templates, never filled credentials.
+!.env.example
+!.env.*.example

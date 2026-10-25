@@ -9,10 +9,11 @@ from typing import Any
 from amat.errors import ConfigurationError
 from portfolio_team.contracts import Policy
 from portfolio_team.coordinator import review_identity, run_review
-from portfolio_team.evidence import EvidenceError, load_catalog, make_bundle
+from portfolio_team.evidence import BudgetDeferredError, EvidenceError, load_catalog, make_bundle
 from portfolio_team.model_runtime import RemoteProvider
 from portfolio_team.providers import Provider
 from portfolio_team.reports import _write_once, export_review
+from portfolio_team.research_queue import build_queue
 from portfolio_team.store import Store
 
 MAX_CYCLE_REVIEWS = 20
@@ -49,6 +50,7 @@ def run_cycle(
         if cached is None and dispatched >= max_reviews:
             rows.append({**row, "status": "deferred_cycle_limit"})
             continue
+        calls_before = len(store.model_calls(review_id))
         try:
             if cached is None:
                 dispatched += 1
@@ -65,7 +67,13 @@ def run_cycle(
                 "requests_in_priority_order": [item.model_dump() for item in chief.requests],
             }
             _write_once(target / "research_backlog.json", json.dumps(backlog, indent=2).encode())
+            queue = build_queue(bundle, decision)
+            _write_once(target / "research_queue.v2.json", (queue.canonical() + "\n").encode())
             rows.append({**row, "status": "cached" if cached else "completed"})
+        except BudgetDeferredError as exc:
+            if cached is None and len(store.model_calls(review_id)) == calls_before:
+                dispatched -= 1
+            rows.append({**row, "status": "deferred_budget", "budget": exc.budget})
         except (ValueError, OSError) as exc:
             rows.append({**row, "status": "failed", "error": type(exc).__name__})
     result = {

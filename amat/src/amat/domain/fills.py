@@ -55,6 +55,7 @@ class MissedFillReason(StrEnum):
     """
 
     PARTICIPATION_CAP = "participation_cap"
+    QUANTITY_INCREMENT = "quantity_increment"
     """A buy was clipped to the configured share of observed window volume."""
 
     STRESS_DROPPED = "stress_dropped"

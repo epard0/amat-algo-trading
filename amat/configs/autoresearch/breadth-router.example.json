@@ -1,0 +1,113 @@
+{
+  "hypothesis": "Test breadth routing between trend and guarded pullback signals.",
+  "patches": [],
+  "features": [],
+  "signal": {
+    "terms": [
+      {
+        "feature": {
+          "kind": "normalized_momentum",
+          "lookback": 126,
+          "secondary_lookback": 21,
+          "smoothing": 1,
+          "transform": "identity",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0,
+          "lag_sessions": 0,
+          "template": null
+        },
+        "weight": 1.0,
+        "center": 0.0,
+        "scale": 1.0
+      },
+      {
+        "feature": {
+          "kind": "rsi",
+          "lookback": 14,
+          "secondary_lookback": 21,
+          "smoothing": 1,
+          "transform": "identity",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0,
+          "lag_sessions": 0,
+          "template": null
+        },
+        "weight": -1.0,
+        "center": 0.5,
+        "scale": 0.25
+      },
+      {
+        "feature": {
+          "kind": "breadth",
+          "lookback": 63,
+          "secondary_lookback": 21,
+          "smoothing": 1,
+          "transform": "identity",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0,
+          "lag_sessions": 0,
+          "template": null
+        },
+        "weight": 0.0,
+        "center": 0.0,
+        "scale": 1.0
+      },
+      {
+        "feature": {
+          "kind": "volatility_shock",
+          "lookback": 63,
+          "secondary_lookback": 10,
+          "smoothing": 1,
+          "transform": "identity",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0,
+          "lag_sessions": 0,
+          "template": null
+        },
+        "weight": 0.0,
+        "center": 0.0,
+        "scale": 1.0
+      }
+    ],
+    "interactions": [],
+    "patterns": [],
+    "learner": "weighted",
+    "horizon": 20,
+    "baseline_mix": 0.0,
+    "policy": {
+      "entry_threshold": 0.55,
+      "exit_threshold": 0.45,
+      "confirmation_sessions": 1,
+      "min_hold_sessions": 0
+    },
+    "router": {
+      "trend_terms": [
+        0
+      ],
+      "range_terms": [
+        1
+      ],
+      "state_term": 2,
+      "stress_term": 3,
+      "mode": "adaptive",
+      "state_floor": 0.35,
+      "state_ceiling": 0.65,
+      "static_trend_weight": 0.5,
+      "smoothing_sessions": 3,
+      "range_trend_floor": 0.5,
+      "stress_threshold": 0.4,
+      "stress_scale": 0.6,
+      "max_attenuation": 0.5
+    }
+  },
+  "stage": "route",
+  "parent_candidate": null,
+  "research": {
+    "mechanism": "Persistent participation favors continuation; weaker structure may favor pullback entries in positive trends.",
+    "falsification": "The same sleeves with equal or pre-anchor mean weights should underperform causal routing after costs."
+  }
+}

@@ -143,8 +143,9 @@ def _joint_relatives(panel: MarketPanel) -> tuple[np.ndarray, np.ndarray, np.nda
     """Per-session joint building blocks: price relatives, gaps, volumes.
 
     Row ``k`` describes source session ``k + 1``: its adjusted close relative
-    to the prior session, its execution-window VWAP relative to the prior raw
-    close, and its window volume. The three stay together under resampling --
+    to the prior session, its execution-window VWAP converted to the adjusted
+    basis relative to the prior adjusted close, and its window volume. The three
+    stay together under resampling --
     a session's gap without that session's volume would break the missed-fill
     joint distribution.
     """
@@ -153,8 +154,14 @@ def _joint_relatives(panel: MarketPanel) -> tuple[np.ndarray, np.ndarray, np.nda
         message = "bootstrap requires finite, positive adjusted closes throughout the panel"
         raise DataIntegrityError(message)
     relatives = adjusted[1:] / adjusted[:-1]
+    if not np.isfinite(panel.raw_closes).all() or np.any(panel.raw_closes <= 0):
+        message = "bootstrap requires finite, positive raw closes to normalize execution prices"
+        raise DataIntegrityError(message)
     with np.errstate(invalid="ignore", divide="ignore"):
-        gaps = panel.window_vwaps[1:] / panel.raw_closes[:-1]
+        # A split changes raw prices without changing total-return prices.
+        # Divide by the SAME session's raw close, then apply its total-return
+        # relative, keeping VWAP/close and high/low on one consistent basis.
+        gaps = (panel.window_vwaps[1:] / panel.raw_closes[1:]) * relatives
     return relatives, gaps, panel.window_volumes[1:]
 
 
@@ -219,6 +226,34 @@ def bootstrap_panel(
     window_volumes[0] = source.window_volumes[0]
     window_volumes[1:] = volumes[rows]
 
+    # Keep context on the same sampled joint row. Without it, volume and range
+    # strategies cannot be reevaluated on a bootstrap path at all.
+    highs = lows = session_volumes = None
+    if source.adjusted_highs is not None and source.adjusted_lows is not None:
+        high_ratio = source.adjusted_highs / source.adjusted_closes
+        low_ratio = source.adjusted_lows / source.adjusted_closes
+        highs, lows = adjusted.copy(), adjusted.copy()
+        highs[0] *= high_ratio[0]
+        lows[0] *= low_ratio[0]
+        highs[1:] *= high_ratio[1:][rows]
+        lows[1:] *= low_ratio[1:][rows]
+        if source.session_volumes is not None:
+            session_volumes = source.session_volumes.copy()
+            session_volumes[1:] = source.session_volumes[1:][rows]
+
+    opens = None
+    candle_version = ""
+    if source.has_candle_inputs:
+        observed_opens, _, _, _ = source.candle_inputs()
+        # Sample the entire day's candle geometry together. Using the same
+        # row as H/C and L/C preserves open/close orientation and OHLC ordering,
+        # including around splits; missing source opens stay unavailable.
+        open_ratio = observed_opens / source.adjusted_closes
+        opens = np.empty_like(adjusted)
+        opens[0] = observed_opens[0]
+        opens[1:] = adjusted[1:] * open_ratio[1:][rows]
+        candle_version = ", candle_version=1"
+
     return MarketPanel(
         sessions=source.sessions,
         symbols=source.symbols,
@@ -226,7 +261,14 @@ def bootstrap_panel(
         raw_closes=raw,
         window_vwaps=window_vwaps,
         window_volumes=window_volumes,
-        source=f"bootstrap({source.source}, seed={seed}, mean_block={mean_block_sessions})",
+        source=(
+            f"bootstrap({source.source}, seed={seed}, "
+            f"mean_block={mean_block_sessions}{candle_version})"
+        ),
+        adjusted_highs=highs,
+        adjusted_lows=lows,
+        session_volumes=session_volumes,
+        adjusted_opens=opens,
     )
 
 

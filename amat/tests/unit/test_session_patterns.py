@@ -38,9 +38,7 @@ def test_scanner_finds_a_stable_cost_adjusted_overnight_effect() -> None:
         round_trip_cost_bps=4.0,
         minimum_observations=50,
     )
-    overnight = next(
-        row for row in patterns if row.symbol == "S0" and row.leg == "overnight"
-    )
+    overnight = next(row for row in patterns if row.symbol == "S0" and row.leg == "overnight")
     intraday = next(row for row in patterns if row.symbol == "S0" and row.leg == "intraday")
     assert overnight.train.mean_net_bps == pytest.approx(16.0)
     assert overnight.validation.mean_net_bps == pytest.approx(16.0)
@@ -59,14 +57,10 @@ def test_missing_open_window_is_excluded_not_imputed() -> None:
         train_end=panel.sessions[79],
         minimum_observations=20,
     )
-    overnight = next(
-        row for row in patterns if row.symbol == "S0" and row.leg == "overnight"
-    )
+    overnight = next(row for row in patterns if row.symbol == "S0" and row.leg == "overnight")
     assert overnight.train.observations == 77
 
 
 def test_scanner_rejects_negative_costs() -> None:
     with pytest.raises(Exception, match="non-negative"):
-        scan_session_patterns(
-            _panel(), train_end=dt.date(2020, 3, 1), round_trip_cost_bps=-1.0
-        )
+        scan_session_patterns(_panel(), train_end=dt.date(2020, 3, 1), round_trip_cost_bps=-1.0)

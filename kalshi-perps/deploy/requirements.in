@@ -1,0 +1,9 @@
+# Frozen deployment dependencies matching the validated local research runtime.
+httpx==0.28.1
+cryptography==47.0.0
+numpy==2.5.1
+pandas==3.0.6
+scipy==1.18.0
+polars==1.43.2
+pydantic==2.13.4
+exchange-calendars==4.13.2

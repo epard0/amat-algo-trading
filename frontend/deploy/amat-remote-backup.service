@@ -1,0 +1,11 @@
+[Unit]
+Description=Pull the latest AMAT VPS state archive off-host
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Documents/amat-workspace
+ExecStart=%h/Documents/amat-workspace/frontend/.venv/bin/python %h/Documents/amat-workspace/frontend/scripts/pull-remote-backup.py
+TimeoutStartSec=90
+MemoryMax=128M
+UMask=0077

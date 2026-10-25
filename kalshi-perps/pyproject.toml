@@ -1,0 +1,25 @@
+[project]
+name = "kalshi-perps"
+version = "0.1.0"
+description = "Independent Kalshi crypto perpetual paper and venue execution"
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.28,<1", "cryptography>=44,<48"]
+
+[project.scripts]
+kalshi-perps = "kalshi_perps.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B"]

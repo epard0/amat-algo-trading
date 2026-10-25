@@ -1,0 +1,40 @@
+{
+  "repository": "https://github.com/Fincept-Corporation/FinceptTerminal",
+  "revision": "3f444cb7ab712d85a57d270d5edd6e7a2ef50d55",
+  "retrieved_on": "2026-10-08",
+  "integration_status": "Unmodified reference source; not compiled or linked",
+  "files": [
+    {
+      "path": "LICENSE",
+      "sha256": "78daf20f76a2463ef36cac315302e04b9aae29f228a7abfe6ecd8d1c7661f45f"
+    },
+    {
+      "path": "fincept-qt/src/ui/theme/ThemeTokens.h",
+      "sha256": "ffa0a000dc99da4a2886b82104f00e8365a430cc0ec8ea26cf3ac13253bda71d"
+    },
+    {
+      "path": "fincept-qt/src/screens/dashboard/DashboardStatusBar.cpp",
+      "sha256": "df4c18da750c2455d4bef6352e67cb54387a1576c5fa2796a7a2bbf638186b1d"
+    },
+    {
+      "path": "fincept-qt/src/screens/dashboard/DashboardStatusBar.h",
+      "sha256": "beeb66a65d343c3683c77a8b913332821616f9f452de156b6f901c08cf7614b5"
+    },
+    {
+      "path": "fincept-qt/src/screens/equity_trading/EquityWatchlist.cpp",
+      "sha256": "56aea76d2e792fc03212c99cb23715b849c239bebaefb8f13967f6a9eaf5e03e"
+    },
+    {
+      "path": "fincept-qt/src/screens/equity_trading/EquityWatchlist.h",
+      "sha256": "2d7b8dac48273ae5abd3c80386d62b47cc31884700768823fe01ffcf6643c7e6"
+    },
+    {
+      "path": "fincept-qt/src/screens/equity_trading/EquityOrderBook.cpp",
+      "sha256": "516673f4be1673fd399ce66eba4829fe4306fd708c1028895f729d1954360954"
+    },
+    {
+      "path": "fincept-qt/src/screens/equity_trading/EquityOrderBook.h",
+      "sha256": "9f585ad656402e257709ac7902c41d37bd4d2a0f2ab16cbd19158e5ef5b27aad"
+    }
+  ]
+}

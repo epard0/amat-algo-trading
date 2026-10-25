@@ -222,9 +222,7 @@ def scan_session_patterns(
         intraday = np.full(len(panel), np.nan)
         intraday_rows = np.flatnonzero(usable[:, column])
         intraday[intraday_rows] = (
-            adjusted[intraday_rows, column] / adjusted_open[intraday_rows, column]
-            - 1.0
-            - cost
+            adjusted[intraday_rows, column] / adjusted_open[intraday_rows, column] - 1.0 - cost
         )
         for leg, values in (("overnight", overnight), ("intraday", intraday)):
             identities.append((symbol, leg))

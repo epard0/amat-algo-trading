@@ -66,8 +66,7 @@ def main() -> int:
         "opening_price": "raw 09:30-09:35 VWAP rescaled to adjusted basis",
         "overnight_definition": "prior official close to next 09:30-09:35 VWAP",
         "warning": (
-            "This snapshot has no 15:55-16:00 observations; results do not test "
-            "a 4:55 PM fill."
+            "This snapshot has no 15:55-16:00 observations; results do not test a 4:55 PM fill."
         ),
         "robust_candidates": sum(pattern.robust_candidate for pattern in patterns),
         "patterns": [pattern.to_dict() for pattern in patterns],

@@ -4,6 +4,12 @@ Update: OpenAI Responses and an explicitly routed `gpt-6-astra` chief are now
 supported, along with a bounded `pmteam cycle` command. See the
 [cohesive research workflow and scheduling guide](research-team-workflow.md).
 The scheduler templates are not enabled and no executor integration is deployed.
+For generating new experiments rather than reviewing a fixed catalog, use the
+[strategy-development engine](strategy-development-engine.md). Its isolated
+feature/config loop exports a catalog directly consumable by `pmteam cycle`.
+See the [2026-09-11 audit](autoresearch-state-2026-09-11.md) for verified checkout
+and running-container status. A healthy paper container does not establish that
+the current executor code or its risk limits have been deployed.
 
 Implemented on 2026-09-10: artifact import, SQLite registry, deterministic evidence
 checks, four-role coordinator, scripted fake provider, policy resolution, and
@@ -81,6 +87,13 @@ Offline replay re-exports a committed review without provider calls. Completed
 role responses survive restart; an unfinished attempt consumes its attempt
 number and can retry only within the two-attempt-per-role limit. Exhausted
 reviews remain failed instead of synthesizing a decision from missing reviewers.
+
+Pre-dispatch budget shortages are distinct: `deferred_budget` consumes no attempt
+or reservation. The next scheduled cycle may resume it with completed roles
+cached. A zero-call deferral does not consume the cycle's review-dispatch cap.
+Use `pmteam preflight COMPARISON` with the same provider/model/chief options to
+inspect the next call's budget and remaining attempts without model calls or
+new review records. Daily reset eligibility does not bypass per-review limits.
 
 Back up the database with SQLite's backup interface, or stop all writers before
 copying its complete database/WAL state. The exact source blobs are stored inside

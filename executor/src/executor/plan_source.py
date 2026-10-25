@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import subprocess
 import tempfile
 from dataclasses import dataclass
@@ -140,6 +141,8 @@ class ExecutionPlan:
 
 def parse_plan(payload: dict[str, Any]) -> ExecutionPlan:
     """Parse a plan artifact, refusing an unrecognised schema major version."""
+    if payload.get("required_capabilities") or payload.get("engine") == "research-policy/1":
+        raise PlanError("active policy requires the explicit intraday capability adapter")
     schema_version = str(payload.get("schema_version", ""))
     major = schema_version.split(".", 1)[0]
     if not major.isdigit() or int(major) != SUPPORTED_PLAN_MAJOR:
@@ -264,6 +267,7 @@ def build_plan(
                 capture_output=True,
                 text=True,
                 timeout=_PLAN_TIMEOUT_SECONDS,
+                env=_planner_environment(),
                 check=False,
             )
         except FileNotFoundError as exc:
@@ -287,9 +291,42 @@ def build_plan(
 
     if out_path is not None:
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        temporary = out_path.with_suffix(".tmp")
+        with temporary.open("w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        temporary.replace(out_path)
+        directory = os.open(out_path.parent, os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
 
     return plan
+
+
+def _planner_environment() -> dict[str, str]:
+    """Only runtime plumbing and market-data credentials cross the plan boundary."""
+    allowed = {
+        "PATH",
+        "HOME",
+        "LANG",
+        "LC_ALL",
+        "TZ",
+        "TMPDIR",
+        "SSL_CERT_FILE",
+        "SSL_CERT_DIR",
+        "UV_PROJECT_ENVIRONMENT",
+        "UV_CACHE_DIR",
+        "UV_LINK_MODE",
+        "UV_COMPILE_BYTECODE",
+        "PYTHONDONTWRITEBYTECODE",
+        "PYTHONUNBUFFERED",
+        "ALPACA_MARKET_API_KEY",
+        "ALPACA_MARKET_API_SECRET",
+    }
+    return {key: value for key, value in os.environ.items() if key in allowed}
 
 
 def _extract_json_object(stdout: str) -> dict[str, Any]:

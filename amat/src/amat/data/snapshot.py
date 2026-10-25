@@ -240,7 +240,10 @@ def load_panel(
         with_context: Also load session highs, lows and volume for
             :mod:`amat.context`. Off by default so that every existing caller
             keeps the panel it already had, and so that the extra columns are
-            requested by the code that actually needs levels.
+            requested by the code that actually needs levels. Also loads adjusted
+            opens when the snapshot contains raw_open, enabling candle research.
+            Older snapshots remain usable for context; candle_inputs() fails
+            closed when opens are absent.
 
     Raises:
         DataIntegrityError: if a symbol is absent, or if no complete session
@@ -310,9 +313,10 @@ def load_panel(
         vwaps[row, column] = vwap
         volumes[row, column] = volume
 
-    highs = lows = session_volumes = None
+    highs = lows = session_volumes = opens = None
     if with_context:
         highs, lows, session_volumes = _context_arrays(frame, session_index, column_index, shape)
+        opens = _open_array(frame, session_index, column_index, shape)
 
     panel = MarketPanel(
         sessions=tuple(sessions),
@@ -325,8 +329,41 @@ def load_panel(
         adjusted_highs=highs,
         adjusted_lows=lows,
         session_volumes=session_volumes,
+        adjusted_opens=opens,
     )
     return panel, manifest
+
+
+def _open_array(
+    frame: pl.DataFrame,
+    session_index: dict[dt.date, int],
+    column_index: dict[str, int],
+    shape: tuple[int, int],
+) -> np.ndarray | None:
+    """Rescale raw opens by the same per-row factor as context highs/lows.
+
+    Older partitions may lack opens entirely. Invalid cells remain NaN so
+    research can abstain without changing the panel's session calendar.
+    """
+    if "raw_open" not in frame.columns:
+        return None
+    opens = np.full(shape, np.nan)
+    for session, symbol, raw_open, raw_close, adj_close in zip(
+        frame["session_date"],
+        frame["symbol"],
+        frame["raw_open"],
+        frame["raw_close"],
+        frame["adjusted_close"],
+        strict=True,
+    ):
+        prices = (raw_open, raw_close, adj_close)
+        if any(value is None or not np.isfinite(value) or value <= 0 for value in prices):
+            continue
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            adjusted_open = np.float64(raw_open) * (np.float64(adj_close) / raw_close)
+        if np.isfinite(adjusted_open) and adjusted_open > 0:
+            opens[session_index[session], column_index[symbol]] = adjusted_open
+    return opens
 
 
 def _context_arrays(

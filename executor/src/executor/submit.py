@@ -38,14 +38,18 @@ from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import math
+import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import ROUND_DOWN, Decimal
 from typing import TYPE_CHECKING
 
 from executor.broker import Account, AlpacaPaperClient, Order
 from executor.config import RiskLimits
-from executor.errors import BrokerError
+from executor.errors import BrokerError, OrderOutcomeUnknownError
 from executor.plan_source import ExecutionPlan, PlanIntent
+from executor.safety import atomic_json, read_receipt, submission_interlock
 
 if TYPE_CHECKING:
     from executor.journal import Journal
@@ -153,7 +157,7 @@ class SubmissionResult:
         }
 
 
-def _preflight(
+def _preflight(  # noqa: PLR0912 - ordered fail-closed validation
     plan: ExecutionPlan,
     account: Account,
     session: dt.date,
@@ -182,6 +186,23 @@ def _preflight(
             f"trading_blocked={account.trading_blocked} "
             f"account_blocked={account.account_blocked}"
         )
+    numbers = [plan.account_equity, account.equity, *plan.current_positions.values()]
+    if any(not value.is_finite() or value < 0 for value in numbers) or plan.account_equity <= 0:
+        return "invalid or non-finite plan/account quantities"
+    if not math.isfinite(plan.gross_target_exposure) or plan.gross_target_exposure < 0:
+        return "invalid gross target exposure"
+    if len({intent.symbol for intent in plan.intents}) != len(plan.intents):
+        return "duplicate symbol intents are not supported"
+    for intent in plan.intents:
+        values = (intent.quantity, intent.reference_price, intent.notional)
+        if (
+            intent.side not in {"buy", "sell"}
+            or re.fullmatch(r"[A-Z0-9][A-Z0-9.-]{0,31}", intent.symbol) is None
+            or any(not value.is_finite() or value <= 0 for value in values)
+            or not math.isfinite(intent.target_weight)
+            or not 0 <= intent.target_weight <= 1
+        ):
+            return "invalid intent side, sizing, or target weight"
     if plan.is_expired(now=now):
         return (
             f"plan expired at {plan.expires_at.isoformat()} and must not be executed late; "
@@ -208,18 +229,30 @@ def _preflight(
             )
     if not plan.intents:
         return "no trades: the account already matches the target within the rebalance band"
-    if len(plan.intents) > limits.max_orders_per_session:
+    if (
+        limits.max_orders_per_session is not None
+        and len(plan.intents) > limits.max_orders_per_session
+    ):
         return (
             f"plan carries {len(plan.intents)} intents, above MAX_ORDERS_PER_SESSION "
             f"{limits.max_orders_per_session}"
         )
-    session_notional = sum((intent.notional for intent in plan.intents), Decimal("0"))
-    if session_notional > limits.max_session_notional:
+    session_notional = sum(
+        (max(intent.notional, intent.quantity * intent.reference_price) for intent in plan.intents),
+        Decimal("0"),
+    )
+    if limits.max_session_notional is not None and session_notional > limits.max_session_notional:
         return (
             f"plan reference notional {session_notional} exceeds MAX_SESSION_NOTIONAL "
             f"{limits.max_session_notional}"
         )
-    oversized = [intent for intent in plan.intents if intent.notional > limits.max_symbol_notional]
+    oversized = [
+        intent
+        for intent in plan.intents
+        if limits.max_symbol_notional is not None
+        and max(intent.notional, intent.quantity * intent.reference_price)
+        > limits.max_symbol_notional
+    ]
     if oversized:
         names = ", ".join(f"{item.symbol}={item.notional}" for item in oversized)
         return f"intent notional above MAX_SYMBOL_NOTIONAL {limits.max_symbol_notional}: {names}"
@@ -281,7 +314,7 @@ def _resolve_quantity(
     return quantity.quantize(MAX_QUANTITY_DECIMALS, rounding=ROUND_DOWN), "; ".join(notes)
 
 
-def submit_plan(
+def submit_plan(  # noqa: PLR0912, PLR0915 - durable order transaction
     plan: ExecutionPlan,
     client: AlpacaPaperClient,
     *,
@@ -291,6 +324,9 @@ def submit_plan(
     journal: Journal,
     dry_run: bool = False,
     limits: RiskLimits,
+    current_positions: dict[str, Decimal] | None = None,
+    submission_time: Callable[[], dt.datetime] | None = None,
+    buy_limit_prices: dict[str, Decimal] | None = None,
 ) -> SubmissionResult:
     """Execute ``plan`` against the paper account, or refuse and record why.
 
@@ -309,7 +345,22 @@ def submit_plan(
     Returns:
         The outcome for every intent, including the ones deliberately withheld.
     """
-    refusal = _preflight(plan, account, session, now, limits=limits)
+    refusal = submission_interlock(journal.state_root) or _preflight(
+        plan, account, session, now, limits=limits
+    )
+    if buy_limit_prices is not None and not refusal:
+        buy_symbols = {intent.symbol for intent in plan.intents if intent.side == "buy"}
+        if (
+            set(buy_limit_prices) != buy_symbols
+            or any(not price.is_finite() or price <= 0 for price in buy_limit_prices.values())
+            or any(
+                intent.side == "buy" and buy_limit_prices[intent.symbol] > intent.reference_price
+                for intent in plan.intents
+            )
+        ):
+            refusal = (
+                "buy limits must be finite, positive, complete, and within checked reference prices"
+            )
     if refusal:
         journal.record(
             "submission_refused",
@@ -336,7 +387,7 @@ def submit_plan(
         journal.record("fractionability_lookup_failed", session=session, detail=str(exc))
         fractionable = dict.fromkeys(symbols, False)
 
-    held_now = dict(plan.current_positions)
+    held_now = dict(plan.current_positions if current_positions is None else current_positions)
 
     outcomes: list[SubmissionOutcome] = []
     orders: list[Order] = []
@@ -394,18 +445,87 @@ def submit_plan(
             )
             continue
 
-        try:
-            order = client.submit_market_order(
-                symbol=intent.symbol,
-                side=intent.side,
-                quantity=quantity,
-                client_order_id=client_order_id,
+        refusal = submission_interlock(journal.state_root)
+        if submission_time is not None and plan.is_expired(now=submission_time()):
+            refusal = "plan expired while preparing orders"
+        if refusal:
+            journal.record("submission_refused", session=session, reason=refusal)
+            break
+        receipt_path = journal.state_root / "submissions" / f"{client_order_id}.json"
+        if receipt_path.exists():
+            previous = read_receipt(receipt_path)
+            outcomes.append(
+                SubmissionOutcome(
+                    symbol=intent.symbol,
+                    side=intent.side,
+                    intended_quantity=intent.quantity,
+                    submitted_quantity=Decimal("0"),
+                    status="already_submitted" if previous["status"] != "rejected" else "rejected",
+                    client_order_id=client_order_id,
+                    detail="durable receipt prevents repeating this POST",
+                )
             )
+            if previous["status"] == "rejected":
+                refusal = "previous rejection prevents continuation of this plan"
+                break
+            continue
+        receipt = {
+            "status": "pending",
+            "client_order_id": client_order_id,
+            "symbol": intent.symbol,
+            "side": intent.side,
+            "quantity": str(quantity),
+            "session": session.isoformat(),
+            "config_sha256": plan.config_sha256,
+        }
+        # Write-ahead evidence survives a crash between broker acceptance and journaling.
+        atomic_json(receipt_path, receipt)
+        try:
+            if buy_limit_prices is not None and intent.side == "buy":
+                order = client.submit_limit_order(
+                    symbol=intent.symbol,
+                    side=intent.side,
+                    quantity=quantity,
+                    client_order_id=client_order_id,
+                    limit_price=buy_limit_prices[intent.symbol],
+                )
+            else:
+                order = client.submit_market_order(
+                    symbol=intent.symbol,
+                    side=intent.side,
+                    quantity=quantity,
+                    client_order_id=client_order_id,
+                )
+        except OrderOutcomeUnknownError as exc:
+            atomic_json(receipt_path, {**receipt, "status": "unknown"})
+            journal.record(
+                "order_outcome_unknown",
+                session=session,
+                symbol=intent.symbol,
+                client_order_id=client_order_id,
+                detail=str(exc),
+            )
+            outcomes.append(
+                SubmissionOutcome(
+                    symbol=intent.symbol,
+                    side=intent.side,
+                    intended_quantity=intent.quantity,
+                    submitted_quantity=Decimal("0"),
+                    status="outcome_unknown",
+                    client_order_id=client_order_id,
+                    detail=str(exc),
+                )
+            )
+            refusal = "order outcome unknown; further submissions halted pending reconciliation"
+            break
         except BrokerError as exc:
             detail = str(exc)
             # A duplicate is the idempotency key doing its job, not a failure:
             # this plan's order for this symbol already exists at the broker.
             duplicate = "duplicate" in detail.lower()
+            atomic_json(
+                receipt_path, {**receipt, "status": "duplicate" if duplicate else "rejected"}
+            )
             outcomes.append(
                 SubmissionOutcome(
                     symbol=intent.symbol,
@@ -426,8 +546,12 @@ def submit_plan(
                 client_order_id=client_order_id,
                 detail=detail,
             )
+            if not duplicate:
+                refusal = "broker rejected an order; remaining intents withheld"
+                break
             continue
 
+        atomic_json(receipt_path, {**receipt, "status": "submitted", "order_id": order.id})
         orders.append(order)
         outcomes.append(
             SubmissionOutcome(
@@ -456,7 +580,7 @@ def submit_plan(
     return SubmissionResult(
         session=session,
         executed=True,
-        refusal_reason="",
+        refusal_reason=refusal,
         outcomes=tuple(outcomes),
         account_equity_before=account.equity,
         dry_run=dry_run,

@@ -198,8 +198,13 @@ class SessionAccountant:
             fees=fees,
             slippage=Decimal(0),
         )
-        reconcile_session(previous, current, attribution, tolerance=self._tolerance)
+        self._reconcile(previous, current, attribution)
         return current, attribution
+
+    def _reconcile(
+        self, previous: LedgerSnapshot, current: LedgerSnapshot, attribution: PeriodAttribution
+    ) -> None:
+        reconcile_session(previous, current, attribution, tolerance=self._tolerance)
 
     @staticmethod
     def _accrue(balance: Cash, annualized_rate: float, sessions_per_year: int) -> Cash:

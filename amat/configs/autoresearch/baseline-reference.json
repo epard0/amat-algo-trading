@@ -1,0 +1,16 @@
+{
+  "schema": "research-baseline-reference/1",
+  "selected": "growth_rotation4_20_weekly",
+  "strategy_config": "configs/strategy/amat_v13_return_target.toml",
+  "config_sha256": "fd08c1d114a4ee563944a8fd9e6fcc7afa6d47a5de4722f6676f9665227c5792",
+  "study": "outputs/return-target-2026-09-14/selection-v3",
+  "artifacts": {
+    "protocol.json": "a94140297bf4ec25865e90a0f9bd96d74f64cfbc4fe17b3cf9e14a76e7f8d890",
+    "selection.json": "0cbef3bcfdf075bdd40a767c6df1a142224ec72ecf0c06f6a1a75b81a2c6fe33",
+    "development.json": "bf8c1c4d21470a9fbc23eb8aa3dd4d437f21f1ba195080a1ad20374a11454f86",
+    "validation.json": "c2429f27926cc07aca7f1f4990db3d8e020338bed910c350885411f732771232",
+    "decision.json": "f617a7b8f65db32cc4f9e4a45813b8768ef0f5bcd0aa618a216aa14a3e2a9126"
+  },
+  "execution_authority": "none",
+  "historical_reference_only": true
+}

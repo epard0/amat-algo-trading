@@ -1,5 +1,7 @@
 # AMAT — Adaptive Multi-Asset Trend
 
+For current cross-system installation, API contracts and contribution guidance, start with the [workspace documentation](../README.md#table-of-contents). Dated reports and deployment observations below require their original local evidence and do not describe a fresh clone.
+
 A reproducible, adversarially validated **backtesting** platform for a daily,
 long-or-cash multi-asset ETF trend strategy.
 
@@ -13,6 +15,22 @@ long-or-cash multi-asset ETF trend strategy.
 This repository is a research and backtesting system. It is **not** a
 live-trading application. It has no capability to reach a trading account, and
 must not acquire one.
+
+For autonomous feature engineering and signal development, see the
+[strategy-development engine guide](docs/strategy-development-engine.md).
+The simplest workflow is `./research 5` to propose and backtest five strategies,
+then `./research view` to reopen the browser report. These commands work from
+either this directory or the workspace root. See [simple research](docs/simple-research.md).
+`./research status` shows live progress; [metrics and recording](docs/research-metrics.md)
+documents the analysis tables generated with each session.
+The [trade performance monitor](docs/trade-performance-monitoring.md) joins model intent,
+execution and subsequent price outcomes for backtests and paper trading. New daily research
+reports include an interactive viewer; `./research trades FILE...` combines recorded evidence.
+`autoresearch` builds composable causal features, weighted or fitted forecasts and
+independent trading policies. Its bounded search runs in a frozen workspace outside
+the executor-mounted checkout and exports diagnostics and matched review evidence.
+The [agent pattern research guide](docs/agent-pattern-research.md) covers experimental
+parent selection, temporal sequences and agent-authored price-path templates.
 
 ---
 
@@ -661,7 +679,7 @@ Pages, in order:
 8. **Advisory (optional, `--advisory`)** — a clearly labelled Gemini
    commentary page (`src/amat/reporting/advisory.py`). Input is aggregate
    statistics only; the output feeds nothing — no signal, weight, fill, or
-   accounting entry derives from it. Requires `GEMINI_API_KEY` (read by name);
+   accounting entry derives from it. Uses the shared model policy and configured provider credentials;
    degrades to "no page, reason recorded on stderr" on any failure.
 
 `amat montecarlo … --pdf out.pdf` writes a second, three-page document
@@ -797,7 +815,7 @@ run record.
 | `--html PATH` | | — | Self-contained HTML report |
 | `--pdf PATH` | | — | The full PDF report (see [The PDF reports](#the-pdf-reports)) |
 | `--scalars CSV` | | — | Per-session weight scalars in [0,1] (v3's news conditioning, from `newsdesk export-scalars`). Alignment is fail-closed: every run session must appear in the file |
-| `--advisory` | | off | Append the clearly-labelled Gemini commentary page (requires `--pdf`, `GEMINI_API_KEY`, network); degrades to "no page, reason recorded" on any failure; nothing in the run derives from it |
+| `--advisory` | | off | Append the clearly-labelled model commentary page (requires `--pdf`, configured model credentials, network); degrades to "no page, reason recorded" on any failure; nothing in the run derives from it |
 | `--falsify-universe BASELINE` | | — | Run the leave-one-out universe battery against BASELINE (identical non-universe core enforced); how v5 was judged |
 | `--run-root` / `--no-run-record` | | `outputs/runs` / write | Run-record persistence (conventions above) |
 | `--allow-holdout REASON` | | fail closed | Authorize and record a read past the holdout boundary |
@@ -1023,10 +1041,24 @@ observation only; forms no decision, sizes nothing, submits nothing.
 | `scripts/build_notebooks.py` | — | (Re)generate `notebooks/*.ipynb` programmatically |
 | `scripts/execute_notebooks.py` | — | Execute the notebooks headlessly so committed outputs are real (`uv sync --group notebooks` first) |
 
+### Market distributions and scenarios
+
+New short research sessions use **25 paired robustness cases** by default: 17
+synthetic market/distribution scenarios, two joint block bootstraps, and six
+historical execution stresses. Coverage includes Student's t and Laplace tails,
+negative skew, clustered volatility, correlation breaks, gaps, flat markets, and
+liquidity crises. Each case recomputes the candidate and baseline through the same
+strategy/accounting engine and reports 95%/99% empirical tail losses.
+
+Run `./research 1 --scenario-synthetic-paths 2 --no-open` to test one candidate with
+two seeds per synthetic recipe. See the [market-condition testing guide](docs/backtest-market-conditions.md)
+for all assumptions, calibration boundaries, execution stresses, coverage gates,
+and report fields. Existing frozen research sessions retain their original suite.
+
 ### The comprehensive campaign (`scripts/comprehensive_backtest.sh`)
 
-One command runs every measurement in this repository against every strategy
-version on a single consistent basis and writes a self-describing campaign
+One command runs the CLI strategy validation measurements against the registered
+strategy versions on a single consistent basis and writes a self-describing campaign
 directory:
 
 ```bash
@@ -1503,3 +1535,95 @@ fills, and are not evidence about future returns.
 ## License
 
 Proprietary. Private — do not upload.
+
+See [strategy flexibility and the failure library](docs/strategy-flexibility-and-failure-library.md) for broader exploration,
+research briefs, and analysis of every unsuccessful attempt.
+
+### Shared model policy (September 2026)
+
+Normal research uses `./research run [N]`, `./research status`, and
+`./research report`; proposals, evaluations and result reports run automatically.
+Detailed diagnostics remain under `./research advanced --help`.
+
+Default report commentary and automatic committee reviews
+prefer Groq `openai/gpt-oss-120b`, then Gemini `gemini-3.8-flash`, then OpenRouter
+`stealth/space-bunny-alpha` when earlier routes are missing, unavailable or invalid. Groq's
+free allowance depends on the account plan; its paid tier is not a zero-price
+endpoint. Space Bunny is currently a free preview; the
+actual served model is recorded separately from the requested router name.
+
+Coding requests prefer OpenAI `gpt-5.6-luna`, then Gemini, Groq, and Space Bunny.
+Shared complex requests and committee chief adjudication remain Luna-only. For the Luna-only route, a missing key, rate limit or invalid output remains an
+explicit unavailable result. These routing choices are not model-quality certification.
+
+Credentials are `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `GEMINI_API_KEY` and
+`OPENAI_API_KEY`; the research wrapper loads `amat/.env`. An optional
+`AMAT_MODEL_CHAIN=/absolute/path/models.toml` applies a shared TOML policy to new
+research, automatic committee reviews and default commentary. The example is
+`configs/autoresearch/llm-chain.example.toml`; `targets` covers routine calls and
+`complex_targets` covers complex calls; optional `coding_targets` takes precedence for coding.
+Research uses its separate [research chain](docs/research-model-fallbacks.md). Explicit `--chain` overrides and
+existing frozen session policies stay authoritative. Existing Gemini/OpenAI
+committee options remain explicit overrides; `--provider fake` is the offline
+fixture provider, never a remote-model fallback.
+
+Committee fallback attempts reserve and settle usage independently through the
+existing store. Research attempts use the existing ledger. Commentary returns
+per-attempt usage metadata in its provenance. This does not yet constitute one
+global cost ledger or completed research quality evaluation.
+
+Newsdesk currently ingests vendor sentiment; it has no local LLM sentiment stage.
+An LLM news adapter must use this policy when that evaluated stage is implemented.
+
+A separate fixed-recipe return-target study can run through registration,
+development screening and one selected candidate's historical validation:
+
+```bash
+./research returns run --target-cagr 0.20 --output outputs/return-target-20pct-01
+```
+
+Use a new output directory for each registered study. `0.20` means 20% annualized
+net return. This command tests the frozen target at normal and stressed costs;
+it does not iterate indefinitely until passing or change the default research
+score. It uses the existing v6-based recipe set and historical data contract,
+not the LLM proposal loop. Its decision explicitly distinguishes a historical
+threshold pass from future returns. `./research run 20` instead requests twenty
+candidate strategies under the normal research score.
+
+New daily research sessions now start from the selected **v13** allocator and freeze
+its return-target reference evidence. Existing E73/v6 sessions retain their saved
+programs. Continue to use `./research run 100`; its argument requests candidates,
+not a return percentage. New sessions preserve best returns and best eligible
+research scores separately, grouped by comparable evaluation contracts. Completed
+recipes and their evidence remain in the session ledger and shared
+`~/Documents/amat-research/best-strategies.sqlite3` archive.
+
+For the separate training-through-2025 program:
+
+```bash
+./research run 100 --program training-2025
+```
+
+That creates a new frozen program. It does not retrain or rewrite older sessions,
+or treat previously inspected 2026 history as pristine validation.
+
+New daily sessions also verify market-session dates against a version-pinned XNYS
+calendar and freeze that evidence. After an unsuccessful batch of at least three
+attempts, a research engineer can propose bounded code changes using GPT-5.6-luna.
+Its default is one engineering request per session, configured in
+`configs/autoresearch/engineering.json`. `--built-in` runs do not request code.
+
+Proposed replacements and a diff appear under the session's `engineering/` folder;
+`./research status` and the report show their state. Code remains staged pending
+isolated validation: it is not applied to the running strategy or imported by the
+research worker. See [the autonomy implementation plan](docs/research-autonomy-2026-09-27.md)
+for the next steps toward automatic code evaluation and strategy promotion.
+
+
+### Controller-led research
+
+`./research run [N]` and `./research intraday [N]` start Controller, which reads
+research evidence, supplies a brief and batch size, and supervises follow-ups in
+the same frozen session. The research ledger is read-only to Controller; its own
+plans and events live in an adjacent audit directory. See the
+[Controller guide](docs/research-controller.md) for limits, plan previews and resume.

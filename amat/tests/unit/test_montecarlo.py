@@ -11,6 +11,7 @@ The resampling invariants worth pinning:
 
 from __future__ import annotations
 
+from dataclasses import replace
 from decimal import Decimal
 
 import numpy as np
@@ -35,6 +36,32 @@ def panel(strategy):
 
 
 class TestBootstrapPanel:
+    def test_execution_prices_share_the_total_return_basis_after_corporate_actions(self, panel):
+        # An adjustment-factor discontinuity could be a split or a dividend.
+        # A raw-price gap must not create a second gain in the total-return world.
+        factors = np.ones_like(panel.adjusted_closes)
+        factors[:100] = 0.5
+        factors[100:200] = 0.98
+        source = replace(
+            panel,
+            raw_closes=panel.adjusted_closes / factors,
+            window_vwaps=panel.adjusted_closes / factors * 0.997,
+        )
+        world = bootstrap_panel(source, seed=19, mean_block_sessions=5)
+        np.testing.assert_allclose(world.window_vwaps[1:] / world.raw_closes[1:], 0.997)
+
+    def test_missing_and_zero_volume_execution_windows_survive_resampling(self, panel):
+        windows = panel.window_vwaps.copy()
+        windows[::2] = np.nan
+        volumes = panel.window_volumes.copy()
+        volumes[1::2] = 0
+        world = bootstrap_panel(
+            replace(panel, window_vwaps=windows, window_volumes=volumes), seed=7
+        )
+        assert np.isnan(world.window_vwaps[1:]).any()
+        assert np.any(world.window_volumes[1:] == 0)
+        assert np.all(np.isnan(world.window_vwaps[1:]) | (world.window_volumes[1:] == 0))
+
     def test_calendar_symbols_and_funding_frame_are_preserved(self, panel) -> None:
         resampled = bootstrap_panel(panel, seed=11)
         assert resampled.sessions == panel.sessions

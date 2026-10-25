@@ -60,6 +60,20 @@ class _FakeClient:
     def get_clock(self) -> _FakeClock:
         return _FakeClock(timestamp=self.now)
 
+    def list_orders(self, **_kwargs):
+        return ()
+
+    def get_account(self):
+        from tests.test_report import _account
+
+        return _account()
+
+    def list_positions(self):
+        return ()
+
+    def activity_history(self, **_kwargs):
+        return ()
+
     def get_calendar(self, start: dt.date, end: dt.date) -> tuple[CalendarSession, ...]:
         self.calendar_calls += 1
         return tuple(session for session in self.sessions if start <= session.date <= end)
@@ -178,16 +192,16 @@ def test_a_v1_state_file_is_migrated_rather_than_ignored(tmp_path: Path) -> None
     assert daemon._already_done("report", dt.date(2026, 8, 19))
 
 
-def test_an_unreadable_state_file_does_not_wedge_the_daemon(tmp_path: Path) -> None:
+def test_an_unreadable_state_file_fails_closed(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     settings.ensure_directories()
     (settings.state_root / "daemon_state.json").write_text("{not json", encoding="utf-8")
 
     daemon = _daemon(tmp_path, _FakeClient((), _at("2026-08-20", 12, 0)))
 
-    assert not daemon._already_done("submit", dt.date(2026, 8, 20))
-    daemon._mark_done("submit", dt.date(2026, 8, 20))
-    assert daemon._already_done("submit", dt.date(2026, 8, 20))
+    with pytest.raises(ConfigurationError, match="unreadable"):
+        daemon._already_done("submit", dt.date(2026, 8, 20))
+    assert (settings.state_root / "daemon_state.json").read_text() == "{not json"
 
 
 def test_the_ledger_is_bounded(tmp_path: Path) -> None:
@@ -431,7 +445,8 @@ def test_a_phase_that_keeps_raising_is_eventually_settled(tmp_path: Path, monkey
         raise RuntimeError(message)
 
     monkeypatch.setattr(daemon, "run_submit", _boom)
-    for _ in range(4):
+    for minute in (25, 30, 35, 40):
+        client.now = _at("2026-08-20", 9, minute)
         daemon.tick()
 
     assert len(calls) == 3  # the first attempt plus two retries, then the cap is hit
@@ -458,8 +473,12 @@ def test_a_transient_submit_failure_is_retried_within_the_window(
 
     sleep = daemon.tick()
     assert calls == ["2026-09-10"]
-    assert sleep == pytest.approx(300.0)
+    assert sleep == pytest.approx(240.0)  # poll cap, not permission to retry early
     assert not daemon._already_done("submit", dt.date(2026, 9, 10))
+
+    client.now = _at("2026-09-10", 9, 29)
+    assert daemon.tick() == pytest.approx(60.0)
+    assert calls == ["2026-09-10"]
 
     client.now = _at("2026-09-10", 9, 31)
     daemon.tick()
@@ -469,6 +488,50 @@ def test_a_transient_submit_failure_is_retried_within_the_window(
     retried = _events(daemon._settings, "phase_retry_scheduled")
     assert failed
     assert retried
+
+
+def test_retry_does_not_starve_another_due_phase(tmp_path, monkeypatch) -> None:
+    from executor.daemon import _Phase
+
+    client = _FakeClient((), _at("2026-09-10", 9, 25))
+    daemon = _daemon(tmp_path, client)
+    session = client.now.date()
+    phases = tuple(
+        _Phase(name, session, client.now, client.now + dt.timedelta(minutes=20))
+        for name in ("submit", "report")
+    )
+    monkeypatch.setattr(daemon, "_phases", lambda _now, _zone: phases)
+    calls = []
+
+    def fail_submit(session, *, minutes_late=0):
+        calls.append("submit")
+        raise RuntimeError("transient")
+
+    monkeypatch.setattr(daemon, "run_submit", fail_submit)
+    monkeypatch.setattr(daemon, "run_report", lambda _session: calls.append("report"))
+    daemon.tick()
+    assert calls == ["submit", "report"]
+    assert daemon._already_done("report", session)
+    assert not daemon._already_done("submit", session)
+    daemon.tick()
+    assert calls == ["submit", "report"]
+
+
+def test_missed_retry_clears_pending_wakeup(tmp_path, monkeypatch) -> None:
+    client = _FakeClient((_session("2026-09-10"),), _at("2026-09-10", 15, 20))
+    daemon = _daemon(tmp_path, client)
+
+    def fail_submit(session, *, minutes_late=0):
+        raise RuntimeError("transient")
+
+    monkeypatch.setattr(daemon, "run_submit", fail_submit)
+    daemon.tick()
+    assert daemon._retry_not_before
+    client.now = _at("2026-09-10", 15, 31)
+    assert daemon.tick() > 1
+    assert not daemon._retry_not_before
+    assert not daemon._attempts
+    assert daemon._already_done("submit", client.now.date())
 
 
 def test_a_phase_gives_up_after_the_attempt_limit(
@@ -499,6 +562,66 @@ def test_the_loop_sleeps_toward_the_next_phase_not_past_it(tmp_path: Path) -> No
 
 
 # -- journal rotation --------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("calendar_dates", "allowed", "foreign_order"),
+    [
+        (("2026-08-10", "2026-08-11"), True, False),
+        (("2026-08-07", "2026-08-11"), False, False),
+        (("2026-08-10",), False, False),
+        (("2026-08-10", "2026-08-11"), False, True),
+    ],
+)
+def test_retry_reuses_persisted_plan_after_positions_change(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    calendar_dates: tuple[str, ...],
+    allowed: bool,
+    foreign_order: bool,
+) -> None:
+    from unittest.mock import Mock
+
+    from tests.test_plan_source import _plan_payload
+    from tests.test_submit import _account
+
+    from executor.submit import SubmissionResult
+
+    settings = _settings(tmp_path)
+    daemon = Daemon(settings)
+    session = dt.date(2026, 8, 11)
+    path = settings.plans_dir / f"{session}.json"
+    path.write_text(json.dumps(_plan_payload()))
+    client = Mock()
+    client.get_account.return_value = _account()
+    client.position_quantities.return_value = {"SPY": Decimal("20")}
+    client.list_orders.return_value = (Mock(client_order_id="foreign"),) if foreign_order else ()
+    client.get_calendar.return_value = tuple(_session(date) for date in calendar_dates)
+    daemon._client = client
+    build = Mock(side_effect=AssertionError("must not replan"))
+    submit = Mock(
+        return_value=SubmissionResult(session=session, executed=False, refusal_reason="test")
+    )
+    monkeypatch.setattr("executor.daemon.build_plan", build)
+    monkeypatch.setattr("executor.daemon.submit_plan", submit)
+    # This test concerns archived-plan reuse; window/skew checks have separate tests.
+    monkeypatch.setattr(daemon, "_submission_now", lambda _session: _at("2026-08-11", 9, 30))
+    daemon.run_submit(session)
+    daemon.run_submit(session)
+    assert submit.call_count == (2 if allowed else 0)
+    if allowed:
+        assert submit.call_args.args[0].current_positions == {"SPY": Decimal("10")}
+    build.assert_not_called()
+
+
+def test_history_corruption_is_counted_and_original_preserved(tmp_path: Path) -> None:
+    path = tmp_path / "journal.ndjson"
+    content = '{"event":"good"}\n{"partial":\n[]\n'
+    path.write_text(content)
+    journal = Journal(path, tmp_path / "equity.ndjson")
+    assert journal.read_journal_entries() == [{"event": "good"}]
+    assert journal.unreadable_journal_lines == 2
+    assert path.read_text() == content
 
 
 def test_the_journal_rotates_at_the_cap_and_readers_span_both_files(tmp_path: Path) -> None:
@@ -536,3 +659,23 @@ def test_the_equity_curve_is_never_rotated(tmp_path: Path) -> None:
 
     assert not (tmp_path / "equity.1.ndjson").exists()
     assert len(journal.read_equity_curve()) == 50
+
+
+def test_waiting_for_staged_fills_does_not_exhaust_the_failure_budget(tmp_path, monkeypatch):
+    from executor.errors import BatchPendingError
+
+    client = _FakeClient((_session("2026-08-11"),), _at("2026-08-11", 9, 30))
+    daemon = _daemon(tmp_path, client)
+    calls = []
+
+    def wait_for_fills(*_args, **_kwargs):
+        calls.append(1)
+        raise BatchPendingError("waiting for confirmed sale")
+
+    monkeypatch.setattr(daemon, "run_submit", wait_for_fills)
+    for _ in range(8):
+        daemon.tick()
+        client.now += dt.timedelta(seconds=6)
+    assert len(calls) == 8
+    assert all(value == 0 for value in daemon._attempts.values())
+    assert not _events(daemon._settings, "phase_exhausted")

@@ -13,9 +13,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: amat-executor:0.1.0
+    image: amat-executor:vps-20261008
     container_name: amat-executor
     restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    pids_limit: 256
+    mem_limit: ${EXECUTOR_MEMORY_LIMIT:-640m}
+    memswap_limit: ${EXECUTOR_MEMORY_SWAP_LIMIT:-1g}
+    cpus: ${EXECUTOR_CPU_LIMIT:-1.0}
     # Let SIGTERM finish an in-flight broker observation/submission and flush
     # its journal before Docker escalates to SIGKILL during a recreate.
     stop_grace_period: 2m
@@ -27,6 +33,7 @@ services:
     # calendar in exchange-local time and are converted explicitly, so the
     # host's timezone never enters the decision.
     environment:
+      TRADING_MODE: paper
       TZ: UTC
       AMAT_ROOT: /opt/amat
       STATE_ROOT: /var/lib/amat-executor
@@ -52,7 +59,7 @@ services:
       - amat-venv:/home/executor/amat-venv
 
     tmpfs:
-      - /tmp:size=512m
+      - /tmp:size=128m
 
     # Bounded logs. Without this, a daemon that logs every few minutes for a
     # year will quietly fill the VPS disk -- the same failure the report
@@ -63,20 +70,68 @@ services:
         max-size: "10m"
         max-file: "5"
 
-    # `executor check` contacts the broker and exits non-zero on any
-    # misconfiguration, so it doubles as a liveness probe. The long start
-    # period covers the first `uv sync` of the strategy's dependency tree.
+    # Durable loop progress, independent of a successful account-only request.
+    # Docker marks unhealthy but does not restart on health alone; the internal
+    # monotonic watchdog exits on a stalled loop to trigger restart policy.
     healthcheck:
-      test: ["CMD", "executor", "account"]
-      interval: 15m
-      timeout: 2m
+      test: ["CMD", "executor", "health"]
+      interval: 1m
+      timeout: 10s
       retries: 3
       start_period: 10m
 
     security_opt:
       - no-new-privileges:true
 
+  executor-live:
+    profiles: [live]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: amat-executor-live:local
+    container_name: amat-executor-live
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 256
+    mem_limit: ${LIVE_EXECUTOR_MEMORY_LIMIT:-640m}
+    memswap_limit: ${LIVE_EXECUTOR_MEMORY_SWAP_LIMIT:-1g}
+    cpus: ${LIVE_EXECUTOR_CPU_LIMIT:-1.0}
+    stop_grace_period: 2m
+    env_file:
+      - path: .env.live
+        required: false
+    environment:
+      TRADING_MODE: live
+      TZ: UTC
+      AMAT_ROOT: /opt/amat
+      STATE_ROOT: /var/lib/amat-executor-live
+      UV_PROJECT_ENVIRONMENT: /home/executor/amat-venv
+      UV_CACHE_DIR: /home/executor/.cache/uv
+    volumes:
+      - ../amat:/opt/amat:ro
+      - executor-live-state:/var/lib/amat-executor-live
+      - live-uv-cache:/home/executor/.cache/uv
+      - live-amat-venv:/home/executor/amat-venv
+    tmpfs:
+      - /tmp:size=128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD", "executor", "health"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 10m
+
 volumes:
   executor-state:
   uv-cache:
   amat-venv:
+  executor-live-state:
+  live-uv-cache:
+  live-amat-venv:

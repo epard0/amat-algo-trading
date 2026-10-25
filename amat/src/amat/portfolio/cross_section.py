@@ -54,6 +54,7 @@ __all__ = [
     "CrossSectionOutcome",
     "horizon_agreement",
     "select_cross_section",
+    "select_on_schedule",
 ]
 
 
@@ -140,6 +141,8 @@ def select_cross_section(
                 "filter cannot be evaluated and must not be silently skipped"
             )
             raise DataIntegrityError(message)
+        if horizon_z.ndim != 2:  # noqa: PLR2004 - (H, N) contract
+            raise DataIntegrityError("horizon_z must be (H, N) for one session")
         if horizon_z.shape[1] != count:
             message = (
                 f"horizon panel covers {horizon_z.shape[1]} assets but the score vector "
@@ -175,3 +178,48 @@ def select_cross_section(
         eligible=eligible,
         binding=tuple(binding),
     )
+
+
+def select_on_schedule(
+    scores: np.ndarray,
+    sigma: np.ndarray,
+    config: CrossSectionConfig,
+    *,
+    decision_index: int,
+    first_decision_index: int,
+    horizon_scores: np.ndarray | None = None,
+) -> np.ndarray:
+    """Refresh relative ranking periodically; apply absolute eligibility daily.
+
+    The fixed schedule starts after warm-up and a complete longest horizon.
+    Between refreshes an eligible member can retain its allocation even when
+    another asset overtakes its rank. A negative/unavailable score or failed
+    horizon confirmation can still exit immediately. Sizing and caps continue
+    to update every session. The default is the original daily ranking.
+    """
+    if scores.ndim != 2 or sigma.shape != scores.shape:  # noqa: PLR2004
+        raise DataIntegrityError("scores and sigma must be aligned (T, N) panels")
+    if horizon_scores is not None and (
+        horizon_scores.ndim != 3 or horizon_scores.shape[1:] != scores.shape  # noqa: PLR2004
+    ):
+        raise DataIntegrityError("horizon_scores must be an aligned (H, T, N) panel")
+    if not 0 <= decision_index < len(scores) or first_decision_index < 0:
+        raise DataIntegrityError("selection schedule indices are outside available history")
+
+    def selection(index: int) -> CrossSectionOutcome:
+        usable = np.isfinite(scores[index]) & np.isfinite(sigma[index]) & (sigma[index] > 0)
+        return select_cross_section(
+            np.where(usable, scores[index], 0.0),
+            config,
+            horizon_z=horizon_scores[:, index, :] if horizon_scores is not None else None,
+        )
+
+    current = selection(decision_index)
+    interval = config.selection_interval_sessions
+    if interval == 1:
+        return current.scores
+    if decision_index < first_decision_index:
+        return np.zeros_like(current.scores)
+    refresh = first_decision_index + (decision_index - first_decision_index) // interval * interval
+    retained = selection(refresh).selected & current.eligible
+    return np.where(retained, scores[decision_index], 0.0)

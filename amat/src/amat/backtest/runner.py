@@ -22,10 +22,13 @@ never touches a row past its session.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field, replace
 from decimal import Decimal
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from amat.execution.budget import CashBudgetPolicy
 
 import numpy as np
 
@@ -45,6 +48,8 @@ from amat.portfolio import (
     AllocationResult,
     PrecomputedDecisionInputs,
     decide,
+    forecast_volatility,
+    ledoit_wolf_covariance,
     precompute_decision_inputs,
 )
 from amat.validation.conditioning import regime_scalars
@@ -53,6 +58,7 @@ __all__ = [
     "BacktestResult",
     "DecisionOverlay",
     "RunResult",
+    "ScheduledDecisionContext",
     "SessionRecord",
     "StanceBlend",
     "run_backtest",
@@ -123,6 +129,145 @@ class StanceBlend:
 
 
 @dataclass(frozen=True, slots=True)
+class ScheduledDecisionContext:
+    """Frozen decision inputs activated strictly after their selection cutoff.
+
+    Arrays span the complete panel. The runner copies and validates them before
+    replay; settlement, cash, pending orders and exit state remain continuous.
+    """
+
+    context_id: str
+    activation_session: SessionDate
+    selection_cutoff: SessionDate
+    strategy: StrategyConfig
+    weight_scalars: np.ndarray | None = None
+    decision_overlay: DecisionOverlay | None = None
+    exit_rules: ExitPolicy | None = None
+    signal_override: np.ndarray | None = None
+    version: int = 1
+    account_identity: str = "research"
+    policy_identity: str = "native-whole-share-v1"
+
+
+@dataclass(frozen=True, slots=True)
+class _PreparedContext:
+    declaration: ScheduledDecisionContext
+    inputs: PrecomputedDecisionInputs
+    weight_scalars: np.ndarray | None
+    overlay: DecisionOverlay | None
+
+
+def _fixed_schedule_config(strategy: StrategyConfig) -> dict[str, Any]:
+    value = strategy.model_dump(mode="json")
+    allowed = {
+        "trend": ("deadband_abs", "clip_abs", "horizons_sessions"),
+        "volatility": ("fast_half_life_sessions", "slow_half_life_sessions", "slow_weight"),
+        "rebalance": ("min_weight_delta",),
+        "constraints": ("target_annualized_volatility",),
+        "cross_sectional": ("selection_interval_sessions", "max_positions"),
+        "allocation": ("volatility_power",),
+    }
+    for section, fields in allowed.items():
+        for name in fields:
+            # Default allocation volatility power is omitted by serialization.
+            # Normalize the absent section before removing searched fields.
+            value.setdefault(section, {}).pop(name, None)
+    return value
+
+
+def _frozen_array(array: np.ndarray | None) -> np.ndarray | None:
+    if array is None:
+        return None
+    result = np.array(array, copy=True)
+    result.flags.writeable = False
+    return result
+
+
+def _prepare_schedule(
+    schedule: Sequence[ScheduledDecisionContext],
+    strategy: StrategyConfig,
+    panel: MarketPanel,
+    *,
+    one_way_bps: float,
+) -> dict[int, _PreparedContext]:
+    prepared = {}
+    last = None
+    identifiers: set[str] = set()
+    fixed = _fixed_schedule_config(strategy)
+    for declared in schedule:
+        context = replace(
+            declared,
+            strategy=StrategyConfig.model_validate(declared.strategy.model_dump(mode="python")),
+        )
+        if (
+            type(context.version) is not int
+            or context.version != 1
+            or context.account_identity != "research"
+            or context.policy_identity != "native-whole-share-v1"
+            or context.selection_cutoff not in panel.sessions
+            or not context.context_id
+            or context.context_id == "baseline"
+            or context.context_id in identifiers
+            or context.activation_session not in panel.sessions
+            or context.selection_cutoff >= context.activation_session
+            or (last is not None and context.activation_session <= last)
+        ):
+            raise DataIntegrityError(
+                "schedule requires unique contexts and ordered causal sessions"
+            )
+        if context.strategy.adaptive_rotation.switch_condition == "volatility":
+            context = replace(
+                context,
+                strategy=context.strategy.model_copy(
+                    update={
+                        "adaptive_rotation": context.strategy.adaptive_rotation.model_copy(
+                            update={"switch_cost_bps": one_way_bps}
+                        )
+                    }
+                ),
+            )
+        if _fixed_schedule_config(context.strategy) != fixed:
+            raise DataIntegrityError(
+                "scheduled configuration changes fixed execution/accounting fields"
+            )
+        if (
+            panel.sessions.index(context.activation_session)
+            < context.strategy.warmup.min_completed_sessions - 1
+        ):
+            raise DataIntegrityError("scheduled activation leaves insufficient signal warm-up")
+        identifiers.add(context.context_id)
+        last = context.activation_session
+        scalar = _frozen_array(
+            _resolve_weight_scalars(context.strategy, panel, context.weight_scalars)
+        )
+        _validate_weight_scalars(scalar, len(panel))
+        overlay = context.decision_overlay
+        if overlay is not None:
+            overlay = DecisionOverlay(
+                np.array(overlay.risk_multipliers, copy=True),
+                np.array(overlay.allow_increase, copy=True),
+                _frozen_array(overlay.increase_multipliers),
+            )
+            overlay.risk_multipliers.flags.writeable = False
+            overlay.allow_increase.flags.writeable = False
+        _validate_decision_overlay(overlay, len(panel), len(panel.symbols))
+        inputs, _ = _precompute_run_inputs(
+            context.strategy, None, panel, signal_override=_frozen_array(context.signal_override)
+        )
+        # Copy a per-symbol rule mapping so callers cannot mutate policy mid-run.
+        rules = (
+            dict(context.exit_rules)
+            if isinstance(context.exit_rules, Mapping)
+            else context.exit_rules
+        )
+        declaration = replace(context, exit_rules=rules)
+        prepared[panel.sessions.index(context.activation_session)] = _PreparedContext(
+            declaration, inputs, scalar, overlay
+        )
+    return prepared
+
+
+@dataclass(frozen=True, slots=True)
 class SessionRecord:
     """What happened in one simulated session."""
 
@@ -136,6 +281,11 @@ class SessionRecord:
     missed: tuple[MissedFill, ...]
     attribution: PeriodAttribution
     binding_constraints: tuple[str, ...]
+    # Instructions due today, after split restatement and before settlement.
+    # Keep intent even when an order is only partially filled or missed.
+    instructions: tuple[SimulatedOrder, ...] = ()
+    decision_context_id: str | None = None
+    activated_context: bool = False
 
 
 @runtime_checkable
@@ -307,7 +457,10 @@ def _settle_session(
     """
     instructions, unbacked = _clamp_sales_to_holdings(instructions, ledger)
     fills, missed = execution_model.execute(
-        instructions, panel.windows_at(index), available_cash=ledger.cash
+        instructions,
+        panel.windows_at(index),
+        available_cash=ledger.cash,
+        account_equity=ledger.equity,
     )
     missed = [*unbacked, *missed]
     advanced, attribution = accountant.advance(
@@ -398,13 +551,14 @@ def _rescale_pending_across_split(
     return notes
 
 
-def _schedule_decision(
+def _schedule_decision(  # noqa: PLR0912, PLR0915 - ordered overlays and forced risk reductions
     strategy: StrategyConfig,
     panel: MarketPanel,
     universe: Universe,
     *,
     index: int,
     execution_index: int,
+    execution_session_override: SessionDate | None = None,
     ledger: LedgerSnapshot,
     pending: dict[SessionDate, list[SimulatedOrder]],
     pending_missed: dict[SessionDate, list[MissedFill]],
@@ -417,6 +571,10 @@ def _schedule_decision(
     symbol_columns: Mapping[Symbol, int] | None = None,
     precomputed: PrecomputedDecisionInputs | None = None,
     stance_inputs: PrecomputedDecisionInputs | None = None,
+    decision_policy: Callable[
+        [dict[Symbol, float], LedgerSnapshot, SessionDate, np.ndarray], dict[Symbol, float]
+    ]
+    | None = None,
 ) -> tuple[AllocationResult | None, str | None]:
     """Form session ``index``'s decision and schedule it into a later session.
 
@@ -465,10 +623,18 @@ def _schedule_decision(
         # the whole book toward cash, which is what a risk scalar means.
         scalar = float(weight_scalars[index])
         targets = {symbol: weight * scalar for symbol, weight in targets.items()}
+    # Both entry permission and instruction sizing must reference the same
+    # holdings, including orders that have not settled yet. Otherwise a pending
+    # exit can be counteracted by a new buy while increases are forbidden.
+    in_flight: dict[Symbol, Decimal] = {}
+    for orders in pending.values():
+        for order in orders:
+            signed = order.quantity if order.side is Side.BUY else -order.quantity
+            in_flight[order.symbol] = in_flight.get(order.symbol, Decimal(0)) + signed
     if decision_overlay is not None:
         targets = _apply_decision_overlay(
             targets,
-            current_weights=ledger.weights(),
+            current_weights=_pending_position_weights(ledger, panel.marks_at(index), in_flight),
             symbols=universe.symbols,
             overlay=decision_overlay,
             index=index,
@@ -492,16 +658,36 @@ def _schedule_decision(
             symbol_columns=symbol_columns,
         )
 
-    execution_session = panel.sessions[execution_index]
-    # Net signed quantities already scheduled but not yet settled. Empty at
-    # the baseline lag of 1 (everything settles before the next decision);
-    # at a stressed lag >= 2 it is what stops consecutive overlapping
-    # decisions from selling the same shares twice.
-    in_flight: dict[Symbol, Decimal] = {}
-    for orders in pending.values():
-        for order in orders:
-            signed = order.quantity if order.side is Side.BUY else -order.quantity
-            in_flight[order.symbol] = in_flight.get(order.symbol, Decimal(0)) + signed
+    risk_reduced_symbols: set[Symbol] = set()
+    if decision_policy is not None:
+        if precomputed is None:
+            raise DataIntegrityError("active policy requires causal decision inputs")
+        covariance = ledoit_wolf_covariance(precomputed.returns[1 : index + 1], strategy.covariance)
+        original_targets = dict(targets)
+        targets = decision_policy(targets, ledger, session, covariance)
+        if set(targets) != set(original_targets) or any(
+            not np.isfinite(v) or v < 0 or v > original_targets[s] + 1e-12
+            for s, v in targets.items()
+        ):
+            raise DataIntegrityError("decision policy may only reduce existing targets")
+        risk_reduced_symbols = {s for s in targets if targets[s] < original_targets[s] - 1e-12}
+        weights = np.array([targets[s] for s in universe.symbols])
+        allocation = replace(
+            allocation,
+            weights=weights,
+            gross_exposure=float(weights.sum()),
+            cash_weight=1 - float(weights.sum()),
+            forecast_volatility_post=forecast_volatility(weights, covariance),
+            binding=(*allocation.binding, "active_research_policy"),
+        )
+
+    execution_session = (
+        panel.sessions[execution_index]
+        if execution_session_override is None
+        else execution_session_override
+    )
+    if execution_session <= session:
+        raise CausalityError("planned execution must follow the completed decision session")
     instructions, below_minimum = build_instructions(
         targets,
         ledger.positions,
@@ -513,11 +699,49 @@ def _schedule_decision(
         execution=strategy.execution,
         in_flight=in_flight,
     )
+    if risk_reduced_symbols:
+        forced, forced_missed = build_instructions(
+            {s: targets[s] for s in risk_reduced_symbols},
+            {s: p for s, p in ledger.positions.items() if s in risk_reduced_symbols},
+            panel.marks_at(index),
+            ledger.equity,
+            signal_session=session,
+            execution_session=execution_session,
+            rebalance=strategy.rebalance.model_copy(
+                update={"min_weight_delta": 0.0, "min_trade_notional": Decimal(0)}
+            ),
+            execution=strategy.execution,
+            in_flight={s: q for s, q in in_flight.items() if s in risk_reduced_symbols},
+        )
+        forced = [o for o in forced if o.side is Side.SELL]
+        forced_symbols = {o.symbol for o in forced}
+        instructions = [o for o in instructions if o.symbol not in forced_symbols] + forced
+        below_minimum = [m for m in below_minimum if m.symbol not in forced_symbols]
+        below_minimum += [m for m in forced_missed if m.side is Side.SELL]
     if instructions:
         pending.setdefault(execution_session, []).extend(instructions)
     if below_minimum:
         pending_missed.setdefault(execution_session, []).extend(below_minimum)
     return allocation, None
+
+
+def _pending_position_weights(
+    ledger: LedgerSnapshot,
+    marks: Mapping[Symbol, Decimal],
+    in_flight: Mapping[Symbol, Decimal],
+) -> Mapping[Symbol, float]:
+    """Reference entry changes to already scheduled quantities at current marks."""
+    weights = dict(ledger.weights())
+    if ledger.equity <= 0:
+        return weights
+    for symbol, pending_quantity in in_flight.items():
+        mark = marks.get(symbol)
+        if mark is None:
+            continue
+        held = ledger.positions.get(symbol)
+        quantity = (held.quantity if held is not None else Decimal(0)) + pending_quantity
+        weights[symbol] = float(max(Decimal(0), quantity) * mark / ledger.equity)
+    return weights
 
 
 def _apply_decision_overlay(
@@ -681,11 +905,10 @@ def _apply_signal_override(
         message = "signal_override must lie in [0, 1]; the mandate is long-or-cash"
         raise DataIntegrityError(message)
     masked = np.where(np.isfinite(precomputed.long_scores), override, np.nan)
-    return PrecomputedDecisionInputs(
-        returns=precomputed.returns,
-        sigma_panel=precomputed.sigma_panel,
-        long_scores=masked,
-    )
+    # A score intervention leaves the market/risk context intact. Rebuilding
+    # this record dropped horizon agreement, quality and structure inputs and
+    # made configured allocation guards reject every control decision.
+    return replace(precomputed, long_scores=masked)
 
 
 def _precompute_run_inputs(
@@ -694,6 +917,7 @@ def _precompute_run_inputs(
     panel: MarketPanel,
     *,
     signal_override: np.ndarray | None = None,
+    switch_cost_gate: np.ndarray | None = None,
 ) -> tuple[PrecomputedDecisionInputs, PrecomputedDecisionInputs | None]:
     """Feature panels computed once for the whole run.
 
@@ -706,15 +930,31 @@ def _precompute_run_inputs(
     ``signal_override`` (research controls only) replaces the primary long
     scores after the causal pass, masked by their own availability.
     """
-    primary = precompute_decision_inputs(strategy, panel.adjusted_closes)
+    primary = precompute_decision_inputs(strategy, panel.adjusted_closes, sessions=panel.sessions)
     if signal_override is not None:
         primary = _apply_signal_override(primary, signal_override, len(panel))
+    if signal_override is not None or switch_cost_gate is not None:
+        if switch_cost_gate is not None and not strategy.adaptive_rotation.enabled:
+            raise DataIntegrityError("Switch gates require adaptive rotation")
+        if strategy.adaptive_rotation.enabled:
+            from amat.portfolio.adaptive import rotation_inputs  # noqa: PLC0415
+
+            scores, scalars = rotation_inputs(
+                strategy,
+                panel.adjusted_closes,
+                primary.long_scores,
+                primary.sigma_panel,
+                primary.horizon_scores,
+                sessions=panel.sessions,
+                switch_cost_gate=switch_cost_gate,
+            )
+            primary = replace(primary, adaptive_scores=scores, adaptive_scalars=scalars)
     # Built only when some session actually blends: with every weight at 1.0
     # the defensive decide() is never called, and the pre-cache code never
     # touched the stance panel either -- eager computation would change which
     # runs a defective stance panel can fail.
     defensive = (
-        precompute_decision_inputs(stance.strategy, stance.adjusted_closes)
+        precompute_decision_inputs(stance.strategy, stance.adjusted_closes, sessions=panel.sessions)
         if stance is not None and bool(np.any(stance.weights < 1.0))
         else None
     )
@@ -764,12 +1004,26 @@ def _resolve_weight_scalars(
     )
 
 
-def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally explicit
+def _initial_decision(
+    panel: MarketPanel, warmup: int, lag: int, execution_start: SessionDate | None
+) -> int:
+    if execution_start is None:
+        return warmup - 1
+    if execution_start not in panel.sessions:
+        raise DataIntegrityError("execution_start must be an observed exchange session")
+    index = panel.sessions.index(execution_start) - lag
+    if index < warmup - 1:
+        raise DataIntegrityError("execution_start leaves insufficient signal warm-up")
+    return index
+
+
+def run_backtest(  # noqa: PLR0912, PLR0915 - ordered accounting loop is intentionally explicit
     strategy: StrategyConfig,
     panel: MarketPanel,
     universe: Universe,
     *,
     initial_cash: Cash = Decimal("100000"),
+    execution_start: SessionDate | None = None,
     one_way_bps: float | None = None,
     actions_by_session: Mapping[SessionDate, Sequence[CorporateAction]] | None = None,
     weight_scalars: np.ndarray | None = None,
@@ -779,6 +1033,15 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
     exit_rules: ExitPolicy | None = None,
     drop_every_nth_fill: int | None = None,
     signal_override: np.ndarray | None = None,
+    switch_cost_gate: np.ndarray | None = None,
+    execution_cash_policy: CashBudgetPolicy | None = None,
+    whole_share_buys: bool = True,
+    decision_schedule: Sequence[ScheduledDecisionContext] | None = None,
+    full_history: bool = False,
+    decision_policy: Callable[
+        [dict[Symbol, float], LedgerSnapshot, SessionDate, np.ndarray], dict[Symbol, float]
+    ]
+    | None = None,
 ) -> BacktestResult:
     """Run the research backtest over ``panel``.
 
@@ -786,6 +1049,9 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
         strategy: Validated configuration; supplies every frozen parameter.
         panel: Aligned market series whose symbol order matches ``universe``.
         universe: Cluster membership and deterministic column order.
+        execution_start: Optional first permitted fill session. Opens a flat ledger
+            lag sessions earlier while retaining the complete signal history and
+            selection schedule. No earlier orders or missed fills are invented.
         initial_cash: Opening cash balance.
         one_way_bps: Cost override for the stress ladder. ``None`` uses the
             configured baseline.
@@ -798,6 +1064,16 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
             swapped for a shuffled control, neither of which was possible with
             the rejected v2 overlay's in-loop mutable state. ``None`` means v1 --
             identical to an array of ones.
+        decision_schedule: Versioned research-only strategy/exit contexts. Activation
+            is a decision close strictly after an observed selection cutoff;
+            pending orders settle before activation. Execution, cash, universe and
+            account/policy identity cannot change. Exit bases and embargoes carry.
+        full_history: Include flat warm-up records without allowing early decisions.
+            Defaults to False; signal history remains complete in either mode.
+        switch_cost_gate: Optional research-only boolean (T, N) mask. Activates
+            the configured membership cost hurdle when either side meets the gate.
+            The caller must construct it causally from observations through close;
+            False everywhere is identical to unhindered native selection.
         decision_overlay: Optional causal ``(T, N)`` per-asset v6 overlay. It
             may reduce targets and may block increases, but cannot add risk.
         max_entry_window_participation: Optional v6 execution guard that clips
@@ -862,21 +1138,50 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
         one_way_bps=one_way_bps,
         max_entry_window_participation=max_entry_window_participation,
         drop_every_nth_fill=drop_every_nth_fill,
+        cash_policy=execution_cash_policy,
+        whole_share_buys=whole_share_buys,
     )
+    # Bind the conditional hurdle to this run's known execution-cost assumption.
+    # Historical research overrides keep their explicit gate/cost behavior.
+    if strategy.adaptive_rotation.switch_condition == "volatility":
+        strategy = strategy.model_copy(
+            update={
+                "adaptive_rotation": strategy.adaptive_rotation.model_copy(
+                    update={"switch_cost_bps": execution_model.one_way_bps}
+                )
+            }
+        )
     accountant = SessionAccountant()
     actions_by_session = actions_by_session or {}
 
     cash_rate = _require_constant_cash_rate(strategy)
 
     precomputed, stance_inputs = _precompute_run_inputs(
-        strategy, stance, panel, signal_override=signal_override
+        strategy, stance, panel, signal_override=signal_override, switch_cost_gate=switch_cost_gate
     )
 
-    # The ledger opens at the last warm-up session, flat and fully in cash.
-    first_decision = warmup - 1
-    ledger = LedgerSnapshot(
-        session_date=panel.sessions[first_decision], cash=initial_cash, positions={}
+    if decision_schedule and (stance is not None or decision_policy is not None):
+        raise DataIntegrityError(
+            "scheduled contexts cannot combine with stance or external decision policy"
+        )
+    if decision_schedule and (not whole_share_buys or execution_cash_policy is not None):
+        raise DataIntegrityError("schedule v1 requires native whole-share cash policy")
+    scheduled = _prepare_schedule(
+        decision_schedule or (), strategy, panel, one_way_bps=execution_model.one_way_bps
     )
+    scheduled_mode = bool(scheduled)
+    active_strategy, active_scalars = strategy, weight_scalars
+    active_overlay, active_exits, active_inputs = decision_overlay, exit_rules, precomputed
+
+    # The ledger opens at the last warm-up session, flat and fully in cash.
+    first_decision = _initial_decision(panel, warmup, lag, execution_start)
+    first_record = 0 if full_history else first_decision
+    ledger = LedgerSnapshot(
+        session_date=panel.sessions[first_record], cash=initial_cash, positions={}
+    )
+
+    if any(index < first_decision for index in scheduled):
+        raise DataIntegrityError("scheduled activation precedes ledger opening")
 
     records: list[SessionRecord] = []
     warnings: list[str] = []
@@ -895,7 +1200,8 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
         symbol: column for column, symbol in enumerate(universe.symbols)
     }
 
-    for index in range(first_decision, total):
+    active_context_id: str | None = None
+    for index in range(first_record, total):
         session = panel.sessions[index]
 
         # --- restate in-flight instructions across a split ----------------
@@ -910,7 +1216,8 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
         )
 
         # --- settle anything scheduled to execute today -------------------
-        if index > first_decision:
+        instructions = tuple(pending.get(session, ()))
+        if index > first_record:
             ledger, attribution, fills, missed = _settle_session(
                 ledger,
                 session,
@@ -928,7 +1235,7 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
             fills, missed = [], []
             attribution = _ZERO_ATTRIBUTION
 
-        if exit_rules is not None:
+        if active_exits is not None or scheduled_mode:
             track_entry_bases(
                 entry_basis,
                 fills=fills,
@@ -938,12 +1245,19 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
                 symbol_columns=symbol_columns,
             )
 
+        if index in scheduled:
+            context = scheduled[index]
+            active_context_id = context.declaration.context_id
+            active_strategy, active_scalars = context.declaration.strategy, context.weight_scalars
+            active_overlay, active_exits = context.overlay, context.declaration.exit_rules
+            active_inputs = context.inputs
+
         # --- form today's decision, and schedule it for a later session ---
         allocation = None
         execution_index = index + lag
-        if execution_index < total:
+        if index >= first_decision and execution_index < total:
             allocation, note = _schedule_decision(
-                strategy,
+                active_strategy,
                 panel,
                 universe,
                 index=index,
@@ -951,15 +1265,18 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
                 ledger=ledger,
                 pending=pending,
                 pending_missed=pending_missed,
-                weight_scalars=weight_scalars,
-                decision_overlay=decision_overlay,
+                weight_scalars=active_scalars,
+                decision_overlay=active_overlay,
                 stance=stance,
-                exit_rules=exit_rules,
+                exit_rules=active_exits
+                if active_exits is not None
+                else ({} if scheduled_mode else None),
                 entry_basis=entry_basis,
                 embargo_until=embargo_until,
                 symbol_columns=symbol_columns,
-                precomputed=precomputed,
+                precomputed=active_inputs,
                 stance_inputs=stance_inputs,
+                decision_policy=decision_policy,
             )
             if note is not None:
                 warnings.append(note)
@@ -980,6 +1297,9 @@ def run_backtest(  # noqa: PLR0915 - ordered accounting loop is intentionally ex
                 missed=tuple(missed),
                 attribution=attribution,
                 binding_constraints=allocation.binding if allocation else (),
+                instructions=instructions,
+                decision_context_id=active_context_id,
+                activated_context=index in scheduled,
             )
         )
 

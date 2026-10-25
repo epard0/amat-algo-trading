@@ -1,0 +1,89 @@
+id,command,argument_count,primary_route,ui_status,required_acceptance
+CMD-001,amat validate-config,2,/settings,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-002,amat show-config,2,/settings,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-003,amat show-universe,2,/settings,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-004,amat show-layout,2,/settings,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-005,amat show-environment,1,/settings,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-006,amat backtest-synthetic,8,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-007,amat report,9,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-008,amat backtest,14,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-009,amat study,18,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-010,amat study-v4,13,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-011,amat simulate,7,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-012,amat plan,10,/strategies,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-013,amat scan,8,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-014,amat walkforward,10,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-015,amat declare-holdout,3,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-016,amat montecarlo,15,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-017,amat project,16,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-018,amat stress,10,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-019,amat stress-heavytail,15,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-020,amat regime-experiment,15,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-021,amat sweep-target-vol,12,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-022,amat sweep-exit-rules,16,/analysis,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-023,autoresearch patterns validate-search,5,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-024,autoresearch patterns shadow-freeze,7,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-025,autoresearch patterns shadow-observe,5,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-026,autoresearch patterns shadow-refresh,7,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-027,autoresearch patterns shadow-spot-intraday,5,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-028,autoresearch patterns shadow-audit-intraday,4,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-029,autoresearch patterns shadow-fetch-intraday,4,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-030,autoresearch patterns shadow-fetch-native,5,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-031,autoresearch patterns shadow-compare-native,5,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-032,autoresearch patterns search-parameters,11,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-033,autoresearch patterns walkforward-parameters,9,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-034,autoresearch patterns compare-components,7,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-035,autoresearch patterns shadow-register,5,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-036,autoresearch patterns shadow-poll,5,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-037,autoresearch patterns validate,1,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-038,autoresearch patterns discover-symbolic,20,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-039,autoresearch patterns replay,8,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-040,autoresearch patterns discover,16,/patterns,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-041,autoresearch trades,2,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-042,autoresearch follow-up,3,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-043,autoresearch related,3,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-044,autoresearch charts,2,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-045,autoresearch start,16,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-046,autoresearch promote,5,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-047,autoresearch active,1,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-048,autoresearch view,3,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-049,autoresearch analyze,2,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-050,autoresearch failures,4,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-051,autoresearch features,0,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-052,autoresearch init,16,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-053,autoresearch loop,4,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-054,autoresearch run-one,3,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-055,autoresearch status,3,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-056,autoresearch checkpoint,1,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-057,autoresearch diagnostics,2,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-058,autoresearch summarize,3,/research,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-059,pmteam import-catalog,2,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-060,pmteam review,11,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-061,pmteam evaluate,10,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-062,pmteam cycle,11,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-063,pmteam status,1,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-064,pmteam preflight,11,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-065,pmteam plan,2,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-066,pmteam approve-task,4,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-067,pmteam dispatch-task,3,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-068,pmteam execute-task,4,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-069,pmteam show,2,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-070,pmteam replay,3,/reviews,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-071,newsdesk ingest-marketaux,6,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-072,newsdesk ingest-alpaca,5,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-073,newsdesk ingest-adanos,5,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-074,newsdesk coverage,1,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-075,newsdesk knowable,4,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-076,newsdesk export-scalars,9,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-077,newsdesk discover-assets,10,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-078,deskreview,7,/markets,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-079,executor run,1,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-080,executor status,3,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-081,executor daemon,1,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-082,executor check,1,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-083,executor account,1,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-084,executor calendar,1,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-085,executor submit,2,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-086,executor report,2,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-087,executor prune,2,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification
+CMD-088,executor trades,2,/execution,planned,Typed input parity; backend validation; lifecycle/error rendering; source-linked output; side-effect classification

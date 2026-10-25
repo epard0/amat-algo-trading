@@ -1,0 +1,10 @@
+{
+  "baseline": {},
+  "growth_rotation4_20": {"risk": 0.20, "growth_caps": true, "power": 0, "slow": true, "top": 4},
+  "rotation5_20_weekly": {"risk": 0.20, "caps": true, "power": 0, "slow": true, "top": 5, "selection_interval": 5},
+  "rotation5_20_monthly": {"risk": 0.20, "caps": true, "power": 0, "slow": true, "top": 5, "selection_interval": 21},
+  "growth_rotation4_16_monthly": {"risk": 0.16, "growth_caps": true, "power": 0, "slow": true, "top": 4, "selection_interval": 21},
+  "growth_rotation4_20_monthly": {"risk": 0.20, "growth_caps": true, "power": 0, "slow": true, "top": 4, "selection_interval": 21},
+  "growth_rotation4_24_monthly": {"risk": 0.24, "growth_caps": true, "power": 0, "slow": true, "top": 4, "selection_interval": 21},
+  "growth_rotation4_20_weekly": {"risk": 0.20, "growth_caps": true, "power": 0, "slow": true, "top": 4, "selection_interval": 5}
+}

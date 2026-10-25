@@ -1,0 +1,75 @@
+# Research policy. Space Bunny is the default OpenRouter model.
+# OpenRouter routes are explicitly free. Gemini/Groq use account billing/quota.
+# Frozen runs retain their recorded configuration; use --chain/--summary-chain overrides.
+[[targets]]
+provider = "gemini"
+model = "gemini-3.8-flash"
+
+[[targets]]
+provider = "gemini"
+model = "gemini-3.5-flash-lite"
+
+[[targets]]
+provider = "gemini"
+model = "gemini-3.1-flash-lite"
+
+[[targets]]
+provider = "openrouter"
+model = "stealth/space-bunny-alpha"
+
+[[targets]]
+provider = "openrouter"
+model = "qwen/qwen3.8-27b:free"
+
+[[targets]]
+provider = "openrouter"
+model = "nvidia/nemotron-3-ultra-550b-a55b:free"
+
+[[targets]]
+provider = "groq"
+model = "openai/gpt-oss-120b"
+
+# Coding and complex work keep Luna first, then Gemini before Space Bunny.
+[[coding_targets]]
+provider = "openai"
+model = "gpt-5.6-luna"
+
+[[coding_targets]]
+provider = "gemini"
+model = "gemini-3.8-flash"
+
+[[coding_targets]]
+provider = "groq"
+model = "openai/gpt-oss-120b"
+
+[[coding_targets]]
+provider = "openrouter"
+model = "stealth/space-bunny-alpha"
+
+[[judge_targets]]
+provider = "groq"
+model = "openai/gpt-oss-120b"
+
+[[judge_targets]]
+provider = "gemini"
+model = "gemini-3.8-flash"
+
+[[judge_targets]]
+provider = "openrouter"
+model = "stealth/space-bunny-alpha"
+
+[[complex_targets]]
+provider = "openai"
+model = "gpt-5.6-luna"
+
+[[complex_targets]]
+provider = "gemini"
+model = "gemini-3.8-flash"
+
+[[complex_targets]]
+provider = "groq"
+model = "openai/gpt-oss-120b"
+
+[[complex_targets]]
+provider = "openrouter"
+model = "stealth/space-bunny-alpha"

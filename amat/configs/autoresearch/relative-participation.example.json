@@ -1,0 +1,57 @@
+{
+  "hypothesis": "Test whether the registered signal adds information after costs and matched exposure controls.",
+  "patches": [],
+  "features": [],
+  "signal": {
+    "terms": [
+      {
+        "feature": {
+          "kind": "relative_strength",
+          "lookback": 63,
+          "secondary_lookback": 21,
+          "smoothing": 1,
+          "transform": "time_series_rank",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0
+        },
+        "weight": 0.6,
+        "center": 0.5,
+        "scale": 0.25
+      },
+      {
+        "feature": {
+          "kind": "volume_price",
+          "lookback": 21,
+          "secondary_lookback": 21,
+          "smoothing": 3,
+          "transform": "identity",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0
+        },
+        "weight": 0.4,
+        "center": 0.0,
+        "scale": 1.0
+      }
+    ],
+    "interactions": [
+      {
+        "left": 0,
+        "right": 1,
+        "operation": "product",
+        "weight": 0.15
+      }
+    ],
+    "learner": "weighted",
+    "horizon": 20,
+    "baseline_mix": 0.0,
+    "policy": {
+      "entry_threshold": 0.55,
+      "exit_threshold": 0.45,
+      "confirmation_sessions": 2,
+      "min_hold_sessions": 3
+    }
+  },
+  "stage": "manual"
+}

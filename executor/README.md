@@ -1,13 +1,26 @@
 # AMAT Executor
 
+For current cross-system installation, API contracts and contribution guidance, start with the [workspace documentation](../README.md#table-of-contents). Dated reports and deployment observations below require their original local evidence and do not describe a fresh clone.
+
 Paper-trading execution, scheduling, reconciliation, and reporting for the
 AMAT strategy on Alpaca.
+
+The [trade performance monitor](../amat/docs/trade-performance-monitoring.md) records
+per-instruction execution evidence and matured price outcomes alongside the daily report.
+Durable inputs live in `STATE_ROOT/trade-observations/`; `executor trades --state-root PATH`
+rebuilds local JSON/Markdown without broker access. AMAT's `./research trades FILE...` command
+combines the same records alongside backtests in an interactive report.
 
 > [!IMPORTANT]
 > This service is **paper trading only**. The Alpaca paper hostname is a source
 > constant, the live hostname is prohibited by tests, and every broker request
 > reasserts the expected host. Paper results are optimistic and are not a
 > forecast of live performance.
+
+The opt-in staged executor uses a versioned durable batch contract for original
+authorization, cumulative fills, residual intent, cash commitments and expiry.
+See [Execution batch v1](docs/execution-batch-v1.md) for its fields, restart behavior,
+configuration and the remaining event-level simulation parity work.
 
 ## Contents
 
@@ -622,3 +635,143 @@ These properties are enforced by code and tests:
 - SMTP delivery is best-effort. The durable on-disk report is authoritative.
 - The project is marked proprietary in `pyproject.toml`; do not redistribute
   it unless the GitHub group provides a separate license or policy.
+# September 2026 operational upgrade
+
+Normal operation needs only `executor run` (also the default for `executor`)
+and `executor status`. In Docker, use `docker compose up -d` and
+`docker compose exec executor executor status`. Configuration stays in `.env`;
+plans are built automatically when a trading session is due. Existing diagnostic
+commands remain compatible and are listed by `executor --advanced-help`.
+
+The daemon refreshes `STATE_ROOT/order-registry.json` on each monitoring tick
+(at most approximately four minutes apart, plus broker/request processing).
+An outstanding order while the broker clock reports a closed market receives
+the registry state `pending_market_closed`. This includes partial fills and
+pending cancellations, with filled and remaining quantities preserved. Its
+`broker_status` remains separate; market closure never means canceled or filled.
+Terminal broker states remain terminal. Missing observations are marked
+`observation_unavailable`, and failed refreshes preserve the previous timestamp.
+State changes are journaled, and daily/trade reports retain both statuses.
+These observations do not authorize resubmission, cancellation or trading.
+
+The local Compose deployment selects `amat_v13_return_target.toml` through its
+private environment file and authorizes that file's exact SHA-256. The engine
+name remains `v1-frozen`; the strategy version emitted by the plan is `13.0.0`.
+The snapshot starts in 2016 and the planner retains its complete history for
+the five-session ranking schedule.
+
+Execution caps accept positive values or an explicit `unlimited` value. This
+does not remove strategy allocation constraints, configuration authorization,
+the equity-drift check, or the kill switch. Boolean execution switches accept
+only `true` or `false`; malformed values fail closed.
+
+Submission processes share a state-directory lock. Retries reuse the archived
+session plan to preserve client order IDs after partial fills. The broker
+calendar must confirm that the plan uses the preceding exchange session.
+Unrelated open orders block submission. Do not delete a session plan to force
+replanning while its broker orders may exist.
+
+The Docker healthcheck verifies account connectivity only. A healthy container
+can still be disabled or unable to reconcile its portfolio. Daily reports label
+plan-to-order reconciliation explicitly, match deterministic client order IDs,
+and report unavailable inputs and unreadable history. The separate automatic portfolio monitor checks cash/share changes from an observed
+baseline; daily plan reports do not imply that broader scope.
+
+
+Automatic portfolio monitoring now writes `portfolio-monitor.json` and maintains
+`portfolio-baseline.json` in `STATE_ROOT`. The first stable observation records a
+baseline; later cycles reconcile cash and shares using paginated account activity.
+`executor status` includes this result and flags observations older than twelve
+minutes as stale. JSON output adds `portfolio` and `freshness` without changing
+existing order fields.
+
+The monitor accounts for partial/full buy/sell fills and documented cash-only
+activities, including dividends, fees, interest, deposits and withdrawals. It
+uses each fill activity's quantity, not the order's cumulative fill quantity.
+Tolerances are $0.01 cash and 0.000001 shares, recorded with every successful check.
+A discrepancy never resets the baseline. Missing pages, broker failures, changed
+baseline activity, account changes, concurrent snapshot changes and unsupported
+corporate actions produce `observation_unavailable`. Last successful reconciliation
+time is retained separately. No monitor state grants order authority.
+
+Scope is incremental changes from the observed baseline, not pre-baseline history,
+strategy ownership, market valuation or tax/settlement accounting. Broker endpoints
+are not atomic: two reads reject visible races but cannot prove absence of delayed
+posting. Activity pagination is bounded to 100 pages of 100; reaching the bound
+fails explicitly. Baseline compaction and share corporate-action adapters remain
+follow-up work; the monitor does not silently truncate history or reset evidence.
+
+The daemon also maintains `deployment-registry.sqlite3` and exposes its observations
+through `executor status` (or `executor status --json`). It retains plan evidence
+for order attribution and reports persistent operational incidents automatically.
+`paper_approved` means the configured digest is authorized; `active` means a matched
+fill has been observed; `watch` means an operational incident needs review.
+These states do not establish research validation or imply submission is enabled.
+Monitoring has no order or allocation authority. Missing data leaves confirmed
+incidents unresolved. Statistical signal-decay monitoring awaits a frozen baseline.
+
+Verified checkpoints now compact the active baseline's activity map while retaining
+its full proof chain. The original activity audit window remains covered; exhausted
+queries split into overlapping bounded windows and conflicting overlaps fail closed.
+`operations.json` also reports the observed operational window: twenty completed
+qualifying sessions, each with at least thirty minutes of distinct, healthy open-market
+observations. This is not a return-performance gate. Legacy REST stock-action
+quantities remain unsupported; the strict share adapters use the separately documented
+activity-stream leg schema, which is not yet connected to the paper REST account.
+
+
+## October 8 VPS hardening
+
+Use [VPS_RUNBOOK.md](VPS_RUNBOOK.md) for the handoff, backup/restore, dry-run validation, runtime stop and uncertain-order recovery procedure. New safeguards include durable pre-POST receipts, persistent retry budgets, fresh reconciliation and clock checks, account binding, singleton daemon/report locks, a runtime STOP_SUBMISSIONS interlock, a progress watchdog and read-only container limits.
+
+`executor health` checks daemon progress without broker calls. `executor health --ready` additionally checks local order readiness (explicit unlimited caps remain supported); it never enables orders. `executor reconcile-submissions` resolves only broker-confirmed original order identities. Missing DRY_RUN now defaults to true. The current Compose health check supersedes the older account-connectivity-only check described above.
+
+Mailgun HTTPS delivery is available through `MAILGUN_DOMAIN`, `MAILGUN_API_KEY`, `MAILGUN_REGION`, `REPORT_SENDER`, and `REPORT_RECIPIENTS`. The same provider handles daily reports and durable, rate-limited operational alerts. See the Mailgun section of the VPS runbook. No Mailgun secret or recipient has been fabricated.
+
+### Telegram and unattended operation
+
+Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in the private `.env` file.
+Telegram becomes the primary incident-alert channel when configured; daily
+reports also go to Telegram. Long reports are shortened to fit a single message;
+the full report remains in the state volume. `executor notification-test` sends
+a test to the primary configured channel. Tokens are excluded from planner
+subprocesses, representations and transport error text.
+
+Telegram uses a five-second network timeout, refuses redirects, and does not
+blindly retry an ambiguously accepted POST. Repeated identical incident alerts
+are suppressed for an hour across restarts. Notification transport failure does
+not abort the trading phase; missing notification configuration is a readiness
+warning, not an order gate. Existing daily email remains optional.
+
+There is no recurring operator approval or mandatory email setup. Configured
+execution caps remain unlimited. Essential account, state, reconciliation,
+exchange-window and uncertain-order protections remain enforced. A whole-host
+or network outage needs an external monitor: a bot running only on the failed
+VPS cannot report that outage itself. Trading mode is still explicitly controlled
+by `DRY_RUN` and `EXECUTOR_DISABLED`; notification setup does not change them.
+
+## Optional SSH interface
+
+Install `uv sync --extra remote` to use `executor.remote.SSHRunner`. The broker/daemon core still has no third-party dependencies. SSH callers supply a private operator-owned configuration containing host, port, username, key_path, key_passphrase, known_hosts, connect_timeout, command_timeout and max_output_bytes. `SSHRunner(config).run(command)` returns stdout, stderr, exit_code, status, truncation and timing fields. Explicit key-only authentication rejects unknown or changed host keys. Commands have bounded combined stdout/stderr and a wall-clock deadline. The caller owns redaction and command authorization; the dashboard only accepts registered diagnostic names. Closing a timed-out channel does not guarantee termination of a remote process.
+
+The default Compose budget targets a 1 GB VPS: 640 MiB RAM, 1 GiB combined RAM/swap, one CPU and a 128 MiB tmpfs. Override `EXECUTOR_MEMORY_LIMIT`, `EXECUTOR_MEMORY_SWAP_LIMIT` and `EXECUTOR_CPU_LIMIT` for larger hosts. Heavy research should run separately from the executor.
+
+## Separate Alpaca live executor (local implementation)
+
+The live implementation and rollout plan are in
+[the Alpaca live implementation plan](../docs/alpaca-live-implementation-plan.md).
+`TRADING_MODE` defaults to `paper`; `live` selects a separate pinned adapter and
+requires `ALPACA_LIVE_API_KEY`, `ALPACA_LIVE_API_SECRET`, an expected
+`ALPACA_LIVE_ACCOUNT_NUMBER` and finite execution caps. The live order transport
+requires `LIVE_TRADING_ENABLED=true`, `DRY_RUN=false` and `EXECUTOR_DISABLED=false`.
+Account binding, reconciliation, durable submission receipts and runtime stop
+interlocks continue to apply.
+
+Compose defines `executor-live` with container name `amat-executor-live` under
+an explicit `live` profile, separate state and runtime volumes, and a private
+`.env.live` file. Use `.env.live.example` as the configuration reference. Ordinary
+paper startup excludes this service. Never reuse paper state for live trading.
+The dashboard has a separate read-only live status panel; updating its remote
+helper is part of a future deployment. This change does not deploy or start live
+trading. The earlier paper-only boundary descriptions above describe the original
+paper adapter; the default paper endpoint remains pinned.

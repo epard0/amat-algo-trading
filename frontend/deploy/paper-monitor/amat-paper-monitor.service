@@ -1,0 +1,24 @@
+[Unit]
+Description=Read-only remote AMAT and perps paper-session monitoring
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -I %h/.local/lib/amat-paper-monitor/worker.py
+WorkingDirectory=/tmp
+TimeoutStartSec=140
+UMask=0077
+# Observations and bounded archive batches yield to the trading engines.
+Nice=10
+IOSchedulingClass=idle
+CPUWeight=20
+IOWeight=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/share/amat/paper-monitor
+MemoryMax=512M
+TasksMax=96
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,24 @@
+{
+  "hypothesis": "Require positive medium-term momentum and adequate relative volume before retaining full trend exposure; test against the current parent after costs.",
+  "patches": [],
+  "features": [
+    {
+      "kind": "momentum",
+      "lookback": 63,
+      "smoothing": 5,
+      "cross_sectional_rank": false,
+      "threshold": 0.0,
+      "direction": "above",
+      "attenuation": 0.25
+    },
+    {
+      "kind": "volume_ratio",
+      "lookback": 21,
+      "smoothing": 3,
+      "cross_sectional_rank": false,
+      "threshold": 0.75,
+      "direction": "above",
+      "attenuation": 0.15
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+PROJECT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/amat" && pwd)
+cd "$PROJECT_DIR"
+if [ -z "${UV_ENV_FILE:-}" ] && [ -f "$PROJECT_DIR/.env" ]; then
+    export UV_ENV_FILE="$PROJECT_DIR/.env"
+fi
+exec uv run --locked python scripts/research_cli.py "$@"

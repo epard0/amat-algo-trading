@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "failures_before_handoff": 3,
+  "max_requests_per_session": 1
+}

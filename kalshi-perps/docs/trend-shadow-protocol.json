@@ -1,0 +1,18 @@
+{
+  "name": "doge-sol-trend-shadow",
+  "scope": "prospective_paper_only",
+  "starting_collateral": 10000,
+  "leverage_target": 1,
+  "margin_reserve": 0.02,
+  "allocations": {"DOGE": 0.25, "SOL": 0.75},
+  "short_gate": {"ADX14_minimum": 30, "DOGE_EMA_4h_bars": 25, "SOL_EMA_4h_bars": 50, "EMA_slope_lag_bars": 3, "price_below_EMA": true, "latch_at_original_onset": true},
+  "default_engine": {"entry_days": 20, "channel_days": 10, "max_hold_hours": 72, "DOGE_target_ATR": 0.5, "SOL_exit_mode_ADX14": 20, "SOL_ladder_ATR": [1, 2], "SOL_ladder_fractions": [0.25, 0.25], "SOL_runner_trail_entry_ATR": 3},
+  "selection_note": "User-requested prospective volatility adaptation. DOGE25 was not selected on prior holdout returns; prior DOGE50/SOL50 diagnostic failed training short-profit eligibility. No retrospective performance is assigned to this variant.",
+  "comparison": "Current max-leverage long-only default remains untouched; record mark-to-market P&L, funding, fees, observed drawdown and distinct filled TP action deltas from first fresh baseline. Different leverage and trend settings mean this is not an isolated attribution experiment.",
+  "funding": "Native published funding at actual timestamps, idempotently applied to historical holdings, including late publications.",
+  "execution": "Actual sorted native depth with IOC partial fills, integer contracts, 4bps taker fee and 30bps total per-side cost cap; current native side-specific margin estimates.",
+  "guard": "Original 35% initial-equity guard blocks all strategy orders including exits; no flatten or resume. Funding and liquidation continue.",
+  "startup": "Start flat; skip carried signals and wait for fresh breakout onset.",
+  "change_policy": "Immutable source-pinned profile and image. Any parameter change starts a newly identified account; never retune the running shadow.",
+  "evaluation": "Report cumulative and common-start metrics. Rate normalization only after one observed day. No automatic promotion; review after at least 90 calendar days and 20 completed natural episodes; extend if sample insufficient. Review drawdowns, guard/liquidations, funding coverage, data blocks, spread/fill rejection and TP profitability before any decision."
+}

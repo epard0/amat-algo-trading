@@ -1,0 +1,24 @@
+# Install to ~/.config/systemd/user/amat-terminal.service; adjust workspace paths.
+[Unit]
+Description=AMAT operations terminal API and frontend
+After=network-online.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Documents/amat-workspace/frontend
+ExecStart=%h/Documents/amat-workspace/frontend/.venv/bin/python -m uvicorn server.app:app --host 127.0.0.1 --port 8765 --timeout-graceful-shutdown 5
+Environment=PYTHONUNBUFFERED=1
+Environment=TERMINAL_PERPS_TARGET=remote
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+MemoryMax=8G
+# Preserve independent accepted workers when the API restarts.
+KillMode=process
+TasksMax=256
+UMask=0077
+
+[Install]
+WantedBy=default.target

@@ -32,5 +32,13 @@ class BrokerError(ExecutorError):
     """The broker rejected a request, or could not be reached."""
 
 
+class OrderOutcomeUnknownError(BrokerError):
+    """A POST may have succeeded. Persist uncertainty and stop further orders."""
+
+
 class ReconciliationError(ExecutorError):
     """Broker state and strategy state disagree in a way a human must resolve."""
+
+
+class BatchPendingError(ExecutorError):
+    """A staged batch is waiting for broker fills, not a failed phase attempt."""

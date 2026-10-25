@@ -7,10 +7,8 @@ would land in shell history and `ps` output), or a default. Secrets come from
 the environment, and their values are never written to a report, a log line, or
 a journal entry.
 
-The paper endpoint is a constant, not a setting. Making the host configurable
-is how a "paper" deployment quietly becomes a live one after an edit to a
-compose file; if this executor is ever meant to reach the live endpoint, that
-must be a reviewed code change, not an environment variable.
+Paper is the default. Live trading requires an explicit mode and separate credentials.
+Broker hosts are code constants, never arbitrary environment URLs.
 """
 
 from __future__ import annotations
@@ -23,7 +21,9 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from executor.errors import ConfigurationError
+from executor.mailgun import MailgunSettings
 from executor.plan_source import DEFAULT_PLAN_COMMAND
+from executor.telegram import TelegramSettings
 
 __all__ = [
     "PAPER_TRADING_HOST",
@@ -32,12 +32,6 @@ __all__ = [
     "SmtpSettings",
 ]
 
-#: The paper trading host. Deliberately not configurable -- see the module
-#: docstring. Alpaca's *live* trading host differs from this one only by the
-#: leading `paper-`, which is exactly why it is pinned here as a literal and
-#: asserted per request rather than assembled from parts or read from an
-#: environment variable. `tests/test_boundary.py` fails if the live hostname
-#: appears anywhere in this package, including in a comment like this one.
 PAPER_TRADING_HOST = "paper-api.alpaca.markets"
 
 
@@ -57,6 +51,13 @@ def _optional(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
 
 
+def _boolean(name: str, default: str) -> bool:
+    raw = _optional(name, default).lower()
+    if raw not in {"true", "false"}:
+        raise ConfigurationError(f"{name} must explicitly be true or false")
+    return raw == "true"
+
+
 def _positive_int(name: str, default: int) -> int:
     raw = _optional(name)
     if not raw:
@@ -72,16 +73,19 @@ def _positive_int(name: str, default: int) -> int:
     return value
 
 
-def _required_positive_int(name: str) -> int:
-    _require(name)  # raises ConfigurationError naming `name` when unset
+def _required_positive_int(name: str) -> int | None:
+    if _require(name).lower() == "unlimited":
+        return None
     return _positive_int(name, 0)
 
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
-def _positive_decimal(name: str) -> Decimal:
+def _positive_decimal(name: str) -> Decimal | None:
     raw = _require(name)
+    if raw.lower() == "unlimited":
+        return None
     try:
         value = Decimal(raw)
     except InvalidOperation as exc:
@@ -134,11 +138,11 @@ class RiskLimits:
     #: Global switch. True refuses every submission while leaving reports on.
     disabled: bool
     #: Ceiling on the summed reference notional of all intents in one session.
-    max_session_notional: Decimal
+    max_session_notional: Decimal | None
     #: Ceiling on the number of intents that may be submitted in one session.
-    max_orders_per_session: int
+    max_orders_per_session: int | None
     #: Ceiling on any single intent's reference notional.
-    max_symbol_notional: Decimal
+    max_symbol_notional: Decimal | None
     #: Maximum relative difference between the equity the plan was sized on and
     #: the broker's equity at submission time.
     equity_tolerance: Decimal
@@ -147,7 +151,7 @@ class RiskLimits:
     def from_environment(cls) -> RiskLimits:
         return cls(
             authorized_config_sha256=_digest_set("AUTHORIZED_CONFIG_SHA256"),
-            disabled=_optional("EXECUTOR_DISABLED", "false").lower() == "true",
+            disabled=_boolean("EXECUTOR_DISABLED", "false"),
             max_session_notional=_positive_decimal("MAX_SESSION_NOTIONAL"),
             max_orders_per_session=_required_positive_int("MAX_ORDERS_PER_SESSION"),
             max_symbol_notional=_positive_decimal("MAX_SYMBOL_NOTIONAL"),
@@ -277,6 +281,13 @@ class ExecutorSettings:
     limits: RiskLimits
     #: Optional short-lived artifact produced by ``newsdesk discover-assets``.
     news_assets: Path | None = None
+    mailgun: MailgunSettings | None = None
+    telegram: TelegramSettings | None = None
+    execution_mode: str = "legacy"
+    whole_share_buys: bool = False
+    trading_mode: str = "paper"
+    live_account_number: str = field(default="", repr=False)
+    live_trading_enabled: bool = False
 
     @property
     def journal_path(self) -> Path:
@@ -308,7 +319,10 @@ class ExecutorSettings:
             raise ConfigurationError(message)
 
         strategy_config = Path(
-            _optional("STRATEGY_CONFIG", str(amat_root / "configs/strategy/amat_v6.toml"))
+            _optional(
+                "STRATEGY_CONFIG",
+                str(amat_root / "configs/strategy/amat_group_selection_volatility.toml"),
+            )
         ).expanduser()
         if not strategy_config.is_absolute():
             strategy_config = (amat_root / strategy_config).resolve()
@@ -331,11 +345,41 @@ class ExecutorSettings:
             message = f"NEWS_ASSETS={news_assets} does not exist"
             raise ConfigurationError(message)
 
-        state_root = Path(_optional("STATE_ROOT", "/var/lib/amat-executor")).expanduser()
+        trading_mode = _optional("TRADING_MODE", "paper")
+        if trading_mode not in {"paper", "live"}:
+            raise ConfigurationError("TRADING_MODE must be paper or live")
+        live = trading_mode == "live"
+        state_default = "/var/lib/amat-executor-live" if live else "/var/lib/amat-executor"
+        state_root = Path(_optional("STATE_ROOT", state_default)).expanduser()
+        limits = RiskLimits.from_environment()
+        live_account = _require("ALPACA_LIVE_ACCOUNT_NUMBER") if live else ""
+        live_enabled = _boolean("LIVE_TRADING_ENABLED", "false") if live else False
+        if live and any(
+            value is None
+            for value in (
+                limits.max_session_notional,
+                limits.max_symbol_notional,
+                limits.max_orders_per_session,
+            )
+        ):
+            raise ConfigurationError("Live trading requires finite execution caps")
 
+        execution_mode = _optional("EXECUTION_MODE", "legacy")
+        if execution_mode not in {"legacy", "staged-v1"}:
+            raise ConfigurationError("EXECUTION_MODE must be legacy or staged-v1")
+        whole_share_buys = _boolean("WHOLE_SHARE_BUYS", "false")
+        if whole_share_buys and execution_mode != "staged-v1":
+            raise ConfigurationError("WHOLE_SHARE_BUYS requires staged-v1 execution")
         return cls(
-            trading_key_id=_require("ALPACA_PAPER_API_KEY"),
-            trading_secret_key=_require("ALPACA_PAPER_API_SECRET"),
+            execution_mode=execution_mode,
+            whole_share_buys=whole_share_buys,
+            trading_mode=trading_mode,
+            live_account_number=live_account,
+            live_trading_enabled=live_enabled,
+            trading_key_id=_require("ALPACA_LIVE_API_KEY" if live else "ALPACA_PAPER_API_KEY"),
+            trading_secret_key=_require(
+                "ALPACA_LIVE_API_SECRET" if live else "ALPACA_PAPER_API_SECRET"
+            ),
             amat_root=amat_root,
             strategy_config=strategy_config,
             snapshot=snapshot,
@@ -345,10 +389,12 @@ class ExecutorSettings:
             report_delay_minutes=_positive_int("REPORT_DELAY_MINUTES", 15),
             submit_cutoff_minutes=_positive_int("SUBMIT_CUTOFF_MINUTES", 30),
             plan_command=_plan_command(),
-            dry_run=_optional("DRY_RUN", "false").lower() == "true",
+            dry_run=_boolean("DRY_RUN", "true"),
             smtp=SmtpSettings.from_environment(),
-            limits=RiskLimits.from_environment(),
+            limits=limits,
             news_assets=news_assets,
+            mailgun=MailgunSettings.from_environment(),
+            telegram=TelegramSettings.from_environment(),
         )
 
     def ensure_directories(self) -> None:

@@ -1,0 +1,39 @@
+# Improvements and Changes For The Next Session
+
+- Better handling for additional data sources (gamma-flow, volume, liquidity etc.)
+- Signals Processing features
+- Control theory features
+- Add data for all symbols accounted for within the v13 strategy (and more... including cryptocurrency) for up to 14 years total (2012 - 2026, though only 2016 - 2026 for crypto)
+- Add OpenRouter Free Model Routing to news desk sentiment analysis providers
+- Extend training mark to 2025
+- Split backtests into quartile's to view performance within each quarter, and altogether cumulatively (random number generation/signal generation using different number distribution's included; not just historical data)
+- Make sure executor is properly facilitating and monitoring trades, and the portfolio in general
+- Research team re-engineering: https://x.com/RuujSs/status/2096241405190602967
+    - Use Google's Agents-SDK for easy and consistent models/model cards
+    - Multi-timeframe analysis
+    - More frequent monitoring intervals
+    - Tavily for easier web research
+    - Utilize a deep agent methodology using a ReAct prompt structure and careful consideration for model routing for cost reduction
+    - Implement LangSmith across the board for improved overall agent-observability and monitoring
+        - https://docs.langchain.com/oss/python/langgraph/workflows-agents
+        - https://docs.langchain.com/oss/python/deepagents/deep-research
+    - Self-improving Agents using a built-in knowledge base ledger approach that keeps track of all research workflow's and the backtest simulation results + analysis
+        - https://docs.langchain.com/oss/python/langchain/multi-agent/router-knowledge-base
+        - Self-contained auto-compacting + compression to reduce overall token usage
+
+- Implement a custom test loop to find the most optimal parameters for the Asset Regime Model configuration
+- Better implementation of Agents & their associated tools for easier reuse across the repo, such as the research workflow and the agents + pre-configured prompts involved
+- LangGraph, LangChain, better prompt engineering + use of different AI API provider's as fallback mechanisms
+- Auto-adaptive, self-improving news feed
+    - Add more sources (x.com for example)
+- Experiment with full scanning of the market to find ideal assets/markets to trade in based off conditions/regime and the potential to utilize our strategy for a profit, either as one or a separate arm of the full bot
+- GUI/Web UI to monitor performance, initiate the auto-research workflow and view the logs/messages 
+- Wider range of assets
+- Include cryptocurrency specific "arms" (ETH, BTC, XRP, etc.)
+    - Coinbase/Binance for historical data used for backtesting
+    - Possibly a custom strategy created for each specific asset using a deep reinforcement learning/control theory based approach for consistent gains
+- Custom indicators tailored for the strategy?
+- Machine learning based features?
+- Better analytics pipeline for metrics monitoring and tracking?
+- Use `gemini-3.8-flash` as the default gemini model, GPT-5.6-sol as the default openai model, and implement more free models where useful/helpful.
+- Customized coding agent with a constant stateful database from a `treesitting` algorithm to easily classify and modify area's of the code where useful using `jev` (if possible)

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass
+from decimal import Decimal
 
 import numpy as np
 import pytest
@@ -16,8 +17,12 @@ import pytest
 from amat.backtest.runner import run_backtest
 from amat.config.loading import load_strategy_config
 from amat.data.synthetic import generate_panel
+from amat.domain.bars import ExecutionWindowBar
 from amat.domain.fills import MissedFillReason
+from amat.domain.orders import SimulatedOrder, TradeReason
+from amat.domain.types import Side
 from amat.errors import CausalityError, DataIntegrityError
+from amat.execution import SimulatedExecutionModel
 from amat.validation.stress import (
     _close_fill_panel,
     _year_removals,
@@ -47,8 +52,62 @@ class TestMissedFillInjection:
         ]
         assert dropped, "the injection produced no recorded drops"
         assert stressed.total_fills < baseline.total_fills
-        # The drop is recorded, never silent: every withheld fill is a miss.
-        assert stressed.total_missed >= baseline.total_missed + len(dropped)
+        # Withholding changes future holdings, cash and instructions. Aggregate
+        # misses from the two different account paths are not additive. Audit
+        # each withheld instruction within the actual stressed path instead.
+        for record in stressed.sessions:
+            for miss in record.missed:
+                if miss.reason is not MissedFillReason.STRESS_DROPPED:
+                    continue
+                matching = [
+                    order
+                    for order in record.instructions
+                    if order.execution_session == miss.execution_session
+                    and order.symbol == miss.symbol
+                    and order.side == miss.side
+                    and order.quantity == miss.requested_quantity
+                ]
+                assert len(matching) == 1
+                assert miss.execution_session == record.session
+                assert not any(
+                    fill.symbol == miss.symbol and fill.side == miss.side for fill in record.fills
+                )
+
+    def test_exact_tenth_and_twentieth_eligible_orders_are_withheld(self, strategy) -> None:
+        signal = dt.date(2020, 1, 2)
+        execution = dt.date(2020, 1, 3)
+        orders = [
+            SimulatedOrder(
+                symbol=f"S{index:02}",
+                signal_session=signal,
+                execution_session=execution,
+                side=Side.BUY,
+                quantity=Decimal(1),
+                reason=TradeReason.WEIGHT_DELTA,
+            )
+            for index in range(1, 21)
+        ]
+        windows = {
+            order.symbol: ExecutionWindowBar(
+                symbol=order.symbol,
+                session_date=execution,
+                window_start=dt.datetime(2020, 1, 3, 14, 30, tzinfo=dt.UTC),
+                window_end=dt.datetime(2020, 1, 3, 14, 35, tzinfo=dt.UTC),
+                vwap=Decimal(100),
+                volume=Decimal(10000),
+                source="fixed-stress-test",
+            )
+            for order in orders
+        }
+        model = SimulatedExecutionModel(strategy.execution, strategy.costs, drop_every_nth_fill=10)
+        fills, missed = model.execute(orders, windows, available_cash=Decimal(100000))
+        assert len(fills) == 18
+        assert len(missed) == 2
+        assert {miss.symbol for miss in missed} == {"S10", "S20"}
+        assert all(miss.reason is MissedFillReason.STRESS_DROPPED for miss in missed)
+        assert all(miss.requested_quantity == 1 and miss.side == Side.BUY for miss in missed)
+        assert all(miss.execution_session == execution for miss in missed)
+        assert {fill.symbol for fill in fills} == set(windows) - {"S10", "S20"}
 
     def test_the_baseline_never_emits_the_stress_reason(self, strategy, panel) -> None:
         baseline = run_backtest(strategy, panel, strategy.to_universe())

@@ -1,0 +1,159 @@
+# Opt-in research profile from the frozen group-selection expansion study.
+# Core eleven ETFs, daily group/member refresh, native v13 sizing and caps.
+# Selected for further research on previously examined history; no promotion.
+# Same full signal history is required to preserve the selection schedule.
+
+name = "amat-group-selection-daily"
+version = "14.1.0"
+
+[universe]
+
+[[universe.clusters]]
+name = "us_equity"
+gross_cap = 0.85
+symbols = ["SPY", "QQQ", "IWM"]
+
+[[universe.clusters]]
+name = "international"
+gross_cap = 0.45
+symbols = ["EFA", "EEM"]
+
+[[universe.clusters]]
+name = "rates"
+gross_cap = 0.35
+symbols = ["IEF"]
+
+[[universe.clusters]]
+name = "metals"
+gross_cap = 0.45
+symbols = ["GLD", "SLV"]
+
+[[universe.clusters]]
+name = "commodities"
+gross_cap = 0.35
+symbols = ["DBC", "USO"]
+
+[[universe.clusters]]
+name = "us_dollar"
+gross_cap = 0.15
+symbols = ["UUP"]
+
+[volatility]
+fast_half_life_sessions = 20
+slow_half_life_sessions = 60
+slow_weight = 0.75
+floor_annualized = 0.05
+annualization_sessions = 252
+min_periods_sessions = 60
+
+[trend]
+horizons_sessions = [63, 126, 252]
+clip_abs = 2.0
+deadband_abs = 0.2
+long_only = true
+
+[covariance]
+lookback_sessions = 120
+estimator = "ledoit_wolf"
+annualization_sessions = 252
+
+[allocation]
+volatility_power = 0.0
+
+[constraints]
+target_annualized_volatility = 0.2
+max_symbol_weight = 0.45
+max_gross_exposure = 1.0
+allow_releverage_after_clipping = false
+
+[cross_sectional]
+enabled = true
+max_positions = 4
+min_horizon_agreement = 2
+selection_interval_sessions = 1
+
+[structure]
+enabled = false
+variance_lookback_sessions = 63
+variance_ratio_horizon = 5
+variance_ratio_floor = 0.8
+variance_ratio_target = 1.15
+rsi_period = 14
+rsi_floor = 40.0
+rsi_target = 55.0
+rsi_upper_target = 75.0
+rsi_ceiling = 85.0
+channel_lookback_sessions = 63
+channel_floor = 0.45
+channel_target = 0.9
+downside_lookback_sessions = 63
+downside_target = 0.35
+downside_ceiling = 0.65
+min_multiplier = 0.5
+
+[risk_budget]
+enabled = false
+lookback_sessions = 252
+min_periods_sessions = 126
+min_multiplier = 0.35
+max_multiplier = 1.75
+measure = "information_ratio"
+
+[rebalance]
+min_weight_delta = 0.02
+min_trade_notional = "25"
+
+[execution]
+timezone = "America/New_York"
+window_start = "09:30:00"
+window_end = "09:35:00"
+price_method = "vwap"
+price_basis = "raw"
+signal_to_execution_lag_sessions = 1
+missing_bar_policy = "record_missed_fill"
+
+[costs]
+baseline_one_way_bps = 2.0
+stress_one_way_bps = [0.0, 4.0, 6.0, 10.0]
+is_primary = true
+
+[cash]
+source = "constant"
+constant_annualized_rate = 0.0
+is_primary = true
+
+[warmup]
+min_completed_sessions = 252
+
+[risk]
+max_risk_per_trade = 0.01
+max_portfolio_heat = 0.06
+max_daily_loss = 0.03
+max_drawdown_halt = 0.2
+min_expectancy_trades = 30
+min_expectancy = 0.0
+expectancy_window_sessions = 252
+max_correlation = 0.8
+min_effective_bets = 2.0
+max_positions = 12
+min_grade = 2
+use_kelly = true
+kelly_fraction_multiplier = 0.25
+regime_clusters = 3
+regime_fit_window_sessions = 504
+regime_refit_interval_sessions = 21
+regime_risk_floor = 0.25
+regime_unknown_scalar = 1.0
+
+[learned_regime]
+enabled = false
+n_regimes = 3
+fit_window_sessions = 504
+refit_every_sessions = 21
+risk_floor = 0.5
+unknown_scalar = 1.0
+seed = 0
+
+[adaptive_rotation]
+enabled = true
+group_selection = true

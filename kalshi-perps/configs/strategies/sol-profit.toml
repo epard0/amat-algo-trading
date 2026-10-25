@@ -1,0 +1,19 @@
+name = "sol-profit"
+
+[evidence]
+selection = "amat/outputs/crypto-directional-2026-10-19/universe-supplement/selection.json"
+selection_sha256 = "bacee7f1fcb321b518585e92bd879f863524d46ff4ba36454934d3b3bcfafa25"
+selected_key = "SOLUSDT-frequent"
+status = "frozen training selection; paper research only"
+
+[sources]
+"crypto_directional.py" = "7c437b1a74665f3963e980848e22291ebb5d1dac3c93b0918a47912f6bf839f2"
+
+[[legs]]
+ticker = "KXSOLPERP"
+engine = "directional"
+allocation = "1"
+leverage = "1"
+sizing = "full"
+direction = 1
+tp_atr = 1.0

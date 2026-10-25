@@ -145,11 +145,15 @@ def parse_alpaca_news_page(
             rejected += 1
             continue
         tagged = row.get("symbols")
-        symbols: dict[str, tuple[float | None, float | None]] = {
-            symbol.strip().upper(): (None, None)
-            for symbol in tagged
-            if isinstance(symbol, str) and _SYMBOL_RE.fullmatch(symbol.strip().upper())
-        } if isinstance(tagged, list) else {}
+        symbols: dict[str, tuple[float | None, float | None]] = (
+            {
+                symbol.strip().upper(): (None, None)
+                for symbol in tagged
+                if isinstance(symbol, str) and _SYMBOL_RE.fullmatch(symbol.strip().upper())
+            }
+            if isinstance(tagged, list)
+            else {}
+        )
         identifier = row.get("id")
         summary = row.get("summary")
         source = row.get("source")

@@ -1,0 +1,26 @@
+[project]
+name = "amat-terminal-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn>=0.30,<1",
+    "polars>=1.17,<2",
+    "amat-executor[remote]",
+]
+[dependency-groups]
+dev = ["pytest>=8", "httpx>=0.27"]
+[tool.pytest.ini_options]
+testpaths = ["server/tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = ["vendor", "web", "desktop", ".venv"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.uv.sources]
+amat-executor = { path = "../executor", editable = true }

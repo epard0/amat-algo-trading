@@ -1,0 +1,25 @@
+name = "doge-sol-max-pnl"
+
+[evidence]
+selection = "amat/outputs/crypto-doge-sol-2026-10-19-v2/selection.json"
+selection_sha256 = "ce9c613d15fa1116ab8af60f969521fcd49d5134992973a9e6b2c34a27322008"
+selected_key = "max_pnl"
+status = "frozen training selection; paper research only"
+
+[sources]
+"crypto_doge_sol.py" = "97f7f990a230b26047f3772cc5079970c9df2fb925f2375773d1040b9728c53e"
+"crypto_directional.py" = "7c437b1a74665f3963e980848e22291ebb5d1dac3c93b0918a47912f6bf839f2"
+
+[[legs]]
+ticker = "KXDOGEPERP"
+engine = "profit"
+allocation = "0.25"
+leverage = "2.0"
+tp_atr = 0.5
+max_hold_hours = 72
+
+[[legs]]
+ticker = "KXSOLPERP"
+engine = "profit"
+allocation = "0.75"
+leverage = "1.5"

@@ -90,7 +90,9 @@ class TestDegradedOutcomes:
     ) -> None:
         report, metrics, insights = bundle
         monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-        outcome = request_advisory(advisory_payload(report, metrics, insights))
+        outcome = request_advisory(
+            advisory_payload(report, metrics, insights), model="gemini-3.6-flash"
+        )
         assert not outcome.available
         assert outcome.failure is not None and "GEMINI_API_KEY is not set" in outcome.failure
 
@@ -107,7 +109,10 @@ class TestDegradedOutcomes:
 
         monkeypatch.setattr(genai_module, "Client", explode)
         outcome = request_advisory(
-            advisory_payload(report, metrics, insights), attempts=2, retry_sleep_seconds=0.0
+            advisory_payload(report, metrics, insights),
+            model="gemini-3.6-flash",
+            attempts=2,
+            retry_sleep_seconds=0.0,
         )
         assert not outcome.available
         assert outcome.failure is not None
@@ -160,7 +165,10 @@ class TestDegradedOutcomes:
 
         monkeypatch.setattr(genai_module, "Client", StubClient)
         outcome = request_advisory(
-            advisory_payload(report, metrics, insights), attempts=1, retry_sleep_seconds=0.0
+            advisory_payload(report, metrics, insights),
+            model="gemini-3.6-flash",
+            attempts=1,
+            retry_sleep_seconds=0.0,
         )
         assert not outcome.available
         assert outcome.failure is not None and "empty response" in outcome.failure

@@ -45,7 +45,11 @@ def send_report(report: DailyReport, settings: SmtpSettings) -> tuple[bool, str]
         write into a report -- the password is never part of an exception
         message this function propagates.
     """
-    message = _build_message(report, settings)
+    return send_message(_build_message(report, settings), settings)
+
+
+def send_message(message: EmailMessage, settings: SmtpSettings) -> tuple[bool, str]:
+    """Shared SMTP transport for persisted reports and operational notifications."""
     context = ssl.create_default_context()
 
     try:

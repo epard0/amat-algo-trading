@@ -1,0 +1,708 @@
+{
+  "cost_binding": "The hurdle uses the same known 2/6/10bps per-side assumption as its trial; native runtime recipe plus causal gate is required. Do not deploy a conditional rule as an always-on TOML profile.",
+  "promotion_authority": false,
+  "protocol_sha256": "28e5ae6a55cc1042a9e2022b278781c2827e38a055d450beeb442b50ded1a4bb",
+  "recipes": {
+    "all_always": {
+      "config": {
+        "adaptive_rotation": {
+          "benchmark": "QQQ",
+          "cooldown_sessions": 10,
+          "enabled": true,
+          "fast_scalar": 0.3,
+          "group_selection": true,
+          "groups": [
+            {
+              "name": "growth",
+              "symbols": [
+                "SPY",
+                "QQQ",
+                "IWM",
+                "EFA",
+                "EEM"
+              ]
+            },
+            {
+              "name": "real_assets",
+              "symbols": [
+                "GLD",
+                "SLV",
+                "DBC",
+                "USO"
+              ]
+            },
+            {
+              "name": "defensive",
+              "symbols": [
+                "IEF",
+                "UUP"
+              ]
+            }
+          ],
+          "hysteresis": false,
+          "incumbent_rank_bonus": 2,
+          "lookback_weeks": 12,
+          "max_active_groups": 3,
+          "max_per_group": 2,
+          "recovery_sessions": 3,
+          "regime_overlay": false,
+          "residual_ranking": false,
+          "risk_off_scalar": 0.5,
+          "shock_return": -0.03,
+          "shock_sessions": 3,
+          "slow_weeks": 26,
+          "switch_cost_bps": 2.0
+        },
+        "allocation": {
+          "volatility_power": 0.0
+        },
+        "cash": {
+          "constant_annualized_rate": 0.0,
+          "is_primary": true,
+          "source": "constant"
+        },
+        "constraints": {
+          "allow_releverage_after_clipping": false,
+          "max_gross_exposure": 1.0,
+          "max_symbol_weight": 0.45,
+          "risk_contribution_limit": null,
+          "target_annualized_volatility": 0.2
+        },
+        "costs": {
+          "baseline_one_way_bps": 2.0,
+          "is_primary": true,
+          "stress_one_way_bps": [
+            0.0,
+            4.0,
+            6.0,
+            10.0
+          ]
+        },
+        "covariance": {
+          "annualization_sessions": 252,
+          "estimator": "ledoit_wolf",
+          "lookback_sessions": 120
+        },
+        "cross_sectional": {
+          "enabled": true,
+          "max_positions": 4,
+          "min_horizon_agreement": 2
+        },
+        "execution": {
+          "missing_bar_policy": "record_missed_fill",
+          "price_basis": "raw",
+          "price_method": "vwap",
+          "signal_to_execution_lag_sessions": 1,
+          "timezone": "America/New_York",
+          "window_end": "09:35:00",
+          "window_start": "09:30:00"
+        },
+        "learned_regime": {
+          "enabled": false,
+          "fit_window_sessions": 504,
+          "n_regimes": 3,
+          "refit_every_sessions": 21,
+          "risk_floor": 0.5,
+          "seed": 0,
+          "unknown_scalar": 1.0
+        },
+        "name": "amat-group-selection-daily",
+        "rebalance": {
+          "min_trade_notional": "25",
+          "min_weight_delta": 0.02
+        },
+        "risk": {
+          "expectancy_window_sessions": 252,
+          "kelly_fraction_multiplier": 0.25,
+          "max_correlation": 0.8,
+          "max_daily_loss": 0.03,
+          "max_drawdown_halt": 0.2,
+          "max_portfolio_heat": 0.06,
+          "max_positions": 12,
+          "max_risk_per_trade": 0.01,
+          "min_effective_bets": 2.0,
+          "min_expectancy": 0.0,
+          "min_expectancy_trades": 30,
+          "min_grade": 2,
+          "regime_clusters": 3,
+          "regime_fit_window_sessions": 504,
+          "regime_refit_interval_sessions": 21,
+          "regime_risk_floor": 0.25,
+          "regime_unknown_scalar": 1.0,
+          "use_kelly": true
+        },
+        "risk_budget": {
+          "enabled": false,
+          "lookback_sessions": 252,
+          "max_multiplier": 1.75,
+          "measure": "information_ratio",
+          "min_multiplier": 0.35,
+          "min_periods_sessions": 126
+        },
+        "structure": {
+          "channel_floor": 0.45,
+          "channel_lookback_sessions": 63,
+          "channel_target": 0.9,
+          "downside_ceiling": 0.65,
+          "downside_lookback_sessions": 63,
+          "downside_target": 0.35,
+          "enabled": false,
+          "min_multiplier": 0.5,
+          "rsi_ceiling": 85.0,
+          "rsi_floor": 40.0,
+          "rsi_period": 14,
+          "rsi_target": 55.0,
+          "rsi_upper_target": 75.0,
+          "variance_lookback_sessions": 63,
+          "variance_ratio_floor": 0.8,
+          "variance_ratio_horizon": 5,
+          "variance_ratio_target": 1.15
+        },
+        "trend": {
+          "clip_abs": 2.0,
+          "deadband_abs": 0.2,
+          "horizons_sessions": [
+            63,
+            126,
+            252
+          ],
+          "long_only": true
+        },
+        "universe": {
+          "clusters": [
+            {
+              "gross_cap": 0.85,
+              "name": "us_equity",
+              "symbols": [
+                "SPY",
+                "QQQ",
+                "IWM"
+              ]
+            },
+            {
+              "gross_cap": 0.45,
+              "name": "international",
+              "symbols": [
+                "EFA",
+                "EEM"
+              ]
+            },
+            {
+              "gross_cap": 0.35,
+              "name": "rates",
+              "symbols": [
+                "IEF"
+              ]
+            },
+            {
+              "gross_cap": 0.45,
+              "name": "metals",
+              "symbols": [
+                "GLD",
+                "SLV"
+              ]
+            },
+            {
+              "gross_cap": 0.35,
+              "name": "commodities",
+              "symbols": [
+                "DBC",
+                "USO"
+              ]
+            },
+            {
+              "gross_cap": 0.15,
+              "name": "us_dollar",
+              "symbols": [
+                "UUP"
+              ]
+            }
+          ]
+        },
+        "version": "14.1.0",
+        "volatility": {
+          "annualization_sessions": 252,
+          "fast_half_life_sessions": 20,
+          "floor_annualized": 0.05,
+          "min_periods_sessions": 60,
+          "slow_half_life_sessions": 60,
+          "slow_weight": 0.75
+        },
+        "warmup": {
+          "min_completed_sessions": 252
+        }
+      },
+      "gate": null,
+      "gate_preference_source": "ungated all-groups native membership",
+      "status": "retained"
+    },
+    "all_combined": {
+      "config": {
+        "adaptive_rotation": {
+          "benchmark": "QQQ",
+          "cooldown_sessions": 10,
+          "enabled": true,
+          "fast_scalar": 0.3,
+          "group_selection": true,
+          "groups": [
+            {
+              "name": "growth",
+              "symbols": [
+                "SPY",
+                "QQQ",
+                "IWM",
+                "EFA",
+                "EEM"
+              ]
+            },
+            {
+              "name": "real_assets",
+              "symbols": [
+                "GLD",
+                "SLV",
+                "DBC",
+                "USO"
+              ]
+            },
+            {
+              "name": "defensive",
+              "symbols": [
+                "IEF",
+                "UUP"
+              ]
+            }
+          ],
+          "hysteresis": false,
+          "incumbent_rank_bonus": 2,
+          "lookback_weeks": 12,
+          "max_active_groups": 3,
+          "max_per_group": 2,
+          "recovery_sessions": 3,
+          "regime_overlay": false,
+          "residual_ranking": false,
+          "risk_off_scalar": 0.5,
+          "shock_return": -0.03,
+          "shock_sessions": 3,
+          "slow_weeks": 26,
+          "switch_cost_bps": 2.0
+        },
+        "allocation": {
+          "volatility_power": 0.0
+        },
+        "cash": {
+          "constant_annualized_rate": 0.0,
+          "is_primary": true,
+          "source": "constant"
+        },
+        "constraints": {
+          "allow_releverage_after_clipping": false,
+          "max_gross_exposure": 1.0,
+          "max_symbol_weight": 0.45,
+          "risk_contribution_limit": null,
+          "target_annualized_volatility": 0.2
+        },
+        "costs": {
+          "baseline_one_way_bps": 2.0,
+          "is_primary": true,
+          "stress_one_way_bps": [
+            0.0,
+            4.0,
+            6.0,
+            10.0
+          ]
+        },
+        "covariance": {
+          "annualization_sessions": 252,
+          "estimator": "ledoit_wolf",
+          "lookback_sessions": 120
+        },
+        "cross_sectional": {
+          "enabled": true,
+          "max_positions": 4,
+          "min_horizon_agreement": 2
+        },
+        "execution": {
+          "missing_bar_policy": "record_missed_fill",
+          "price_basis": "raw",
+          "price_method": "vwap",
+          "signal_to_execution_lag_sessions": 1,
+          "timezone": "America/New_York",
+          "window_end": "09:35:00",
+          "window_start": "09:30:00"
+        },
+        "learned_regime": {
+          "enabled": false,
+          "fit_window_sessions": 504,
+          "n_regimes": 3,
+          "refit_every_sessions": 21,
+          "risk_floor": 0.5,
+          "seed": 0,
+          "unknown_scalar": 1.0
+        },
+        "name": "amat-group-selection-daily",
+        "rebalance": {
+          "min_trade_notional": "25",
+          "min_weight_delta": 0.02
+        },
+        "risk": {
+          "expectancy_window_sessions": 252,
+          "kelly_fraction_multiplier": 0.25,
+          "max_correlation": 0.8,
+          "max_daily_loss": 0.03,
+          "max_drawdown_halt": 0.2,
+          "max_portfolio_heat": 0.06,
+          "max_positions": 12,
+          "max_risk_per_trade": 0.01,
+          "min_effective_bets": 2.0,
+          "min_expectancy": 0.0,
+          "min_expectancy_trades": 30,
+          "min_grade": 2,
+          "regime_clusters": 3,
+          "regime_fit_window_sessions": 504,
+          "regime_refit_interval_sessions": 21,
+          "regime_risk_floor": 0.25,
+          "regime_unknown_scalar": 1.0,
+          "use_kelly": true
+        },
+        "risk_budget": {
+          "enabled": false,
+          "lookback_sessions": 252,
+          "max_multiplier": 1.75,
+          "measure": "information_ratio",
+          "min_multiplier": 0.35,
+          "min_periods_sessions": 126
+        },
+        "structure": {
+          "channel_floor": 0.45,
+          "channel_lookback_sessions": 63,
+          "channel_target": 0.9,
+          "downside_ceiling": 0.65,
+          "downside_lookback_sessions": 63,
+          "downside_target": 0.35,
+          "enabled": false,
+          "min_multiplier": 0.5,
+          "rsi_ceiling": 85.0,
+          "rsi_floor": 40.0,
+          "rsi_period": 14,
+          "rsi_target": 55.0,
+          "rsi_upper_target": 75.0,
+          "variance_lookback_sessions": 63,
+          "variance_ratio_floor": 0.8,
+          "variance_ratio_horizon": 5,
+          "variance_ratio_target": 1.15
+        },
+        "trend": {
+          "clip_abs": 2.0,
+          "deadband_abs": 0.2,
+          "horizons_sessions": [
+            63,
+            126,
+            252
+          ],
+          "long_only": true
+        },
+        "universe": {
+          "clusters": [
+            {
+              "gross_cap": 0.85,
+              "name": "us_equity",
+              "symbols": [
+                "SPY",
+                "QQQ",
+                "IWM"
+              ]
+            },
+            {
+              "gross_cap": 0.45,
+              "name": "international",
+              "symbols": [
+                "EFA",
+                "EEM"
+              ]
+            },
+            {
+              "gross_cap": 0.35,
+              "name": "rates",
+              "symbols": [
+                "IEF"
+              ]
+            },
+            {
+              "gross_cap": 0.45,
+              "name": "metals",
+              "symbols": [
+                "GLD",
+                "SLV"
+              ]
+            },
+            {
+              "gross_cap": 0.35,
+              "name": "commodities",
+              "symbols": [
+                "DBC",
+                "USO"
+              ]
+            },
+            {
+              "gross_cap": 0.15,
+              "name": "us_dollar",
+              "symbols": [
+                "UUP"
+              ]
+            }
+          ]
+        },
+        "version": "14.1.0",
+        "volatility": {
+          "annualization_sessions": 252,
+          "fast_half_life_sessions": 20,
+          "floor_annualized": 0.05,
+          "min_periods_sessions": 60,
+          "slow_half_life_sessions": 60,
+          "slow_weight": 0.75
+        },
+        "warmup": {
+          "min_completed_sessions": 252
+        }
+      },
+      "gate": "combined",
+      "gate_preference_source": "ungated all-groups native membership",
+      "status": "retained"
+    },
+    "all_volatility": {
+      "config": {
+        "adaptive_rotation": {
+          "benchmark": "QQQ",
+          "cooldown_sessions": 10,
+          "enabled": true,
+          "fast_scalar": 0.3,
+          "group_selection": true,
+          "groups": [
+            {
+              "name": "growth",
+              "symbols": [
+                "SPY",
+                "QQQ",
+                "IWM",
+                "EFA",
+                "EEM"
+              ]
+            },
+            {
+              "name": "real_assets",
+              "symbols": [
+                "GLD",
+                "SLV",
+                "DBC",
+                "USO"
+              ]
+            },
+            {
+              "name": "defensive",
+              "symbols": [
+                "IEF",
+                "UUP"
+              ]
+            }
+          ],
+          "hysteresis": false,
+          "incumbent_rank_bonus": 2,
+          "lookback_weeks": 12,
+          "max_active_groups": 3,
+          "max_per_group": 2,
+          "recovery_sessions": 3,
+          "regime_overlay": false,
+          "residual_ranking": false,
+          "risk_off_scalar": 0.5,
+          "shock_return": -0.03,
+          "shock_sessions": 3,
+          "slow_weeks": 26,
+          "switch_cost_bps": 2.0
+        },
+        "allocation": {
+          "volatility_power": 0.0
+        },
+        "cash": {
+          "constant_annualized_rate": 0.0,
+          "is_primary": true,
+          "source": "constant"
+        },
+        "constraints": {
+          "allow_releverage_after_clipping": false,
+          "max_gross_exposure": 1.0,
+          "max_symbol_weight": 0.45,
+          "risk_contribution_limit": null,
+          "target_annualized_volatility": 0.2
+        },
+        "costs": {
+          "baseline_one_way_bps": 2.0,
+          "is_primary": true,
+          "stress_one_way_bps": [
+            0.0,
+            4.0,
+            6.0,
+            10.0
+          ]
+        },
+        "covariance": {
+          "annualization_sessions": 252,
+          "estimator": "ledoit_wolf",
+          "lookback_sessions": 120
+        },
+        "cross_sectional": {
+          "enabled": true,
+          "max_positions": 4,
+          "min_horizon_agreement": 2
+        },
+        "execution": {
+          "missing_bar_policy": "record_missed_fill",
+          "price_basis": "raw",
+          "price_method": "vwap",
+          "signal_to_execution_lag_sessions": 1,
+          "timezone": "America/New_York",
+          "window_end": "09:35:00",
+          "window_start": "09:30:00"
+        },
+        "learned_regime": {
+          "enabled": false,
+          "fit_window_sessions": 504,
+          "n_regimes": 3,
+          "refit_every_sessions": 21,
+          "risk_floor": 0.5,
+          "seed": 0,
+          "unknown_scalar": 1.0
+        },
+        "name": "amat-group-selection-daily",
+        "rebalance": {
+          "min_trade_notional": "25",
+          "min_weight_delta": 0.02
+        },
+        "risk": {
+          "expectancy_window_sessions": 252,
+          "kelly_fraction_multiplier": 0.25,
+          "max_correlation": 0.8,
+          "max_daily_loss": 0.03,
+          "max_drawdown_halt": 0.2,
+          "max_portfolio_heat": 0.06,
+          "max_positions": 12,
+          "max_risk_per_trade": 0.01,
+          "min_effective_bets": 2.0,
+          "min_expectancy": 0.0,
+          "min_expectancy_trades": 30,
+          "min_grade": 2,
+          "regime_clusters": 3,
+          "regime_fit_window_sessions": 504,
+          "regime_refit_interval_sessions": 21,
+          "regime_risk_floor": 0.25,
+          "regime_unknown_scalar": 1.0,
+          "use_kelly": true
+        },
+        "risk_budget": {
+          "enabled": false,
+          "lookback_sessions": 252,
+          "max_multiplier": 1.75,
+          "measure": "information_ratio",
+          "min_multiplier": 0.35,
+          "min_periods_sessions": 126
+        },
+        "structure": {
+          "channel_floor": 0.45,
+          "channel_lookback_sessions": 63,
+          "channel_target": 0.9,
+          "downside_ceiling": 0.65,
+          "downside_lookback_sessions": 63,
+          "downside_target": 0.35,
+          "enabled": false,
+          "min_multiplier": 0.5,
+          "rsi_ceiling": 85.0,
+          "rsi_floor": 40.0,
+          "rsi_period": 14,
+          "rsi_target": 55.0,
+          "rsi_upper_target": 75.0,
+          "variance_lookback_sessions": 63,
+          "variance_ratio_floor": 0.8,
+          "variance_ratio_horizon": 5,
+          "variance_ratio_target": 1.15
+        },
+        "trend": {
+          "clip_abs": 2.0,
+          "deadband_abs": 0.2,
+          "horizons_sessions": [
+            63,
+            126,
+            252
+          ],
+          "long_only": true
+        },
+        "universe": {
+          "clusters": [
+            {
+              "gross_cap": 0.85,
+              "name": "us_equity",
+              "symbols": [
+                "SPY",
+                "QQQ",
+                "IWM"
+              ]
+            },
+            {
+              "gross_cap": 0.45,
+              "name": "international",
+              "symbols": [
+                "EFA",
+                "EEM"
+              ]
+            },
+            {
+              "gross_cap": 0.35,
+              "name": "rates",
+              "symbols": [
+                "IEF"
+              ]
+            },
+            {
+              "gross_cap": 0.45,
+              "name": "metals",
+              "symbols": [
+                "GLD",
+                "SLV"
+              ]
+            },
+            {
+              "gross_cap": 0.35,
+              "name": "commodities",
+              "symbols": [
+                "DBC",
+                "USO"
+              ]
+            },
+            {
+              "gross_cap": 0.15,
+              "name": "us_dollar",
+              "symbols": [
+                "UUP"
+              ]
+            }
+          ]
+        },
+        "version": "14.1.0",
+        "volatility": {
+          "annualization_sessions": 252,
+          "fast_half_life_sessions": 20,
+          "floor_annualized": 0.05,
+          "min_periods_sessions": 60,
+          "slow_half_life_sessions": 60,
+          "slow_weight": 0.75
+        },
+        "warmup": {
+          "min_completed_sessions": 252
+        }
+      },
+      "gate": "volatility",
+      "gate_preference_source": "ungated all-groups native membership",
+      "status": "retained"
+    }
+  },
+  "research_only": true,
+  "schema": "retained-all-groups-switching-recipes/1"
+}

@@ -15,16 +15,18 @@ Contract for this package:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import datetime as dt
+from collections.abc import Sequence
+from dataclasses import dataclass, replace
 
 import numpy as np
 from sklearn.covariance import LedoitWolf
 
-from amat.config.models import ConstraintConfig, CovarianceConfig, StrategyConfig
+from amat.config.models import AllocationConfig, ConstraintConfig, CovarianceConfig, StrategyConfig
 from amat.domain.instruments import Universe
 from amat.domain.types import Symbol, Weight
 from amat.errors import CausalityError, DataIntegrityError
-from amat.portfolio.cross_section import select_cross_section
+from amat.portfolio.cross_section import select_on_schedule
 from amat.portfolio.risk_budget import budget_multipliers, signal_payoffs, trailing_quality
 
 #: A market panel is always 2-D: (sessions, symbols).
@@ -210,6 +212,8 @@ def target_weights(
     covariance: np.ndarray,
     universe: Universe,
     config: ConstraintConfig,
+    *,
+    allocation: AllocationConfig | None = None,
 ) -> AllocationResult:
     """Full allocation: exposure, volatility targeting, constraints, cash residual.
 
@@ -218,7 +222,12 @@ def target_weights(
     the residual is whatever the gross cap leaves, and there is no code path
     that re-levers to recover the target.
     """
+    # Keep the original calculation bit-identical for existing configurations.
+    # Signal normalization still uses sigma when capital weighting uses power 0.
+    power = allocation.volatility_power if allocation is not None else 1.0
     exposure = raw_exposure(long_score, sigma)
+    if power != 1.0:
+        exposure = raw_exposure(long_score, np.power(sigma, power))
     if not np.any(exposure > 0):
         # Every score dead-banded to zero: 100% cash, by contract.
         zeros = np.zeros_like(exposure)
@@ -289,7 +298,16 @@ class PrecomputedDecisionInputs:
     structure_multipliers: np.ndarray | None = None
     """``(T, N)`` soft technical-structure quality, or ``None`` when disabled."""
 
+    adaptive_scores: np.ndarray | None = None
+    adaptive_scalars: np.ndarray | None = None
+    asset_percentile_gate: np.ndarray | None = None
+
     def __post_init__(self) -> None:
+        if self.asset_percentile_gate is not None and (
+            self.asset_percentile_gate.shape != self.long_scores.shape
+            or self.asset_percentile_gate.dtype != np.bool_
+        ):
+            raise DataIntegrityError("Percentile cache must be an aligned boolean panel")
         if not (self.returns.shape == self.sigma_panel.shape == self.long_scores.shape):
             message = (
                 "precomputed feature panels disagree in shape: "
@@ -297,10 +315,19 @@ class PrecomputedDecisionInputs:
                 f"long_scores {self.long_scores.shape}"
             )
             raise DataIntegrityError(message)
+        if self.adaptive_scalars is not None and (
+            self.adaptive_scalars.shape != (len(self.returns),)
+            or not np.all(np.isfinite(self.adaptive_scalars))
+            or np.any((self.adaptive_scalars < 0) | (self.adaptive_scalars > 1))
+        ):
+            raise DataIntegrityError(
+                "adaptive scalar cache must be a finite bounded session vector"
+            )
         for name, panel in (
             ("horizon_scores", self.horizon_scores),
             ("signal_quality", self.signal_quality),
             ("structure_multipliers", self.structure_multipliers),
+            ("adaptive_scores", self.adaptive_scores),
         ):
             if panel is None:
                 continue
@@ -317,7 +344,10 @@ class PrecomputedDecisionInputs:
 
 
 def precompute_decision_inputs(
-    strategy: StrategyConfig, adjusted_closes: np.ndarray
+    strategy: StrategyConfig,
+    adjusted_closes: np.ndarray,
+    *,
+    sessions: Sequence[dt.date] | None = None,
 ) -> PrecomputedDecisionInputs:
     """Compute every feature panel :func:`decide` needs, in one causal pass."""
     # Deferred import: amat.features and amat.portfolio are peers in the
@@ -352,7 +382,24 @@ def precompute_decision_inputs(
     structure = None
     if strategy.structure.enabled:
         structure = features.structure_multiplier(adjusted_closes, returns, strategy.structure)
+    adaptive_scores, adaptive_scalars = None, None
+    if strategy.adaptive_rotation.enabled:
+        from amat.portfolio.adaptive import rotation_inputs  # noqa: PLC0415
+
+        if sessions is None:
+            raise DataIntegrityError("adaptive rotation requires explicit exchange sessions")
+        adaptive_scores, adaptive_scalars = rotation_inputs(
+            strategy, adjusted_closes, long, sigma_panel, horizon_scores, sessions=sessions
+        )
+    percentile_gate = None
+    if strategy.allocation.asset_condition == "percentile":
+        percentile_gate = asset_percentile_gate(
+            adjusted_closes, strategy.allocation.asset_volatility_percentile
+        )
     return PrecomputedDecisionInputs(
+        asset_percentile_gate=percentile_gate,
+        adaptive_scores=adaptive_scores,
+        adaptive_scalars=adaptive_scalars,
         returns=returns,
         sigma_panel=sigma_panel,
         long_scores=long,
@@ -362,7 +409,145 @@ def precompute_decision_inputs(
     )
 
 
-def decide(
+def unfavorable_sizing_condition(prices: np.ndarray, index: int, benchmark: int, mode: str) -> bool:
+    """Evaluate fixed conditions using only closes available at the decision time."""
+    if mode == "always":
+        return True
+    trend_last_offset, slow_sessions, stress_threshold = 199, 60, 0.25
+    weak = index >= trend_last_offset and prices[index, benchmark] < np.mean(
+        prices[index - 199 : index + 1, benchmark]
+    )
+    stressed = False
+    if index >= slow_sessions:
+        returns = np.diff(np.log(prices[index - 60 : index + 1, benchmark]))
+        fast = np.std(returns[-20:], ddof=1)
+        slow = np.std(returns, ddof=1)
+        stressed = bool(fast * np.sqrt(252) > stress_threshold or fast > 1.5 * slow)
+    if mode == "weak_trend":
+        return bool(weak)
+    if mode == "volatility":
+        return bool(stressed)
+    if mode == "either":
+        return bool(weak or stressed)
+    raise DataIntegrityError("Unknown conditional sizing mode")
+
+
+def group_condition_prices(prices: np.ndarray, columns: list[int]) -> np.ndarray:
+    """Equal-member geometric index, rebased at the first observed close."""
+    logs = np.log(prices[:, columns])
+    return np.exp(np.mean(logs - logs[0], axis=1))[:, None]
+
+
+def group_sizing_scores(
+    strategy: StrategyConfig,
+    prices: np.ndarray,
+    index: int,
+    scores: np.ndarray,
+    sigma: np.ndarray,
+) -> np.ndarray:
+    """Reweight within stressed groups, preserving each group's pre-risk score mass."""
+    config = strategy.allocation
+    if config.group_condition == "none":
+        return scores
+    if (
+        config.volatility_power != 0
+        or config.unfavorable_condition != "always"
+        or not strategy.adaptive_rotation.enabled
+    ):
+        raise DataIntegrityError(
+            "Group sizing requires native rotation and base allocation power 0"
+        )
+    columns = {str(symbol): i for i, symbol in enumerate(strategy.universe.symbols)}
+    result = scores.copy()
+    for group in strategy.adaptive_rotation.groups:
+        members = [columns[symbol] for symbol in group.symbols]
+        proxy = group_condition_prices(prices[: index + 1], members)
+        if not unfavorable_sizing_condition(proxy, index, 0, config.group_condition):
+            continue
+        mass = float(np.sum(scores[members]))
+        weighted = scores[members] / sigma[members]
+        total = float(np.sum(weighted))
+        if mass > 0 and total > 0:
+            result[members] = weighted * (mass / total)
+    return result
+
+
+def asset_percentile_gate(prices: np.ndarray, percentile: float) -> np.ndarray:
+    """20-return sample volatility above a prior-only 252-observation asset quantile."""
+    lower_quantile, upper_quantile = 0.5, 0.99
+    if (
+        prices.ndim != _PANEL_NDIM
+        or not np.isfinite(prices).all()
+        or np.any(prices <= 0)
+        or not np.isfinite(percentile)
+        or not lower_quantile <= percentile <= upper_quantile
+    ):
+        raise DataIntegrityError(
+            "Percentile gate requires finite positive prices and valid quantile"
+        )
+    window, history = 20, 252
+    gate = np.zeros_like(prices, dtype=bool)
+    if len(prices) <= window + history:
+        return gate
+    returns = np.diff(np.log(prices), axis=0)
+    volatility = np.std(
+        np.lib.stride_tricks.sliding_window_view(returns, window, axis=0), axis=-1, ddof=1
+    ) * np.sqrt(252)
+    prior = np.lib.stride_tricks.sliding_window_view(volatility, history, axis=0)[:-1]
+    thresholds = np.quantile(prior, percentile, axis=-1, method="linear")
+    gate[window + history :] = volatility[history:] > thresholds
+    return gate
+
+
+def asset_sizing_scores(
+    strategy: StrategyConfig,
+    prices: np.ndarray,
+    index: int,
+    scores: np.ndarray,
+    sigma: np.ndarray,
+    *,
+    percentile_gate: np.ndarray | None = None,
+) -> np.ndarray:
+    """Asset-specific conditional inverse volatility, using dimensionless risk ratios."""
+    config = strategy.allocation
+    if config.asset_condition == "none":
+        return scores
+    if (
+        config.volatility_power != 0
+        or config.unfavorable_condition != "always"
+        or config.group_condition != "none"
+        or not strategy.adaptive_rotation.enabled
+    ):
+        raise DataIntegrityError(
+            "Asset sizing requires native rotation and no other sizing overlay"
+        )
+    if config.asset_condition == "percentile":
+        if percentile_gate is None:
+            percentile_gate = asset_percentile_gate(
+                prices[: index + 1], config.asset_volatility_percentile
+            )
+        if percentile_gate.dtype != np.bool_ or percentile_gate.shape not in {
+            prices.shape,
+            (index + 1, prices.shape[1]),
+        }:
+            raise DataIntegrityError("Misaligned percentile sizing gate")
+    result = scores.copy()
+    for column in np.flatnonzero(scores > 0):
+        if not np.isfinite(sigma[column]) or sigma[column] <= 0:
+            raise DataIntegrityError("Asset sizing requires finite positive volatility")
+        active = (
+            bool(percentile_gate[index, column])
+            if percentile_gate is not None and config.asset_condition == "percentile"
+            else unfavorable_sizing_condition(prices, index, int(column), config.asset_condition)
+        )
+        if active:
+            ratio = strategy.constraints.target_annualized_volatility / sigma[column]
+            multiplier = min(1.0, ratio) if config.asset_sizing_reduce_only else ratio
+            result[column] *= multiplier
+    return result
+
+
+def decide(  # noqa: PLR0912, PLR0915 - ordered, validated allocation stages
     strategy: StrategyConfig,
     adjusted_closes: np.ndarray,
     universe: Universe,
@@ -426,19 +611,26 @@ def decide(
     safe_scores = np.where(usable, np.nan_to_num(long_score, nan=0.0), 0.0)
     safe_sigma = np.where(usable, sigma, 1.0)
 
-    if strategy.cross_sectional.enabled:
+    if strategy.cross_sectional.enabled and not strategy.adaptive_rotation.enabled:
         # After the dead-band and the usability mask, before any sizing: the
         # selection decides membership, and every cap, the volatility target,
         # and the cash residual then apply to the survivors exactly as they
         # apply to the full set when selection is off.
-        horizon_row = (
-            precomputed.horizon_scores[:, decision_index, :]
-            if precomputed.horizon_scores is not None
-            else None
+        safe_scores = select_on_schedule(
+            precomputed.long_scores,
+            precomputed.sigma_panel,
+            strategy.cross_sectional,
+            decision_index=decision_index,
+            first_decision_index=max(
+                strategy.warmup.min_completed_sessions - 1, strategy.trend.max_horizon_sessions
+            ),
+            horizon_scores=precomputed.horizon_scores,
         )
-        safe_scores = select_cross_section(
-            safe_scores, strategy.cross_sectional, horizon_z=horizon_row
-        ).scores
+
+    if strategy.adaptive_rotation.enabled:
+        if precomputed.adaptive_scores is None or precomputed.adaptive_scalars is None:
+            raise DataIntegrityError("adaptive rotation feature cache is missing")
+        safe_scores = precomputed.adaptive_scores[decision_index]
 
     if strategy.structure.enabled:
         if precomputed.structure_multipliers is None:
@@ -464,4 +656,47 @@ def decide(
     covariance = ledoit_wolf_covariance(
         precomputed.returns[1 : decision_index + 1], strategy.covariance
     )
-    return target_weights(safe_scores, safe_sigma, covariance, universe, strategy.constraints)
+    safe_scores = group_sizing_scores(
+        strategy, adjusted_closes, decision_index, safe_scores, safe_sigma
+    )
+    safe_scores = asset_sizing_scores(
+        strategy,
+        adjusted_closes,
+        decision_index,
+        safe_scores,
+        safe_sigma,
+        percentile_gate=precomputed.asset_percentile_gate,
+    )
+    allocation_config = strategy.allocation
+    if allocation_config.unfavorable_condition != "always":
+        symbols = list(map(str, strategy.universe.symbols))
+        benchmark = symbols.index(strategy.adaptive_rotation.benchmark)
+        active = unfavorable_sizing_condition(
+            adjusted_closes, decision_index, benchmark, allocation_config.unfavorable_condition
+        )
+        if not active:
+            allocation_config = allocation_config.model_copy(update={"volatility_power": 0.0})
+    allocation = target_weights(
+        safe_scores,
+        safe_sigma,
+        covariance,
+        universe,
+        strategy.constraints,
+        allocation=allocation_config,
+    )
+
+    if strategy.adaptive_rotation.enabled:
+        if precomputed.adaptive_scalars is None:
+            raise DataIntegrityError("adaptive scalar cache is missing")
+        scalar = float(precomputed.adaptive_scalars[decision_index])
+        allocation = replace(
+            allocation,
+            weights=allocation.weights * scalar,
+            gross_exposure=allocation.gross_exposure * scalar,
+            cash_weight=1 - allocation.gross_exposure * scalar,
+            forecast_volatility_post=allocation.forecast_volatility_post * scalar,
+            binding=(*allocation.binding, "adaptive_rotation")
+            if scalar < 1
+            else allocation.binding,
+        )
+    return allocation

@@ -11,9 +11,9 @@ string back into any computation.
 
 Credentials
 -----------
-The Gemini SDK reads ``GEMINI_API_KEY`` from the environment itself. This module
-checks only whether the variable *exists*; the value is never read, logged,
-stored, or passed through this code.
+Default calls use the shared free-first router and its environment credentials.
+Explicit Gemini model overrides retain the legacy adapter. Credentials are never
+retained in commentary or provenance.
 
 Failure posture
 ---------------
@@ -41,8 +41,8 @@ if TYPE_CHECKING:
 
 __all__ = ["DEFAULT_MODEL", "AdvisoryResult", "advisory_payload", "request_advisory"]
 
-#: Default Gemini model for report commentary.
-DEFAULT_MODEL = "gemini-3.6-flash"
+#: Shared utility policy; an explicit model retains the legacy Gemini adapter.
+DEFAULT_MODEL = "auto"
 
 _KEY_VARIABLE = "GEMINI_API_KEY"
 
@@ -169,7 +169,7 @@ def request_advisory(
     attempts: int = 3,
     retry_sleep_seconds: float = 5.0,
 ) -> AdvisoryResult:
-    """Ask Gemini for commentary on the payload. Degrades, never raises.
+    """Request commentary through shared routing or an explicit Gemini override.
 
     Failures are retried up to ``attempts`` times at this layer because the
     SDK's own retry predicate covers timeouts and connect errors but not every
@@ -181,6 +181,8 @@ def request_advisory(
         last recorded reason (missing key, unreachable host, SDK error, empty
         response).
     """
+    if model == "auto":
+        return _routed_advisory(payload)
     credential = os.environ.get(_KEY_VARIABLE, "")
     if not credential:
         return AdvisoryResult(
@@ -236,3 +238,46 @@ def request_advisory(
         )
 
     return AdvisoryResult(text=None, provenance="", failure=failure)
+
+
+def _routed_advisory(payload: Mapping[str, object]) -> AdvisoryResult:
+    """Default utility routing; explicit Gemini calls retain compatibility."""
+    from llmrouter.contracts import ChatRequest  # noqa: PLC0415
+    from llmrouter.policy import POLICY_VERSION  # noqa: PLC0415
+    from llmrouter.utility import complete_json  # noqa: PLC0415
+
+    request = ChatRequest(
+        system=_SYSTEM_INSTRUCTION + ' Return a JSON object with a nonempty "commentary" string.',
+        user=json.dumps(payload, sort_keys=True, default=str),
+        schema_json=json.dumps(
+            {
+                "type": "object",
+                "properties": {"commentary": {"type": "string"}},
+                "required": ["commentary"],
+                "additionalProperties": False,
+            }
+        ),
+        max_output_tokens=4096,
+        timeout_seconds=60,
+        persistence="metadata_only",
+    )
+
+    def validate(text: str) -> str:
+        value = json.loads(text)
+        if not isinstance(value, dict):
+            raise ValueError("invalid commentary object")
+        commentary = value.get("commentary")
+        if not isinstance(commentary, str) or not commentary.strip():
+            raise ValueError("missing commentary")
+        return commentary.strip()
+
+    try:
+        response, calls = complete_json(request, validate=validate)
+    except Exception as exc:
+        return AdvisoryResult(None, "", f"routing failed: {type(exc).__name__}")
+    provenance = json.dumps({"policy": POLICY_VERSION, "attempts": calls}, sort_keys=True)
+    if response is None:
+        return AdvisoryResult(
+            None, provenance, "No configured model route produced valid commentary"
+        )
+    return AdvisoryResult(validate(response.text or ""), provenance, None)

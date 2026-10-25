@@ -158,9 +158,7 @@ class Order:
             "canceled",
             "expired",
             "rejected",
-            "done_for_day",
             "replaced",
-            "suspended",
         }
 
     @property
@@ -259,6 +257,15 @@ def _parse_instant(raw: str) -> dt.datetime:
     return parsed
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never forward trading credentials or orders to a redirected endpoint."""
+
+    def redirect_request(
+        self, _req: Any, _fp: Any, _code: Any, _msg: Any, _headers: Any, _newurl: Any
+    ) -> None:
+        return None
+
+
 class AlpacaPaperClient:
     """Everything this system can say to a broker.
 
@@ -267,6 +274,8 @@ class AlpacaPaperClient:
         secret_key: Paper trading secret.
         timeout_seconds: Per-request socket timeout.
     """
+
+    _host = PAPER_TRADING_HOST
 
     def __init__(
         self,
@@ -308,14 +317,14 @@ class AlpacaPaperClient:
             message = f"refusing a request outside the /v2 trading surface: {path!r}"
             raise ConfigurationError(message)
 
-        url = f"https://{PAPER_TRADING_HOST}{path}"
+        url = f"https://{self._host}{path}"
         if params:
             url = f"{url}?{urllib.parse.urlencode(params)}"
 
         # The assertion that makes "paper only" a property of the code rather
         # than a promise in a README. Removing it is a visible diff.
-        if urllib.parse.urlsplit(url).hostname != PAPER_TRADING_HOST:
-            message = f"refusing to contact a host other than {PAPER_TRADING_HOST}"
+        if urllib.parse.urlsplit(url).hostname != self._host:
+            message = f"refusing to contact a host other than {self._host}"
             raise ConfigurationError(message)
 
         payload = None if body is None else json.dumps(body).encode("utf-8")
@@ -331,7 +340,9 @@ class AlpacaPaperClient:
         )
 
     def _read(self, request: urllib.request.Request) -> Any:
-        with urllib.request.urlopen(request, timeout=self._timeout) as response:  # noqa: S310
+        with urllib.request.build_opener(_NoRedirect()).open(
+            request, timeout=self._timeout
+        ) as response:
             raw = response.read()
         if not raw:
             return None
@@ -367,8 +378,12 @@ class AlpacaPaperClient:
         try:
             return self._read(request)
         except urllib.error.HTTPError as exc:
+            from executor.errors import OrderOutcomeUnknownError  # noqa: PLC0415
+
             detail = _error_detail(exc)
-            message = f"POST {path} rejected: HTTP {exc.code}: {detail}"
+            message = f"POST {path}: HTTP {exc.code}: {detail}"
+            if exc.code >= 500 or exc.code == 408 or "duplicate" in detail.lower():  # noqa: PLR2004
+                raise OrderOutcomeUnknownError(message) from exc
             raise BrokerError(message) from exc
         except (http.client.HTTPException, OSError, TimeoutError, ValueError) as exc:
             message = (
@@ -376,7 +391,9 @@ class AlpacaPaperClient:
                 f"The request may or may not have reached the broker; it is NOT "
                 f"retried. Reconcile against open orders before acting."
             )
-            raise BrokerError(message) from exc
+            from executor.errors import OrderOutcomeUnknownError  # noqa: PLC0415
+
+            raise OrderOutcomeUnknownError(message) from exc
 
     # -- account ------------------------------------------------------------
 
@@ -399,6 +416,75 @@ class AlpacaPaperClient:
     def position_quantities(self) -> dict[str, Decimal]:
         """Symbol to share count, the shape ``amat plan --positions`` expects."""
         return {position.symbol: position.quantity for position in self.list_positions()}
+
+    def list_activities(
+        self, *, after: dt.datetime, max_pages: int = 100, until: dt.datetime | None = None
+    ) -> tuple[dict[str, Any], ...]:
+        """Read all activity types, with bounded, checked pagination.
+
+        An exhausted bound or repeating page is an error, never a partial ledger.
+        ``after`` filters creation time, including later-posted fees/dividends.
+        """
+        if after.tzinfo is None or max_pages < 1:
+            raise ConfigurationError("activities require an aware start and positive page bound")
+        params = {
+            "after": after.astimezone(dt.UTC).isoformat(),
+            "direction": "asc",
+            "page_size": "100",
+        }
+        if until is not None:
+            if until.tzinfo is None or until <= after:
+                raise ConfigurationError("invalid activity end")
+            params["until"] = until.astimezone(dt.UTC).isoformat()
+        result: dict[str, dict[str, Any]] = {}
+        for _ in range(max_pages):
+            page = self._get("/v2/account/activities", params)
+            if not isinstance(page, list):
+                raise BrokerError("activities response is not a list")
+            for row in page:
+                if not isinstance(row, dict) or not isinstance(row.get("id"), str) or not row["id"]:
+                    raise BrokerError("activity is missing its identity")
+                if row["id"] in result:
+                    raise BrokerError("activity pagination repeated an identity")
+                result[row["id"]] = row
+            if len(page) < 100:  # noqa: PLR2004 - documented maximum page size
+                return tuple(result.values())
+            params["page_token"] = page[-1]["id"]
+        raise BrokerError("activity pagination exceeded its bound; history is incomplete")
+
+    def activity_history(
+        self, *, after: dt.datetime, until: dt.datetime, max_pages: int = 100
+    ) -> tuple[dict[str, Any], ...]:
+        """Split exhausted windows with overlap; reject conflicts and bounded exhaustion."""
+        pending = [(after, until)]
+        result: dict[str, dict[str, Any]] = {}
+        partitions = 0
+        while pending:
+            start, end = pending.pop()
+            partitions += 1
+            if partitions > 127:  # noqa: PLR2004 - maximum partition requests
+                raise BrokerError("activity partition bound exhausted")
+            try:
+                rows = self.list_activities(after=start, until=end, max_pages=max_pages)
+            except BrokerError as exc:
+                if "pagination exceeded its bound" not in str(exc):
+                    raise
+                if (end - start).total_seconds() <= 4:  # noqa: PLR2004 - overlap floor
+                    raise BrokerError("dense activity window exceeds bounded retrieval") from exc
+                middle = start + (end - start) / 2
+                pending.extend(
+                    [
+                        (start, middle + dt.timedelta(seconds=1)),
+                        (middle - dt.timedelta(seconds=1), end),
+                    ]
+                )
+                continue
+            for row in rows:
+                identity = row["id"]
+                if identity in result and result[identity] != row:
+                    raise BrokerError("activity changed across overlapping partitions")
+                result[identity] = row
+        return tuple(result.values())
 
     # -- reference data -----------------------------------------------------
 
@@ -446,12 +532,39 @@ class AlpacaPaperClient:
     # -- orders -------------------------------------------------------------
 
     def submit_market_order(
+        self, *, symbol: str, side: str, quantity: Decimal, client_order_id: str
+    ) -> Order:
+        """Submit one market DAY order, without transport retries."""
+        return self._submit_order(
+            symbol=symbol, side=side, quantity=quantity, client_order_id=client_order_id
+        )
+
+    def submit_limit_order(
         self,
         *,
         symbol: str,
         side: str,
         quantity: Decimal,
         client_order_id: str,
+        limit_price: Decimal,
+    ) -> Order:
+        """Submit a price-bounded DAY order; never substitute a market order."""
+        return self._submit_order(
+            symbol=symbol,
+            side=side,
+            quantity=quantity,
+            client_order_id=client_order_id,
+            limit_price=limit_price,
+        )
+
+    def _submit_order(
+        self,
+        *,
+        symbol: str,
+        side: str,
+        quantity: Decimal,
+        client_order_id: str,
+        limit_price: Decimal | None = None,
     ) -> Order:
         """Submit one market DAY order.
 
@@ -473,7 +586,7 @@ class AlpacaPaperClient:
         if side not in {"buy", "sell"}:
             message = f"refusing an order with side {side!r}"
             raise ConfigurationError(message)
-        if quantity <= 0:
+        if not quantity.is_finite() or quantity <= 0:
             message = f"refusing a non-positive order quantity for {symbol}: {quantity}"
             raise ConfigurationError(message)
 
@@ -485,11 +598,59 @@ class AlpacaPaperClient:
             "time_in_force": "day",
             "client_order_id": client_order_id,
         }
+        if limit_price is not None:
+            if not limit_price.is_finite() or limit_price <= 0:
+                raise ConfigurationError("limit price must be positive and finite")
+            body.update(type="limit", limit_price=format(limit_price, "f"))
         payload = self._post_once("/v2/orders", body)
-        if not isinstance(payload, dict):
-            message = "POST /v2/orders did not return an object"
-            raise BrokerError(message)
-        return Order.from_payload(payload)
+        from executor.errors import OrderOutcomeUnknownError  # noqa: PLC0415
+
+        try:
+            if not isinstance(payload, dict):
+                raise ValueError("POST /v2/orders did not return an object")
+            order = Order.from_payload(payload)
+            if (
+                not order.id
+                or not order.status
+                or order.client_order_id != client_order_id
+                or order.symbol != symbol.upper()
+                or order.side != side
+                or order.quantity != quantity
+                or (
+                    limit_price is not None
+                    and (
+                        payload.get("type") != "limit"
+                        or Decimal(str(payload.get("limit_price"))) != limit_price
+                    )
+                )
+            ):
+                raise ValueError("POST response does not match requested order")
+            return order
+        except (BrokerError, KeyError, ValueError, TypeError, ArithmeticError) as exc:
+            raise OrderOutcomeUnknownError("unusable POST acknowledgment; reconcile order") from exc
+
+    def cancel_order(self, order_id: str) -> None:
+        """Request cancellation once. Only a later order observation confirms it."""
+        if not order_id:
+            raise ConfigurationError("cannot cancel an unidentified order")
+        request = self._build_request(
+            "DELETE", "/v2/orders/" + urllib.parse.quote(order_id, safe="")
+        )
+        self._throttle()
+        try:
+            self._read(request)
+        except (
+            urllib.error.HTTPError,
+            http.client.HTTPException,
+            OSError,
+            TimeoutError,
+            ValueError,
+        ) as exc:
+            from executor.errors import OrderOutcomeUnknownError  # noqa: PLC0415
+
+            raise OrderOutcomeUnknownError(
+                "cancellation outcome requires broker reconciliation"
+            ) from exc
 
     def get_order_by_client_id(self, client_order_id: str) -> Order | None:
         """Look an order up by the executor's own idempotency key."""
@@ -520,6 +681,8 @@ class AlpacaPaperClient:
         if not isinstance(payload, list):
             message = "GET /v2/orders did not return a list"
             raise BrokerError(message)
+        if len(payload) >= limit:
+            raise BrokerError("order query reached its limit; completeness cannot be established")
         return tuple(Order.from_payload(item) for item in payload)
 
 

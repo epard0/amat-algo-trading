@@ -28,6 +28,7 @@ from typing import Any
 
 from executor.broker import Order
 from executor.plan_source import ExecutionPlan
+from executor.submit import client_order_id_for
 
 __all__ = [
     "ExecutionQuality",
@@ -339,6 +340,8 @@ class ExecutionQuality:
             "reference_notional_fill_rate": self.reference_notional_fill_rate,
             "decision_to_fill_slippage_bps": self.decision_to_fill_slippage_bps,
             "reconciliation_complete": self.reconciliation_complete,
+            "reconciliation_scope": "plan_intents_to_broker_orders_only",
+            "portfolio_reconciliation_complete": False,
             "slippage_benchmark": "prior decision-session close",
         }
 
@@ -346,6 +349,8 @@ class ExecutionQuality:
 def compute_execution_quality(
     plan: ExecutionPlan | None,
     orders: tuple[Order, ...],
+    *,
+    orders_available: bool = True,
 ) -> ExecutionQuality:
     """Match plan intents to orders and quantify fills and adverse markout."""
     intents = () if plan is None else plan.intents
@@ -362,7 +367,10 @@ def compute_execution_quality(
             (
                 index
                 for index, order in enumerate(remaining_orders)
-                if order.symbol == intent.symbol and order.side == intent.side
+                if plan is not None
+                and order.client_order_id == client_order_id_for(plan, intent)
+                and order.symbol == intent.symbol
+                and order.side == intent.side
             ),
             None,
         )
@@ -390,7 +398,7 @@ def compute_execution_quality(
         else None
     )
     open_orders = sum(not order.is_terminal for order in orders)
-    terminal_failure_statuses = {"rejected", "canceled", "expired", "done_for_day"}
+    terminal_failure_statuses = {"rejected", "canceled", "expired"}
 
     return ExecutionQuality(
         planned_order_count=len(intents),
@@ -412,7 +420,9 @@ def compute_execution_quality(
         reference_notional_fill_rate=fill_rate,
         decision_to_fill_slippage_bps=slippage,
         reconciliation_complete=(
-            open_orders == 0
+            plan is not None
+            and orders_available
+            and open_orders == 0
             and unmatched_intents == 0
             and not remaining_orders
             and overfilled_orders == 0

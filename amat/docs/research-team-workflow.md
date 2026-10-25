@@ -1,5 +1,22 @@
 # Cohesive research workflow with an OpenAI chief
 
+Update: new frozen daily research sessions support an approved matched-reproduction
+adapter, cross-session evidence retrieval and verified charts. See
+[research tools](research-tools.md). The adapter supports exported autoresearch
+candidate/control pairs; other operations and legacy aggregate envelopes retain
+the blocked behavior described below. Use `research.sh follow-up REVIEW_ID TASK_ID`
+or the explicit `pmteam execute-task ... --run` path for this adapter.
+
+Project audit: [2026-09-11 project and loop audit](autoresearch-state-2026-09-11.md).
+Earlier strategy-engine checks: [v2 verification](strategy-development-v2-verification-2026-09-11.md).
+Latest agent-directed pattern checks: [v3 pattern verification](pattern-research-verification-2026-09-11.md).
+The review cycle passes offline acceptance checks. The separate
+[strategy-development engine](strategy-development-engine.md) now generates and
+evaluates composable features, fitted signals and trading policies, then exports matched comparisons for
+this workflow. Provider failover is available for its proposer; it is not yet
+wired into the review committee. Deployment of the new executor limits remains
+separate work.
+
 ## Implemented boundary
 
 The head reviewer can now use **`gpt-6-astra` through the OpenAI Responses API**.
@@ -52,6 +69,7 @@ part of the review identity and the persisted requests.
 |---|---|---|
 | `newsdesk` | Timestamped news records and point-in-time conditioning | AMAT can consume `newsdesk export-scalars` through study `--scalars`; the chief does not automatically browse or ingest raw articles |
 | `amat` | Strategy features, regime models, sizing, backtests, attribution and reports | Supplies immutable run artifacts and exact historical configuration |
+| `autoresearch` | Bounded strategy/feature proposals, frozen backtests, training-only keep/discard feedback and optional proposer failover | Produces new matched comparisons in an external workspace; its catalog can be reviewed by `pmteam cycle` |
 | `deskreview` | Scheduled observation/description of existing strategy behavior | Complementary observer; not the portfolio-team scheduler or admission authority |
 | `portfolio_team` | Evidence checks, specialist objections, chief synthesis and research backlog | Implemented CLI, registry, reports and bounded scheduled cycle |
 | `executor` | Broker reconciliation, orders, positions and runtime risk enforcement | No new write interface from the team; dated accounting/capability evidence adapters remain future work |
@@ -100,6 +118,21 @@ Use the existing `evaluate` command with the same provider/chief options to
 compare a single reviewer with the team. Its current cases are development
 examples, not proof of investment performance or superior reviewer quality.
 
+Check application budget and remaining attempts before a model review:
+
+```bash
+uv run --locked pmteam preflight v11-versus-broad-control \
+  --provider openai --model gpt-6-astra --single-reviewer
+```
+
+Preflight creates no review, request, token reservation or attempt. It reports
+the next uncached role, remaining attempts, the requested token reservation,
+charged/available tokens and blocking budget dimensions. A daily-usage pause
+includes the next UTC reset time when that reset could resolve the blocker.
+It checks only the next dispatch: it does not verify provider quota or guarantee
+that the whole meeting can complete. A per-review limit or a request larger
+than the daily allowance does not become feasible merely by waiting overnight.
+
 ## The automatic review cycle
 
 ```bash
@@ -120,10 +153,20 @@ Each invocation:
    maximum 20), within existing request/review/day limits.
 5. Exports reports plus `research_backlog.json` containing the chief's requests
    in priority order, their acceptance criteria and evidence identity. The
-   backlog is explicitly `proposed_not_authorized`; it is not an executable queue.
+   backlog is explicitly `proposed_not_authorized`. It also exports the typed
+   `research_queue.v2.json` of proposed follow-up tasks; neither export executes work.
 6. Records a `review_cycle` event and prints a machine-readable summary.
 
-Failed reviews are marked `needs_operator_retry` on subsequent cycles and are
+Budget pauses now have their own `deferred_budget` status. They consume no
+attempt unless a call was actually reserved, and a zero-call deferral does not
+use the cycle's dispatch allowance. Later cycles automatically reconsider them
+under the same review identity; completed specialist responses are reused. The
+attempt record, exact request and token reservation are written together in one
+transaction before dispatch. Unknown usage from actual reservations is retained.
+Evaluation JSON/Markdown also distinguishes `deferred_budget` from provider or
+validation failures. Deferred rows have no score, rather than a fabricated zero.
+
+Actual failed reviews are marked `needs_operator_retry` on subsequent cycles and are
 not repeatedly submitted every 15 minutes. An interrupted review may resume
 within its durable two-attempt-per-role limit. The explicit `review` command
 can retry only if attempts remain. Exhausted review identities are not reset by
@@ -185,6 +228,56 @@ session-pattern/stat-arb studies) in a broker-free worker, within compute/data
 budgets. The worker would publish new artifacts and declared comparisons back
 to the catalog. Model-written shell commands must never become jobs directly.
 
+### Iteration 2: typed follow-up queue
+
+That bridge is now available as a read-only planning step. For any persisted
+completed review, run:
+
+```bash
+uv run --locked pmteam plan REVIEW_ID
+```
+
+This writes `outputs/governance/REVIEW_ID/research_queue.v2.json`, also exported
+by `pmteam cycle`. Each proposed
+task has a stable ID, an allow-listed operation (`matched_backtest`,
+`cost_stress`, `ablation`, `walkforward`, `session_pattern`, or `stat_arb`),
+candidate/control aliases, acceptance criteria, and source-check references.
+Tasks start as `proposed` and retain `execution_authority: none`; this command
+does not run a backtest, call a model, approve a strategy, or touch the
+executor. An eventual worker should accept only an operator-approved task and
+map the operation to its own fixed AMAT argument templates.
+
+Approval and dispatch are now explicit separate steps:
+
+```bash
+uv run --locked pmteam approve-task REVIEW_ID TASK_ID --by operator-name
+uv run --locked pmteam dispatch-task REVIEW_ID TASK_ID
+```
+
+Approval is persisted under the review's `approvals/` directory and is bound to
+the review, queue digest and exact task ID. Repeating the same approval preserves
+its original timestamp. Dispatch refuses missing, stale or copied approvals and
+emits an empty `argv_template` with `execute: false` and
+`reason: adapter_not_registered`; it does not launch a process. This keeps the
+research worker broker-free while the AMAT study adapters and their output
+registration contract are finalized.
+
+The gated worker entry point is:
+
+```bash
+uv run --locked pmteam execute-task REVIEW_ID TASK_ID
+```
+
+Until a reviewed adapter is registered for the operation, it writes an
+`executions/TASK_ID.json` result with `status: blocked` and
+`reason: adapter_not_registered`. This is intentional: an approved research
+idea is not permission to invent CLI arguments or run an unregistered study.
+Blocked and failed execution results return exit code 1. The compatibility
+`--run` option is also blocked: the removed candidate-only subprocess did not
+implement a matched experiment or isolate credentials. A future worker must
+resolve warm-up load windows separately from measured sample dates, freeze both
+configurations and the data, persist both runs, and register their comparison.
+
 News-event ideas require timestamped source evidence and a registered hypothesis,
 not an LLM's unsupported confidence. Intraday/overnight commodity hypotheses also
 require the correct venue session calendar, tradable instrument, realistic costs,
@@ -208,9 +301,22 @@ usage accounting, mixed-provider role routing, chief token reservation, cache
 identity, cycle idempotency, quarantine and failed-job suppression. A live chief
 review should be completed when the budget permits, before enabling scheduling.
 
-Final verification: **1,477 tests passed, one existing skip** in the full AMAT
+Initial OpenAI integration verification: **1,477 tests passed, one existing skip** in the full AMAT
 suite; **47 portfolio-team tests passed**; strict typing passed for 108 source
 files, with scoped lint/format checks clean. An actual scripted cycle reused all
 four existing reviews without model calls, and a saved Gemini review replayed
 unchanged. No model-generation call, scheduler activation, or broker operation
 was performed during this integration.
+
+Continuation update: the real Astra review command was exercised against the
+shared ledger and safely persisted a budget pause with **zero attempts and zero
+new model calls**. The registry still contains 37 historical model calls; the
+next applicable daily reset is `2026-09-11T00:00:00+00:00`. That is an earliest
+application-budget retry point, not a guarantee of provider availability. Neither
+the clock, historical reservations, limits nor scheduler activation was changed.
+Rollover/resume behavior was verified with an injected clock in isolated test
+registries, not by changing production time or accounting.
+
+Continuation verification: **1,521 tests passed, one existing skip**; 56
+portfolio-team tests passed and strict typing passed for 113 source files.
+See the [budget-resume validation record](portfolio-team-budget-resume-validation.md).

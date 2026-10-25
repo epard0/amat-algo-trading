@@ -1,0 +1,10 @@
+{
+  "baseline": {},
+  "rotation5_16": {"risk": 0.16, "caps": true, "power": 0, "slow": true, "top": 5},
+  "rotation5_20": {"risk": 0.20, "caps": true, "power": 0, "slow": true, "top": 5},
+  "growth_rotation5_16": {"risk": 0.16, "growth_caps": true, "power": 0, "slow": true, "top": 5},
+  "growth_rotation5_20": {"risk": 0.20, "growth_caps": true, "power": 0, "slow": true, "top": 5},
+  "growth_rotation5_24": {"risk": 0.24, "growth_caps": true, "power": 0, "slow": true, "top": 5},
+  "growth_rotation5_20_band4": {"risk": 0.20, "growth_caps": true, "power": 0, "slow": true, "top": 5, "rebalance": 0.04},
+  "growth_rotation4_20": {"risk": 0.20, "growth_caps": true, "power": 0, "slow": true, "top": 4}
+}

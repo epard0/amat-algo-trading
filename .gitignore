@@ -1,4 +1,4 @@
-# Shared ignore rules for the AMAT research module and paper executor.
+# Shared publication and local-state rules for all AMAT workspace components.
 
 # ---------------------------------------------------------------------------
 # Secrets and machine-local configuration
@@ -14,7 +14,7 @@
 *.key
 *.p12
 *.pfx
-
+.superpowers/
 # Local shell/user configuration accidentally copied into a project.
 **/.bash_history
 **/.zsh_history
@@ -22,7 +22,7 @@
 **/.bashrc
 **/.profile
 **/.gitconfig
-
+**/.claude/
 # ---------------------------------------------------------------------------
 # Python environments, bytecode, packaging, and test/tool caches
 # ---------------------------------------------------------------------------
@@ -47,7 +47,6 @@
 **/.coverage
 **/.coverage.*
 **/htmlcov/
-
 # Jupyter-generated state; notebook sources remain trackable.
 **/.ipynb_checkpoints/
 
@@ -116,3 +115,56 @@
 /tmp/
 /temp/
 /coverage/
+
+# Publication excludes: private workstation material and generated evidence.
+/.KEYS/
+/.agents/
+/.playwright-mcp/
+/skills-lock.json
+/amat-server-*.tar.*
+/operations/
+/kalshi-perps/outputs/
+# Historical audit screenshots / generated analysis; keep their Markdown guides.
+/frontend/docs/**/*.png
+/frontend/docs/*.json
+/docs/alpha-review-2026-09-30/*.json
+/docs/alpha-review-2026-09-30/*.csv
+/docs/alpha-implementation-plan-2026-10-08/source-manifest.json
+/docs/alpha-implementation-plan-2026-10-08/validation.json
+/amat/docs/phase0-evidence-2026-09-20/
+/amat/docs/**/*.json
+!/amat/docs/**/*.example.json
+/amat/docs/**/*.csv
+/amat/docs/**/*.png
+# Private connection configuration; examples remain publishable.
+/frontend/config/remote.toml
+**/.ssh/
+**/id_rsa
+**/id_ed25519
+**/*.sqlite
+**/*.sqlite3
+**/*.sqlite-wal
+**/*.sqlite-shm
+**/*.sqlite3-wal
+**/*.sqlite3-shm
+**/*.db
+**/*.db-wal
+**/*.db-shm
+# Explicit safe templates, after generic environment exclusions.
+!**/.env.example
+!**/.env.*.example
+
+# Private SSH connection identities/trust files, independent of their location.
+**/remote.toml
+**/ssh.toml
+**/*.local.toml
+**/known_hosts
+**/known_hosts.*
+**/authorized_keys
+**/id_ecdsa
+**/id_dsa
+**/*.pub
+# Immutable operator-specific historical notes stay local, like operations/.
+/frontend/docs/OPERATIONS_VERIFICATION.md
+/frontend/docs/VPS_PAPER_DEPLOYMENT_2026-10-20.md
+/amat/docs/remote-paper-monitor.md

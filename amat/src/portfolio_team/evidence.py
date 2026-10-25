@@ -36,6 +36,14 @@ class EvidenceError(ValueError):
     """An input is not suitable for this evidence adapter."""
 
 
+class BudgetDeferredError(EvidenceError):
+    """No call was dispatched; retain the budget snapshot for scheduling."""
+
+    def __init__(self, budget: dict[str, Any]) -> None:
+        self.budget = budget
+        super().__init__("deferred_budget:" + ",".join(budget["blocked_dimensions"]))
+
+
 def sha256(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 

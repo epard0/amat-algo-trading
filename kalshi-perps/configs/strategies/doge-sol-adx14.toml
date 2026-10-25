@@ -1,0 +1,31 @@
+name = "doge-sol-adx14"
+
+[evidence]
+selection = "amat/outputs/crypto-doge-sol-walkforward-2026-10-19/selection.json"
+selection_sha256 = "64a396387de6aa212f91595935b8f3f73ad77e236184c4b31a86927887f4fbf5"
+selected_key = "candidate2; latest trailing-year fold fixed0.5 fallback"
+status = "User-authorized forward paper experiment; historical robustness gate failed"
+execution_status = "paper_authorized"
+authorization = "User requested starting default ADX DOGE/SOL at maximum available leverage on2026-10-20; paper only"
+withdrawals_enabled = false
+
+[sources]
+"crypto_adx_switch.py" = "00f0cc21bd38db9a5ac24ea18dd133b01ccc2fae0b1d46da28c489a6de6f19c1"
+"crypto_volatility_switch.py" = "8506cd61d45a63cc1a4f94ff9f611a4e7f8928a11f25c60f9a94255fe59ea9b1"
+"crypto_doge_sol.py" = "97f7f990a230b26047f3772cc5079970c9df2fb925f2375773d1040b9728c53e"
+"crypto_directional.py" = "7c437b1a74665f3963e980848e22291ebb5d1dac3c93b0918a47912f6bf839f2"
+"crypto_partial_exits.py" = "e873399d7cf7d697802c037e63ce6487f2f6ac4f6f32d372611cb14b9ba739b8"
+
+[[legs]]
+ticker = "KXDOGEPERP"
+engine = "profit"
+allocation = "0.25"
+leverage = "0.5"
+tp_atr = 0.5
+max_hold_hours = 72
+
+[[legs]]
+ticker = "KXSOLPERP"
+engine = "adx_exits"
+allocation = "0.75"
+leverage = "0.5"

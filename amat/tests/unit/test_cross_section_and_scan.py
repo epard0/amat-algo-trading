@@ -677,3 +677,41 @@ def test_enabling_the_budget_raises_the_required_warmup() -> None:
 
     payload["warmup"] = {"min_completed_sessions": 378}
     assert StrategyConfig.model_validate(payload).warmup.min_completed_sessions == 378
+
+
+def test_scan_respects_scheduled_membership_on_every_session():
+    from amat.portfolio import precompute_decision_inputs
+    from amat.portfolio.cross_section import select_on_schedule
+    from amat.scanner import scan_universe
+
+    panel = _panel(rows=280)
+    strategy = _strategy(max_positions=2, selection_interval_sessions=5)
+    cache = precompute_decision_inputs(strategy, panel.adjusted_closes)
+    first = max(strategy.warmup.min_completed_sessions - 1, strategy.trend.max_horizon_sessions)
+    saw_rank_difference = False
+    for index in range(first, 280):
+        scan = scan_universe(strategy, panel, session=panel.sessions[index])
+        expected = select_on_schedule(
+            cache.long_scores,
+            cache.sigma_panel,
+            strategy.cross_sectional,
+            decision_index=index,
+            first_decision_index=first,
+            horizon_scores=cache.horizon_scores,
+        )
+        assert {a.symbol for a in scan.selected} == {
+            str(symbol) for symbol, value in zip(panel.symbols, expected, strict=True) if value > 0
+        }
+        assert scan.ranking_refresh_session == panel.sessions[first + (index - first) // 5 * 5]
+        saw_rank_difference |= {a.symbol for a in scan.selected} != {
+            a.symbol for a in scan.eligible[:2]
+        }
+    assert saw_rank_difference, "fixture must exercise rank changes between refreshes"
+
+
+def test_scan_without_selection_admits_every_positive_usable_signal():
+    from amat.scanner import scan_universe
+
+    result = scan_universe(_strategy(), _panel())
+    assert {a.symbol for a in result.selected} == {a.symbol for a in result.assets if a.score > 0}
+    assert result.ranking_refresh_session is None

@@ -1,0 +1,36 @@
+services:
+  kalshi-perps:
+    build:
+      context: ../..
+      dockerfile: kalshi-perps/deploy/Dockerfile
+    image: kalshi-perps:paper-20261020
+    container_name: kalshi-perps
+    env_file:
+      - path: telegram.env
+        required: false
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 320m
+    memswap_limit: 512m
+    cpus: 0.5
+    stop_grace_period: 60s
+    volumes:
+      - perps-state:/var/lib/kalshi-perps
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '3'
+    healthcheck:
+      test: [CMD, python, deploy/health.py]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+volumes:
+  perps-state:

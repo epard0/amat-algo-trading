@@ -54,6 +54,20 @@ def plan(strategy, panel, **overrides):
 
 
 class TestTheDecisionReachesAPlan:
+    def test_monitoring_prices_cover_unheld_assets_and_only_completed_sessions(
+        self, strategy, panel
+    ):
+        context = plan(strategy, panel).as_dict()["monitoring"]
+        history = context["price_history"]
+        assert len(history) == 65
+        assert [row["session"] for row in history] == [str(d) for d in panel.sessions[-65:]]
+        assert context["as_of_session"] == str(panel.sessions[-1])
+        assert set(history[-1]["prices"]) == set(panel.symbols)
+        assert history[-1]["prices"][str(panel.symbols[0])]["raw_close"] == panel.raw_closes[-1, 0]
+        assert context["forecast_status"] == "not_emitted_by_this_model"
+        assert set(context["decision_diagnostics"]["trend_scores"]) == set(panel.symbols)
+        assert "not a probability" in context["decision_diagnostics"]["score_basis"]
+
     def test_a_plan_is_formed_for_the_last_completed_session(self, strategy, panel) -> None:
         built = plan(strategy, panel)
         assert built.as_of_session == panel.sessions[-1]

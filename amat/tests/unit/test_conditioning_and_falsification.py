@@ -149,12 +149,8 @@ class TestTheRunnerAppliesTheScalar:
         )
         assert result.total_fills > 0
 
-    def test_configured_and_external_regime_layers_are_refused(
-        self, strategy, panel
-    ) -> None:
-        adaptive = strategy.model_copy(
-            update={"learned_regime": LearnedRegimeConfig(enabled=True)}
-        )
+    def test_configured_and_external_regime_layers_are_refused(self, strategy, panel) -> None:
+        adaptive = strategy.model_copy(update={"learned_regime": LearnedRegimeConfig(enabled=True)})
         with pytest.raises(DataIntegrityError, match="two regime layers"):
             run_backtest(
                 adaptive,

@@ -8,6 +8,7 @@ import time
 
 from portfolio_team.assessment_validation import validate_assessment
 from portfolio_team.contracts import Assessment, Bundle, Policy, Role
+from portfolio_team.evidence import BudgetDeferredError
 from portfolio_team.model_runtime import ModelRunError, RemoteProvider
 from portfolio_team.store import Store
 
@@ -31,32 +32,23 @@ async def remote_phase(
         settings = provider.settings
         repair_hint: str | None = None
         while time.monotonic() < deadline:
-            request = provider.prepare(role, bundle, previous)
+            next_attempt = store.next_attempt(review_id, role)
+            request = provider.prepare_attempt(role, bundle, previous, next_attempt)
             if repair_hint:
                 contents = json.loads(request.contents)
                 contents["previous_validation_failure"] = repair_hint
                 request = request.model_copy(
                     update={"contents": json.dumps(contents, sort_keys=True)}
                 )
-            attempt = store.begin_attempt(review_id, role, policy.max_attempts_per_role)
-            try:
-                store.reserve_model_call(
-                    review_id,
-                    role,
-                    attempt,
-                    request_json=request.canonical(),
-                    input_tokens=request.input_reservation,
-                    output_tokens=request.settings.max_output_tokens,
-                    limits=(
-                        settings.max_input_reservation_per_review,
-                        settings.max_output_reservation_per_review,
-                        settings.max_input_reservation_per_day,
-                        settings.max_output_reservation_per_day,
-                    ),
-                )
-            except ValueError:
-                store.finish_attempt(review_id, role, attempt, None, "deferred_budget")
-                raise ModelRunError("deferred_budget") from None
+            attempt = store.begin_model_attempt(
+                review_id,
+                role,
+                policy.max_attempts_per_role,
+                request_json=request.canonical(),
+                input_tokens=request.input_reservation,
+                output_tokens=request.settings.max_output_tokens,
+                limits=settings.reservation_limits,
+            )
             started = time.monotonic()
             response = await provider.invoke(request, deadline - started)
             # Record even malformed/blocked output before attempting schema validation.
@@ -103,6 +95,10 @@ async def remote_phase(
 
     # Collect every in-flight result so failures do not leave unaccounted background calls.
     responses = await asyncio.gather(*(bounded(role) for role in roles), return_exceptions=True)
+    # A simultaneous real failure must not be hidden behind a budget deferral.
+    for response in responses:
+        if isinstance(response, BaseException) and not isinstance(response, BudgetDeferredError):
+            raise response
     for response in responses:
         if isinstance(response, BaseException):
             raise response

@@ -122,6 +122,7 @@ def split_panel(panel: MarketPanel, train_end: dt.date) -> tuple[MarketPanel, Ma
         adjusted_highs=None if panel.adjusted_highs is None else panel.adjusted_highs[:cut],
         adjusted_lows=None if panel.adjusted_lows is None else panel.adjusted_lows[:cut],
         session_volumes=None if panel.session_volumes is None else panel.session_volumes[:cut],
+        adjusted_opens=None if panel.adjusted_opens is None else panel.adjusted_opens[:cut],
     )
     return training, panel
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 from collections.abc import Sequence
+from zoneinfo import ZoneInfo
 
 import numpy as np
 
@@ -16,9 +17,16 @@ __all__ = ["extend_market_panel", "latest_completed_session"]
 
 
 def latest_completed_session(*, now: dt.datetime | None = None) -> dt.date:
-    """Most recent UTC date that cannot still be an in-progress session."""
+    """Conservative exchange-local date cutoff, not a holiday-calendar claim.
+
+    UTC midnight arrives during the prior US evening. Subtracting a day in
+    UTC can therefore include the current exchange date before it is complete.
+    Missing weekend/holiday sessions are resolved from returned market data.
+    """
     moment = now or dt.datetime.now(tz=dt.UTC)
-    return moment.astimezone(dt.UTC).date() - dt.timedelta(days=1)
+    if moment.tzinfo is None:
+        raise ValueError("latest completed cutoff requires an aware instant")
+    return moment.astimezone(ZoneInfo("America/New_York")).date() - dt.timedelta(days=1)
 
 
 def extend_market_panel(

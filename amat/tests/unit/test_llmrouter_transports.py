@@ -115,7 +115,7 @@ def test_chat_style_sends_json_schema_and_reads_usage(monkeypatch: Any) -> None:
     assert captured["messages"][0]["role"] == "system"
 
 
-def test_chat_style_downgrades_to_json_object_when_schema_is_rejected(monkeypatch: Any) -> None:
+def test_chat_style_returns_schema_rejection_without_an_unaccounted_retry(monkeypatch: Any) -> None:
     calls: list[str] = []
 
     class _Completions:
@@ -130,6 +130,16 @@ def test_chat_style_downgrades_to_json_object_when_schema_is_rejected(monkeypatc
     response = asyncio.run(
         OpenAICompatibleTransport("chat").generate(
             _request(), model="m", api_key="k", base_url=BASE_URLS["openrouter"]
+        )
+    )
+    assert calls == ["json_schema"]
+    assert response.error_code == "schema_not_supported"
+    response = asyncio.run(
+        OpenAICompatibleTransport("chat").generate(
+            _request().model_copy(update={"json_object_mode": True}),
+            model="m",
+            api_key="k",
+            base_url=BASE_URLS["openrouter"],
         )
     )
     assert calls == ["json_schema", "json_object"]
@@ -299,6 +309,7 @@ def test_gemini_transport_success_reads_usage(monkeypatch: Any) -> None:
     args = create.call_args.kwargs
     assert args["store"] is False
     assert args["model"] == "gemini-test"
+    assert args["generation_config"]["thinking_level"] == "low"
     assert args["response_format"]["schema"] == json.loads(_request().schema_json)
     create.assert_awaited_once()
 
@@ -349,3 +360,54 @@ def test_gemini_transport_other_exception_is_transport(monkeypatch: Any) -> None
     assert response.error_class == "transport"
     assert response.error_code == "transport_RuntimeError"
     assert "boom" not in response.canonical()
+
+
+def test_intraday_reasoning_budget_and_ultra_usage(monkeypatch: Any) -> None:
+    from llmrouter.transports import _chat_reasoning
+
+    assert _chat_reasoning("openrouter", "openrouter/free", "low") == {
+        "reasoning": {"effort": "low"}
+    }
+    captured = {}
+
+    class Completions:
+        async def create(self, **kwargs: Any) -> MagicMock:
+            captured.update(kwargs)
+            return _completion(
+                '{"x":1}', prompt=10, completion=25, finish="stop", reasoning_tokens=7
+            )
+
+    monkeypatch.setattr("llmrouter.transports.AsyncOpenAI", _fake_client(chat=Completions()))
+    response = asyncio.run(
+        OpenAICompatibleTransport("chat").generate(
+            _request(reasoning_effort="low"),
+            model="nvidia/nemotron-3-ultra-550b-a55b",
+            api_key="fixture",
+            base_url=BASE_URLS["nvidia"],
+        )
+    )
+    assert response.output_tokens == 25
+    assert captured["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
+    assert "thinking_token_budget" not in captured["extra_body"]
+
+
+def test_prompt_json_fallback_omits_unsupported_wire_format(monkeypatch: Any) -> None:
+    captured: dict[str, Any] = {}
+
+    class Completions:
+        async def create(self, **kwargs: Any) -> MagicMock:
+            captured.update(kwargs)
+            return _completion('{"x": 1}', prompt=10, completion=5, finish="stop")
+
+    monkeypatch.setattr("llmrouter.transports.AsyncOpenAI", _fake_client(chat=Completions()))
+    response = asyncio.run(
+        OpenAICompatibleTransport("chat").generate(
+            _request(json_object_mode=True, prompt_json_mode=True),
+            model="free-model",
+            api_key="fixture",
+            base_url=BASE_URLS["openrouter"],
+        )
+    )
+    assert response.ok
+    assert "response_format" not in captured
+    assert "matching this schema" in captured["messages"][0]["content"]

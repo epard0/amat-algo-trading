@@ -1,0 +1,40 @@
+mode = "paper"
+execution_enabled = false
+account = "doge-sol-trend-shadow-paper-v2"
+database = "/var/lib/kalshi-perps/paper-doge-sol-trend-shadow-v2.sqlite"
+instruments = "instruments.json"
+
+[strategy]
+profile = "strategies/doge-sol-trend-shadow.toml"
+amat_root = "/opt/research"
+python = "/opt/perps-venv/bin/python"
+
+[paper]
+leverage_mode = "venue_max"
+collateral = "10000"
+fee_rate = "0.0004"
+max_leverage = "2"
+maintenance_rate = "0.05"
+liquidation_fee = "0.005"
+
+[risk]
+max_gross = "1"
+max_order_notional = "1000000"
+max_spread_bps = "50"
+max_loss_fraction = "0.35"
+quote_max_age_ms = 15000
+max_execution_cost_bps = "30"
+
+[venue]
+environment = "production"
+key_id_env = "KALSHI_PERPS_KEY_ID"
+private_key_env = "KALSHI_PERPS_PRIVATE_KEY_PATH"
+
+[data]
+provider = "kraken-perpetuals"
+cache = "/var/lib/kalshi-perps/signal-history.sqlite"
+history_days = 90
+max_basis_bps = "500"
+
+[shadow]
+default_report = "/var/lib/default-perps/adx-forward/status.json"

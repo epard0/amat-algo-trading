@@ -1,0 +1,35 @@
+services:
+  kalshi-perps-shadow:
+    image: kalshi-perps:trend-shadow-20261022-v2
+    container_name: kalshi-perps-shadow
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 384m
+    memswap_limit: 512m
+    cpus: 0.5
+    stop_grace_period: 60s
+    volumes:
+      - shadow-state:/var/lib/kalshi-perps
+      - default-state:/var/lib/default-perps:ro
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '3'
+    healthcheck:
+      test: [CMD, python, deploy/health.py]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+volumes:
+  shadow-state:
+    name: kalshi-perps-shadow_trend-state
+  default-state:
+    external: true
+    name: kalshi-perps_perps-state

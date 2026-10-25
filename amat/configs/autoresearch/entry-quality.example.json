@@ -1,0 +1,26 @@
+{
+  "hypothesis": "Reduce costly entry timing while accounting for missed winners and changes in market conditions.",
+  "features": [],
+  "signal": null,
+  "entry_model": {
+    "horizon": 60,
+    "training_sessions": 756,
+    "recency_half_life": 126,
+    "refit_sessions": 63,
+    "min_training_events": 96,
+    "min_validation_events": 8,
+    "minimum_defer_bps": 5.0,
+    "adverse_weight": 0.1,
+    "uncertainty_weight": 0.25,
+    "max_entry_reduction": 0.5,
+    "max_deferral_sessions": 1,
+    "max_feature_z": 6.0,
+    "regime_validation": true,
+    "recent_health": true
+  },
+  "stage": "manual",
+  "research": {
+    "mechanism": "Chronological tree models estimate net carry, post-window adverse excursion and one-session deferral value. Regime validation and recent counterfactual checks include the cost of missed winners. Uncertain, unfamiliar or unsupported conditions restore baseline entry size.",
+    "falsification": "Reject performance claims if exposure-matched net returns and their uncertainty guard fail, drawdown deteriorates materially, execution costs or delay erase the benefit, or ablations show that mechanisms add no value."
+  }
+}

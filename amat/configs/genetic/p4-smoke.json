@@ -1,0 +1,99 @@
+{
+  "start": "2016-01-04",
+  "validation": {
+    "folds": [
+      {
+        "name": "outer-2021",
+        "fit_end": "2018-12-31",
+        "selection_end": "2020-12-31",
+        "evaluation_end": "2021-12-31"
+      },
+      {
+        "name": "outer-2022",
+        "fit_end": "2019-12-31",
+        "selection_end": "2021-12-31",
+        "evaluation_end": "2022-12-30"
+      }
+    ],
+    "seeds": [
+      11,
+      29
+    ],
+    "shortlist_size": 2,
+    "null_replicates": 3,
+    "null_seed": 1729,
+    "bootstrap_replicates": 1000,
+    "block_sessions": 20,
+    "min_effect_sessions": 30
+  },
+  "search": {
+    "population_size": 16,
+    "generations": 1,
+    "seed": 11,
+    "max_depth": 3,
+    "max_nodes": 15,
+    "feature_terminals": [
+      {
+        "name": "efficiency",
+        "lookback": 21,
+        "lag": 0,
+        "transform": "rolling_zscore",
+        "source": "self"
+      },
+      {
+        "name": "volume_ratio",
+        "lookback": 21,
+        "lag": 0,
+        "transform": "rolling_zscore",
+        "source": "self"
+      },
+      {
+        "name": "volatility_shock",
+        "lookback": 21,
+        "lag": 0,
+        "transform": "rolling_zscore",
+        "source": "self"
+      },
+      {
+        "name": "body_atr",
+        "lookback": 21,
+        "lag": 0,
+        "transform": "rolling_zscore",
+        "source": "self"
+      }
+    ],
+    "constants": [
+      -1.0,
+      -0.5,
+      0.0,
+      0.5,
+      1.0
+    ],
+    "unary_ops": [
+      "neg",
+      "abs",
+      "tanh"
+    ],
+    "binary_ops": [
+      "add",
+      "sub",
+      "mul",
+      "safe_div",
+      "min",
+      "max"
+    ],
+    "elite_count": 1,
+    "tournament_size": 3,
+    "crossover_probability": 0.8,
+    "mutation_probability": 0.1,
+    "fresh_probability": 0.02,
+    "max_generation_attempts": 64,
+    "method": "genetic"
+  },
+  "screen": {
+    "one_way_bps": 2.0,
+    "min_effect_sessions": 30,
+    "complexity_penalty_bps": 0.01,
+    "min_output_std": 1e-06
+  }
+}

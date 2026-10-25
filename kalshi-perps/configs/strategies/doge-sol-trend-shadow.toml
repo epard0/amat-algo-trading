@@ -1,0 +1,36 @@
+name = "doge-sol-trend-shadow"
+[evidence]
+selection = "kalshi-perps/docs/trend-shadow-protocol.json"
+selection_sha256 = "052ce5829b34a23366b5523246816fbc724e430d599117b44c0733be756072f1"
+status = "Frozen prospective variant: DOGE EMA25 / SOL EMA50. Earlier both-EMA50 diagnostic failed training eligibility."
+execution_status = "paper_authorized"
+authorization = "User explicitly requested separate shadow forward account alongside default, with shorter trend window for smaller coins, 2026-10-22"
+withdrawals_enabled = false
+[sources]
+"crypto_shadow_trend.py" = "2d27484ed0cc3d3450ad47fab58316b0bb8268090b06fcfdf0f74b41a38752d0"
+"crypto_trend_short.py" = "5aed3bc771036d017b85ba6da728d2c15f966d285f14b055a65d52add3062cc1"
+"crypto_breakout_windows.py" = "9ba9ed5e8dc710fa4ab865cc9b311b7be8cdb5557d05da8a70e4e3d392d6cae2"
+"crypto_adx_switch.py" = "00f0cc21bd38db9a5ac24ea18dd133b01ccc2fae0b1d46da28c489a6de6f19c1"
+"crypto_volatility_switch.py" = "8506cd61d45a63cc1a4f94ff9f611a4e7f8928a11f25c60f9a94255fe59ea9b1"
+"crypto_doge_sol.py" = "97f7f990a230b26047f3772cc5079970c9df2fb925f2375773d1040b9728c53e"
+"crypto_directional.py" = "7c437b1a74665f3963e980848e22291ebb5d1dac3c93b0918a47912f6bf839f2"
+"crypto_partial_exits.py" = "e873399d7cf7d697802c037e63ce6487f2f6ac4f6f32d372611cb14b9ba739b8"
+"crypto_adx_leverage_study.py" = "82f76bdc526e948a7d42c8bc264283ca7e2657cb5abab6769392502859500f37"
+
+[[legs]]
+ticker = "KXDOGEPERP"
+engine = "trend_short"
+allocation = ".25"
+leverage = "1"
+template = "DOGE"
+adx_threshold = 30
+ema_bars = 25
+
+[[legs]]
+ticker = "KXSOLPERP"
+engine = "trend_short"
+allocation = ".75"
+leverage = "1"
+template = "SOL"
+adx_threshold = 30
+ema_bars = 50

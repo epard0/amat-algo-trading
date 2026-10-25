@@ -1,0 +1,18 @@
+name = "uni-pnl"
+
+[evidence]
+selection = "amat/outputs/crypto-directional-2026-10-19/universe/selection.json"
+selection_sha256 = "2e53fdf71b8f6f0e96ca4749fac22b5a49b3b13744beb6af3916bb4aad1908ba"
+selected_key = "UNIUSDT-pnl"
+status = "frozen training selection; paper research only"
+
+[sources]
+"crypto_directional.py" = "7c437b1a74665f3963e980848e22291ebb5d1dac3c93b0918a47912f6bf839f2"
+
+[[legs]]
+ticker = "KXUNIPERP"
+engine = "directional"
+allocation = "1"
+leverage = "1"
+sizing = "full"
+direction = 1

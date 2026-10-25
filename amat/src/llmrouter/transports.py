@@ -25,6 +25,7 @@ BASE_URLS: dict[str, str] = {
     "openrouter": "https://openrouter.ai/api/v1",
     "nvidia": "https://integrate.api.nvidia.com/v1",
     "gemini": "https://generativelanguage.googleapis.com",
+    "groq": "https://api.groq.com/openai/v1",
 }
 
 _MAX_MESSAGE_CHARS = 2000
@@ -213,6 +214,7 @@ def _finalize_responses(*, provider: str, model: str, response: Any, start: floa
         provider=provider,
         model=model,
         text=response.output_text,
+        served_model=data.get("model"),
         raw_json=json.dumps(data, sort_keys=True),
         input_tokens=usage.input_tokens if usage else None,
         output_tokens=usage.output_tokens if usage else None,
@@ -227,70 +229,84 @@ def _schema_rejected(exc: APIStatusError) -> bool:
     return any(marker in body_text for marker in _SCHEMA_REJECTION_MARKERS)
 
 
+def _chat_reasoning(provider: str, model: str, effort: str | None) -> dict[str, Any]:
+    """Reserve output space for structured content on supported reasoning APIs."""
+    if effort is None:
+        return {}
+    if provider == "openrouter":
+        return {"reasoning": {"effort": effort}}
+    if provider == "nvidia" and model == "nvidia/nemotron-3-ultra-550b-a55b":
+        # The hosted endpoint rejects the self-hosted thinking_token_budget
+        # parameter. Low-latency structured calls use its supported no-thinking
+        # mode; larger efforts retain thinking within max_tokens.
+        return {"chat_template_kwargs": {"enable_thinking": effort not in ("none", "low")}}
+    return {}
+
+
 async def _generate_chat(
     request: ChatRequest, *, model: str, api_key: str, base_url: str
 ) -> ChatResponse:
     provider = _provider_for(base_url)
     start = time.monotonic()
     schema = json.loads(request.schema_json)
-    downgraded = False
+    downgraded = request.json_object_mode
+    system = request.system
+    response_format: Any = {
+        "type": "json_schema",
+        "json_schema": {"name": request.schema_name, "strict": True, "schema": schema},
+    }
+    if downgraded or request.prompt_json_mode:
+        system += "\nRespond with a JSON object matching this schema: " + json.dumps(schema)
+        response_format = {"type": "json_object"}
+    if request.prompt_json_mode:
+        response_format = None
     try:
         async with AsyncOpenAI(
             api_key=api_key, base_url=base_url, max_retries=0, timeout=request.timeout_seconds
         ) as client:
-            try:
-                completion = await client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": request.system},
-                        {"role": "user", "content": request.user},
-                    ],
-                    max_tokens=request.max_output_tokens,
-                    response_format={
-                        "type": "json_schema",
-                        "json_schema": {
-                            "name": request.schema_name,
-                            "strict": True,
-                            "schema": schema,
-                        },
-                    },
-                )
-            except APIStatusError as exc:
-                if exc.status_code != _HTTP_BAD_REQUEST or not _schema_rejected(exc):
-                    raise
-                downgraded = True
-                downgrade_system = (
-                    request.system
-                    + "\nRespond with a JSON object matching this schema: "
-                    + json.dumps(schema)
-                )
-                completion = await client.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": downgrade_system},
-                        {"role": "user", "content": request.user},
-                    ],
-                    max_tokens=request.max_output_tokens,
-                    response_format={"type": "json_object"},
-                )
-    except Exception as exc:  # classified by _openai_exception_response
-        return _openai_exception_response(
+            completion = await client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": request.user},
+                ],
+                max_tokens=request.max_output_tokens,
+                extra_body=_chat_reasoning(provider, model, request.reasoning_effort),
+                **({"response_format": response_format} if response_format is not None else {}),
+            )
+    except Exception as exc:
+        response = _openai_exception_response(
             exc, provider=provider, model=model, api_key=api_key, start=start
         )
+        if (
+            isinstance(exc, APIStatusError)
+            and exc.status_code in (_HTTP_BAD_REQUEST, 404, 422)
+            and _schema_rejected(exc)
+            and not request.prompt_json_mode
+        ):
+            return response.model_copy(update={"error_code": "schema_not_supported"})
+        return response
+
     return _finalize_chat(
         provider=provider, model=model, completion=completion, downgraded=downgraded, start=start
     )
 
 
-def _chat_usage(*, provider: str, usage: Any) -> tuple[int | None, int | None]:
+def _chat_usage(*, provider: str, model: str, usage: Any) -> tuple[int | None, int | None]:
     if usage is None:
         return None, None
     input_tokens = usage.prompt_tokens
     output_tokens = usage.completion_tokens
     details = usage.completion_tokens_details
-    if provider == "nvidia" and details is not None and details.reasoning_tokens is not None:
+    if (
+        provider == "nvidia"
+        and model != "nvidia/nemotron-3-ultra-550b-a55b"
+        and details is not None
+        and details.reasoning_tokens is not None
+    ):
         # OpenRouter already folds reasoning tokens into completion_tokens;
-        # NVIDIA NIM reports them separately and they must be added back in.
+        # Older NIM adapters report them separately. Nemotron 3 Ultra now
+        # reports combined completion tokens, so it must not be counted twice.
         output_tokens += details.reasoning_tokens
     return input_tokens, output_tokens
 
@@ -300,7 +316,9 @@ def _finalize_chat(
 ) -> ChatResponse:
     choice = completion.choices[0]
     text = choice.message.content
-    input_tokens, output_tokens = _chat_usage(provider=provider, usage=completion.usage)
+    input_tokens, output_tokens = _chat_usage(
+        provider=provider, model=model, usage=completion.usage
+    )
     data = completion.model_dump(mode="json", exclude_none=True)
     error_class: ErrorClass = "ok"
     error_code: str | None = None
@@ -318,6 +336,7 @@ def _finalize_chat(
         provider=provider,
         model=model,
         text=text,
+        served_model=data.get("model"),
         raw_json=json.dumps(data, sort_keys=True),
         input_tokens=input_tokens,
         output_tokens=output_tokens,
@@ -357,7 +376,9 @@ class GeminiTransport:
                     },
                     generation_config={
                         "max_output_tokens": request.max_output_tokens,
-                        "thinking_level": "minimal",
+                        # Gemini 3.8 Flash rejects "minimal"; "low" also works
+                        # with the older Gemini 3 models used by explicit chains.
+                        "thinking_level": "low",
                     },
                     timeout=request.timeout_seconds,
                 )

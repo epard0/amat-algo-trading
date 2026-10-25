@@ -223,6 +223,7 @@ def _close_fill_panel(panel: MarketPanel) -> MarketPanel:
         adjusted_highs=panel.adjusted_highs,
         adjusted_lows=panel.adjusted_lows,
         session_volumes=panel.session_volumes,
+        adjusted_opens=panel.adjusted_opens,
     )
 
 

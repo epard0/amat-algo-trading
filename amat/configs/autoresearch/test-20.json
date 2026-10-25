@@ -1,0 +1,53 @@
+{
+  "iterations": 20,
+  "proposal_mode": "built-in",
+  "robustness": "historical",
+  "source": "/home/supasuge/Documents/amat-workspace/amat",
+  "workspace": "/home/supasuge/Documents/amat-research/fallback-test-20-20260928-025157",
+  "chain": "/home/supasuge/Documents/amat-workspace/amat/configs/autoresearch/llm-chain.test-20.toml",
+  "snapshot": "/home/supasuge/Documents/amat-workspace/amat/data/snapshots/alpaca-sip-core-2026-09-14-verified",
+  "max_model_tokens_per_day": 1000000,
+  "validation_end": "2026-08-10",
+  "log": "/home/supasuge/Documents/amat-research/fallback-test-20-20260928-025157.log",
+  "command": [
+    "./research",
+    "run",
+    "20",
+    "--built-in",
+    "--robustness",
+    "historical",
+    "--workspace",
+    "/home/supasuge/Documents/amat-research/fallback-test-20-20260928-025157",
+    "--chain",
+    "/home/supasuge/Documents/amat-workspace/amat/configs/autoresearch/llm-chain.test-20.toml",
+    "--snapshot",
+    "/home/supasuge/Documents/amat-workspace/amat/data/snapshots/alpaca-sip-core-2026-09-14-verified",
+    "--validation-end",
+    "2026-08-10",
+    "--max-model-tokens-per-day",
+    "1000000",
+    "--no-open"
+  ],
+  "resumption": {
+    "reason": "source changed during first batch; resume frozen runtime",
+    "remaining_iterations": 19,
+    "command": [
+      "uv",
+      "run",
+      "--locked",
+      "--env-file",
+      "/home/supasuge/Documents/amat-workspace/amat/.env",
+      "python",
+      "-m",
+      "autoresearch.cli",
+      "loop",
+      "/home/supasuge/Documents/amat-research/fallback-test-20-20260928-025157",
+      "--iterations",
+      "19",
+      "--summary-chain",
+      "/home/supasuge/Documents/amat-workspace/amat/configs/autoresearch/llm-chain.test-20.toml"
+    ],
+    "pythonpath": "/home/supasuge/Documents/amat-research/fallback-test-20-20260928-025157/runtime",
+    "started_at": "2026-09-28T02:54:47.656459+00:00"
+  }
+}

@@ -1,0 +1,294 @@
+{
+  "verified_at": "2026-10-19T22:22:50.664903-04:00",
+  "source": "Kraken USD perpetual trade candles for signals; Kalshi public books/marks/native funding for paper execution",
+  "observations": [
+    {
+      "strategy": "doge-sol-balanced",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXDOGEPERP": "0.0",
+        "KXSOLPERP": "0.0"
+      },
+      "orders": 0,
+      "history": {
+        "KXDOGEPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_DOGEUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "100.000000",
+          "sha256": "22780aef8e9cdb33c7a31e2c987146ae0f679a1e013bc14f42596ac1a1d3d45d",
+          "new_receipts": 5,
+          "proxy": true
+        },
+        "KXSOLPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_SOLUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "0.100000",
+          "sha256": "b009b1338f8520bc6b1b108de9d285fcc3344708ade0f303a37fc0c5884e8c9b",
+          "new_receipts": 5,
+          "proxy": true
+        }
+      }
+    },
+    {
+      "strategy": "doge-sol-lower-drawdown",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXDOGEPERP": "0.0",
+        "KXSOLPERP": "0.0"
+      },
+      "orders": 0,
+      "history": {
+        "KXDOGEPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_DOGEUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "100.000000",
+          "sha256": "22780aef8e9cdb33c7a31e2c987146ae0f679a1e013bc14f42596ac1a1d3d45d",
+          "new_receipts": 0,
+          "proxy": true
+        },
+        "KXSOLPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_SOLUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "0.100000",
+          "sha256": "b009b1338f8520bc6b1b108de9d285fcc3344708ade0f303a37fc0c5884e8c9b",
+          "new_receipts": 0,
+          "proxy": true
+        }
+      }
+    },
+    {
+      "strategy": "doge-sol-max-pnl",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXDOGEPERP": "0.0",
+        "KXSOLPERP": "0.0"
+      },
+      "orders": 0,
+      "history": {
+        "KXDOGEPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_DOGEUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "100.000000",
+          "sha256": "22780aef8e9cdb33c7a31e2c987146ae0f679a1e013bc14f42596ac1a1d3d45d",
+          "new_receipts": 0,
+          "proxy": true
+        },
+        "KXSOLPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_SOLUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "0.100000",
+          "sha256": "b009b1338f8520bc6b1b108de9d285fcc3344708ade0f303a37fc0c5884e8c9b",
+          "new_receipts": 0,
+          "proxy": true
+        }
+      }
+    },
+    {
+      "strategy": "doge-pnl",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXDOGEPERP": "0.0"
+      },
+      "orders": 0,
+      "history": {
+        "KXDOGEPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_DOGEUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "100.000000",
+          "sha256": "22780aef8e9cdb33c7a31e2c987146ae0f679a1e013bc14f42596ac1a1d3d45d",
+          "new_receipts": 0,
+          "proxy": true
+        }
+      }
+    },
+    {
+      "strategy": "sol-profit",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXSOLPERP": "0.0"
+      },
+      "orders": 0,
+      "history": {
+        "KXSOLPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_SOLUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "0.100000",
+          "sha256": "b009b1338f8520bc6b1b108de9d285fcc3344708ade0f303a37fc0c5884e8c9b",
+          "new_receipts": 0,
+          "proxy": true
+        }
+      }
+    },
+    {
+      "strategy": "near-pnl",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXNEARPERP": "0.5079763888647653"
+      },
+      "orders": 1,
+      "history": {
+        "KXNEARPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_NEARUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "1.000000",
+          "sha256": "1ec80d81eef2fd4561ddbee6650da5a8b8da8dad90b328a556c48a410993dd23",
+          "new_receipts": 5,
+          "proxy": true
+        }
+      }
+    },
+    {
+      "strategy": "uni-pnl",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXUNIPERP": "0.0"
+      },
+      "orders": 0,
+      "history": {
+        "KXUNIPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_UNIUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "1.000000",
+          "sha256": "77743e734b0ba7bb1f39e935dc9bd16a81840b007f48766b840779fefdf71d65",
+          "new_receipts": 5,
+          "proxy": true
+        }
+      }
+    },
+    {
+      "strategy": "btc-long-pnl",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXBTCPERP": "0.0"
+      },
+      "orders": 0,
+      "history": {
+        "KXBTCPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_XBTUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "0.000100",
+          "sha256": "74862e04612b8b4e99f1d4500bb04c146958af1d0192df55a973fc914dcdfd97",
+          "new_receipts": 0,
+          "proxy": true
+        }
+      }
+    },
+    {
+      "strategy": "btc-eth-reference",
+      "state": "running",
+      "ready": true,
+      "weights": {
+        "KXBTCPERP": "0.0",
+        "KXETHPERP": "-0.42566880188367323"
+      },
+      "orders": 1,
+      "history": {
+        "KXBTCPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_XBTUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "0.000100",
+          "sha256": "74862e04612b8b4e99f1d4500bb04c146958af1d0192df55a973fc914dcdfd97",
+          "new_receipts": 5,
+          "proxy": true
+        },
+        "KXETHPERP": {
+          "provider": "kraken-perpetual-trade/1",
+          "symbol": "PF_ETHUSD",
+          "interval": "1h",
+          "first_ms": 1784685600000,
+          "completed_through_ms": 1792461600000,
+          "rows": 2160,
+          "missing_intervals": 0,
+          "price_unit": "usd_per_contract",
+          "underlying_contract_size": "0.001000",
+          "sha256": "171b5f8424d00d1617c725ec7477d46e7f6136cb5118ceb94c92763179d9e6c5",
+          "new_receipts": 5,
+          "proxy": true
+        }
+      }
+    }
+  ],
+  "reference_paper_position_closed": true,
+  "venue_orders_sent": false,
+  "runner_left_active": false
+}

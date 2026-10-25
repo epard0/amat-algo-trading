@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from portfolio_team.assessment_validation import validate_assessment
 from portfolio_team.contracts import ROLES, Assessment, Bundle, Decision, Policy, Role
-from portfolio_team.evidence import sha256
+from portfolio_team.evidence import BudgetDeferredError, sha256
 from portfolio_team.model_runtime import RemoteProvider
 from portfolio_team.providers import PROMPTS, Provider
 from portfolio_team.remote_coordinator import remote_phase
@@ -178,6 +178,9 @@ def run_review(
             assessments=(*independent, chief),
         )
         store.complete(decision)
+    except BudgetDeferredError as exc:
+        store.defer(review_id, exc.budget)
+        raise
     except Exception as exc:
         store.fail(review_id, f"review_failed:{type(exc).__name__}")
         raise

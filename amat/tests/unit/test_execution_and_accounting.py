@@ -344,3 +344,47 @@ class TestAccounting:
             opening, EXECUTION, [fill], {"SPY": Decimal("106")}, actions=[action]
         )
         assert snapshot.equity == snapshot.cash + snapshot.holdings_value
+
+
+@pytest.mark.parametrize("cash_policy", [False, True])
+def test_whole_share_mode_rounds_after_cap_and_preserves_native_exit(cash_policy):
+    from dataclasses import replace
+
+    from amat.execution.budget import CashBudgetPolicy
+
+    model = SimulatedExecutionModel(
+        ExecutionConfig(),
+        CostConfig(),
+        whole_share_buys=True,
+        max_entry_window_participation=0.01,
+        cash_policy=CashBudgetPolicy() if cash_policy else None,
+    )
+    fills, missed = model.execute(
+        [instruction(quantity="10.8")],
+        {"SPY": window(volume="550")},
+        available_cash=Decimal("10000"),
+        account_equity=Decimal("10000"),
+    )
+    assert fills[0].quantity == Decimal("5")
+    assert any(m.reason == MissedFillReason.QUANTITY_INCREMENT for m in missed)
+    assert fills[0].quantity <= Decimal("5.5")
+    trim = instruction(Side.SELL, quantity="2.8")
+    fills, _ = model.execute(
+        [trim], {"SPY": window()}, available_cash=Decimal("0"), account_equity=Decimal("10000")
+    )
+    assert fills[0].quantity == Decimal("2")
+    # A full exit of a corporate-action fractional entitlement must not leave trapped dust.
+    exit_order = replace(trim, reason=TradeReason.POSITION_TRANSITION)
+    fills, _ = model.execute(
+        [exit_order],
+        {"SPY": window()},
+        available_cash=Decimal("0"),
+        account_equity=Decimal("10000"),
+    )
+    assert fills[0].quantity == Decimal("2.8")
+
+
+def test_legacy_execution_explicitly_allows_fractional_quantity():
+    model = SimulatedExecutionModel(ExecutionConfig(), CostConfig())
+    fills, _ = model.execute([instruction(quantity="2.8")], {"SPY": window()})
+    assert fills[0].quantity == Decimal("2.8")

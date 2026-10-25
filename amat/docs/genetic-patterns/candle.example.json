@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "patternSchema/0.1.0",
+  "timeframe": "1d",
+  "priceBasis": "corporate_action_adjusted",
+  "availability": "completed_bar_close",
+  "missingPolicy": "unavailable",
+  "binding": {
+    "role": "feature",
+    "direction": "long_support",
+    "threshold": 0.0,
+    "maxEffect": 0.25
+  },
+  "name": "inside_prior_range",
+  "genome": {
+    "kind": "candle_conjunction",
+    "maxLag": 1,
+    "rules": [
+      {
+        "left": {
+          "field": "open",
+          "lag": 0
+        },
+        "op": "gt",
+        "right": {
+          "field": "low",
+          "lag": 1
+        }
+      },
+      {
+        "left": {
+          "field": "close",
+          "lag": 0
+        },
+        "op": "lt",
+        "right": {
+          "field": "high",
+          "lag": 1
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "group-selection-expansion-design/1",
+  "created": "2026-10-19",
+  "selection": "Fixed ETF taxonomy and complete daily-history rule; no return-based universe selection",
+  "execution_start": "2024-01-02",
+  "snapshot": "alpaca-sip-diverse561-2026-10-19-verified",
+  "broad_clusters": [
+    {"name":"us_equity", "gross_cap":0.85, "symbols":["SPY","QQQ","IWM","RSP","MDY","XLK","XLF","XLI","XLV","XLP","XLU","XLE","XLB","XLRE"]},
+    {"name":"international", "gross_cap":0.45, "symbols":["EFA","EEM","EWJ","EWG","EWU","EWC","EWZ","FXI","INDA"]},
+    {"name":"rates", "gross_cap":0.35, "symbols":["IEF","TLT","TIP","LQD","HYG","BIL"]},
+    {"name":"metals", "gross_cap":0.45, "symbols":["GLD","SLV","GDX"]},
+    {"name":"commodities", "gross_cap":0.35, "symbols":["DBC","USO","DBA","DBB"]},
+    {"name":"us_dollar", "gross_cap":0.15, "symbols":["UUP"]},
+    {"name":"real_estate", "gross_cap":0.35, "symbols":["VNQ"]}
+  ],
+  "defensive_equity": ["XLV","XLP","XLU"],
+  "factors": ["core versus broad ETF universe", "five-session versus daily selection refresh", "existing trend-quality filter disabled versus enabled"],
+  "controls": ["v13-style selection in each universe", "daily selection without group selection in each universe"],
+  "cost_bps_per_side": [2,6,10],
+  "warmup": "Full observed history from 2016; all simulated accounts start flat at the same 2024 execution boundary",
+  "missing_windows": "Native missed-fill handling; no synthetic or forward-filled windows",
+  "constant_cash_rate": 0,
+  "promotion_authority": false,
+  "historical_scope": "Retrospective study of previously examined history; current-symbol ETF coverage is not delisting-complete"
+}

@@ -4,8 +4,7 @@
    around the plan artifact and call a signal function directly with arguments
    the plan never carried -- and the strategy repository's guarantee that one
    core serves every runner would be quietly false.
-2. This package reaches exactly one host, and it is the paper host. The live
-   trading host must not appear in this source tree at all.
+2. Paper remains the default; only the explicit live adapter contains the live host.
 
 Both are checked by scanning source, not by importing and hoping, so a lazy
 import inside a function is caught too.
@@ -55,15 +54,15 @@ def test_no_module_imports_the_strategy_package(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", _python_files(), ids=lambda path: path.name)
-def test_live_trading_host_appears_nowhere(path: Path) -> None:
-    """The live endpoint is not reachable, not configurable, and not present."""
+def test_live_trading_host_is_confined_to_live_adapter(path: Path) -> None:
+    """Only the explicit live adapter may pin the live endpoint."""
     source = path.read_text(encoding="utf-8")
     # The paper host legitimately contains the live host as a substring is
     # false -- "paper-api.alpaca.markets" does not contain "api.alpaca.markets"
     # as a token boundary -- so the check strips paper mentions first.
     without_paper = source.replace(PAPER_HOST, "")
-    assert LIVE_HOST not in without_paper, (
-        f"{path.name} mentions the live trading host. This executor is paper-only."
+    assert path.name == "alpaca_live.py" or LIVE_HOST not in without_paper, (
+        f"{path.name} mentions the live trading host. Live host belongs only in the live adapter."
     )
 
 

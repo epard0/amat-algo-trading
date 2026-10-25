@@ -308,8 +308,7 @@ class ReadOnlyJsonClient:
             time.sleep(min(2.0**attempt, 30.0) * self._retry_sleep_scale)
 
         message = (
-            f"request to {path} failed after {_MAX_ATTEMPTS} attempts: "
-            f"{self._scrub(last_error)}"
+            f"request to {path} failed after {_MAX_ATTEMPTS} attempts: {self._scrub(last_error)}"
         )
         raise VendorResponseError(message)
 

@@ -24,7 +24,11 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from amat.domain.instruments import Cluster, Universe
 from amat.domain.types import Symbol, parse_symbol
 
+_DEFAULT_ASSET_PERCENTILE = 0.9
+
 __all__ = [
+    "AdaptiveRotationConfig",
+    "AllocationConfig",
     "CashConfig",
     "ClusterSpec",
     "ConstraintConfig",
@@ -36,6 +40,7 @@ __all__ = [
     "RebalanceConfig",
     "RiskBudgetConfig",
     "RiskOverlayConfig",
+    "RotationGroup",
     "StrategyConfig",
     "StructureFilterConfig",
     "TrendConfig",
@@ -210,6 +215,36 @@ class CovarianceConfig(BaseModel):
     annualization_sessions: PositiveInt = 252
 
 
+class AllocationConfig(BaseModel):
+    """How positive signals divide capital before risk targeting and caps.
+
+    The default preserves the original score / volatility allocator exactly.
+    Lower powers reduce its *second* volatility adjustment: trend scores are
+    already volatility normalized. This changes composition, not the gross cap
+    or the prohibition on restoring exposure after clipping.
+    """
+
+    model_config = _MODEL_CONFIG
+
+    volatility_power: float = Field(default=1.0, ge=0.0, le=1.0)
+    asset_condition: Literal["none", "weak_trend", "volatility", "either", "percentile"] = Field(
+        default="none", exclude_if=lambda value: value == "none"
+    )
+    asset_volatility_percentile: float = Field(
+        default=_DEFAULT_ASSET_PERCENTILE,
+        ge=0.5,
+        le=0.99,
+        exclude_if=lambda value: value == _DEFAULT_ASSET_PERCENTILE,
+    )
+    asset_sizing_reduce_only: bool = Field(default=True, exclude_if=lambda value: value)
+    group_condition: Literal["none", "weak_trend", "volatility", "either"] = Field(
+        default="none", exclude_if=lambda value: value == "none"
+    )
+    unfavorable_condition: Literal["always", "weak_trend", "volatility", "either"] = Field(
+        default="always", exclude_if=lambda value: value == "always"
+    )
+
+
 class ConstraintConfig(BaseModel):
     """Volatility target and the exposure caps applied after it.
 
@@ -252,6 +287,9 @@ class CrossSectionConfig(BaseModel):
     enabled: bool = False
     max_positions: PositiveInt | None = None
     min_horizon_agreement: int = Field(default=0, ge=0)
+    selection_interval_sessions: int = Field(
+        default=1, ge=1, le=63, exclude_if=lambda value: value == 1
+    )
 
     @model_validator(mode="after")
     def _require_a_rule_when_enabled(self) -> Self:
@@ -261,7 +299,11 @@ class CrossSectionConfig(BaseModel):
                 "min_horizon_agreement is set; that is a no-op wearing the name of a change"
             )
             raise ValueError(message)
-        if not self.enabled and (self.max_positions is not None or self.min_horizon_agreement > 0):
+        if not self.enabled and (
+            self.max_positions is not None
+            or self.min_horizon_agreement > 0
+            or self.selection_interval_sessions != 1
+        ):
             message = (
                 "cross_sectional rules are configured but enabled is false; leaving rules "
                 "that do nothing in a frozen config is how a later reader mis-describes a run"
@@ -678,6 +720,46 @@ class WarmupConfig(BaseModel):
     min_completed_sessions: PositiveInt = 252
 
 
+class RotationGroup(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    name: str
+    symbols: tuple[str, ...] = Field(min_length=1)
+
+
+class AdaptiveRotationConfig(BaseModel):
+    """Opt-in completed-week ranking and daily price-based risk reduction."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid", allow_inf_nan=False)
+    enabled: bool = False
+    group_selection: bool = False
+    residual_ranking: bool = False
+    regime_overlay: bool = False
+    hysteresis: bool = False
+    benchmark: str = "QQQ"
+    groups: tuple[RotationGroup, ...] = (
+        RotationGroup(name="growth", symbols=("SPY", "QQQ", "IWM", "EFA", "EEM")),
+        RotationGroup(name="real_assets", symbols=("GLD", "SLV", "DBC", "USO")),
+        RotationGroup(name="defensive", symbols=("IEF", "UUP")),
+    )
+    lookback_weeks: int = Field(default=12, ge=4, le=52)
+    slow_weeks: int = Field(default=26, ge=4, le=52)
+    max_active_groups: int = Field(default=2, ge=1, le=6)
+    max_per_group: int = Field(default=2, ge=1, le=10)
+    switch_confirmation_sessions: int = Field(default=1, ge=1, le=10, exclude_if=lambda v: v == 1)
+    switch_cost_bps: float = Field(default=0, ge=0, le=100, exclude_if=lambda v: v == 0)
+    switch_condition: Literal["always", "volatility"] = Field(
+        default="always", exclude_if=lambda v: v == "always"
+    )
+    switch_cost_multiple: float = Field(default=1, ge=1, le=5, exclude_if=lambda v: v == 1)
+    incumbent_rank_bonus: int = Field(default=2, ge=1, le=5)
+    shock_sessions: int = Field(default=3, ge=1, le=10)
+    shock_return: float = Field(default=-0.03, gt=-1, lt=0)
+    risk_off_scalar: float = Field(default=0.5, ge=0, le=1)
+    fast_scalar: float = Field(default=0.3, ge=0, le=1)
+    cooldown_sessions: int = Field(default=10, ge=1, le=60)
+    recovery_sessions: int = Field(default=3, ge=1, le=20)
+
+
 class StrategyConfig(BaseModel):
     """The complete, frozen strategy definition for one run."""
 
@@ -689,7 +771,21 @@ class StrategyConfig(BaseModel):
     volatility: VolatilityConfig = VolatilityConfig()
     trend: TrendConfig = TrendConfig()
     covariance: CovarianceConfig = CovarianceConfig()
+    allocation: AllocationConfig = Field(
+        default=AllocationConfig(),
+        exclude_if=lambda value: (
+            value.volatility_power == 1.0
+            and value.unfavorable_condition == "always"
+            and value.group_condition == "none"
+            and value.asset_condition == "none"
+            and value.asset_sizing_reduce_only
+            and value.asset_volatility_percentile == _DEFAULT_ASSET_PERCENTILE
+        ),
+    )
     constraints: ConstraintConfig = ConstraintConfig()
+    adaptive_rotation: AdaptiveRotationConfig = Field(
+        default=AdaptiveRotationConfig(), exclude_if=lambda value: not value.enabled
+    )
     cross_sectional: CrossSectionConfig = CrossSectionConfig()
     structure: StructureFilterConfig = StructureFilterConfig()
     risk_budget: RiskBudgetConfig = RiskBudgetConfig()
@@ -704,6 +800,21 @@ class StrategyConfig(BaseModel):
     @model_validator(mode="after")
     def _require_sufficient_warmup(self) -> Self:
         self.cross_sectional.require_horizons(len(self.trend.horizons_sessions))
+        adaptive = self.adaptive_rotation
+        if adaptive.enabled:
+            grouped = [symbol for group in adaptive.groups for symbol in group.symbols]
+            if (
+                len(grouped) != len(set(grouped))
+                or set(grouped) != set(self.universe.symbols)
+                or adaptive.benchmark not in grouped
+            ):
+                raise ValueError(
+                    "adaptive groups must partition the universe and include the benchmark"
+                )
+            if not self.cross_sectional.enabled or self.cross_sectional.max_positions is None:
+                raise ValueError("adaptive rotation requires bounded cross-sectional selection")
+            if adaptive.slow_weeks * 5 > self.warmup.min_completed_sessions:
+                raise ValueError("adaptive slow history exceeds configured warm-up")
         required = max(
             self.trend.max_horizon_sessions,
             self.covariance.lookback_sessions,

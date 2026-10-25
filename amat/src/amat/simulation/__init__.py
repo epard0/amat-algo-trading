@@ -27,15 +27,15 @@ the live account *is* the backtest, evaluated through today -- and it costs a
 few seconds of computation on a daily-frequency strategy.
 
 The consequence worth stating plainly: this measures what the strategy would
-have done, not what it did. It models no queue position, no partial fills beyond
-the cash constraint, and no market impact from its own size.
+have done, not what it did. It models no queue position or market impact from
+its own size. Entries obey the observed opening-volume participation cap.
 """
 
 from __future__ import annotations
 
 import datetime as dt
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -46,11 +46,12 @@ from amat.config.models import StrategyConfig
 from amat.data.alpaca import AlpacaMarketData
 from amat.data.live import extend_market_panel, latest_completed_session
 from amat.data.snapshot import SnapshotManifest, load_corporate_actions, load_panel
+from amat.domain.actions import CorporateAction
 from amat.domain.types import Cash, Symbol
 from amat.errors import DataIntegrityError
 from amat.metrics import PerformanceSummary
 from amat.metrics import summarize as summarize_performance
-from amat.portfolio import decide
+from amat.portfolio import decide, precompute_decision_inputs
 
 __all__ = [
     "LiveSimulationReport",
@@ -135,6 +136,13 @@ class LiveSimulationReport:
     account has not stepped past the snapshot boundary.
     """
 
+    research_eligible: bool = True
+    """False when the live tail lacks verified corporate-action coverage.
+
+    An observation can remain useful operationally without being eligible for
+    a strategy comparison or promotion measurement.
+    """
+
     def as_dict(self) -> dict[str, object]:
         """JSON-ready payload for the journal."""
         return {
@@ -158,6 +166,7 @@ class LiveSimulationReport:
             "sharpe": self.performance.sharpe,
             "max_drawdown": self.performance.max_drawdown,
             "caveats": list(self.caveats),
+            "research_eligible": self.research_eligible,
         }
 
 
@@ -217,12 +226,14 @@ class SimulatedLiveAccount:
             self._strategy.to_universe(),
             initial_cash=self._initial_equity,
             actions_by_session=actions,
+            max_entry_window_participation=0.01,
+            whole_share_buys=True,
         )
         if not result.sessions:
             message = "the simulated account produced no sessions"
             raise DataIntegrityError(message)
 
-        report = self._build_report(result, panel, manifest, appended)
+        report = self._build_report(result, panel, manifest, appended, actions_by_session=actions)
         self._journal(report)
         return report
 
@@ -232,6 +243,8 @@ class SimulatedLiveAccount:
         panel: MarketPanel,
         manifest: SnapshotManifest,
         appended: int,
+        *,
+        actions_by_session: Mapping[dt.date, Sequence[CorporateAction]] | None = None,
     ) -> LiveSimulationReport:
         last = result.sessions[-1]
         marks = panel.marks_at(len(panel) - 1)
@@ -242,7 +255,7 @@ class SimulatedLiveAccount:
         # visibly absent instead of reported at a stale weight.
         positions: dict[str, float] = {}
         for fill_symbol, price in marks.items():
-            held = _position_quantity(result, fill_symbol)
+            held = _position_quantity(result, fill_symbol, actions_by_session=actions_by_session)
             if held and equity > 0:
                 positions[str(fill_symbol)] = float(held * price / equity)
 
@@ -259,7 +272,8 @@ class SimulatedLiveAccount:
             caveats.append(
                 f"Corporate actions are covered only through {manifest.last_session.isoformat()}. "
                 f"A dividend or split with an ex-date in the {appended} appended session(s) is "
-                "not credited, so the tail of this account understates total return."
+                "not applied. The effect on return is unknown, and this observation is "
+                "ineligible for research comparison or promotion."
             )
         if result.warnings:
             caveats.append(f"{len(result.warnings)} session warning(s) were recorded.")
@@ -301,6 +315,7 @@ class SimulatedLiveAccount:
             performance=summarize_performance(result),
             caveats=tuple(caveats),
             live_fills=live_fills,
+            research_eligible=appended == 0,
         )
 
     def _terminal_targets(self, panel: MarketPanel) -> dict[str, float]:
@@ -313,11 +328,15 @@ class SimulatedLiveAccount:
         index. Only positive weights are reported; a zero target is the absence
         of a position, not a position of zero.
         """
+        inputs = precompute_decision_inputs(
+            self._strategy, panel.adjusted_closes, sessions=panel.sessions
+        )
         allocation = decide(
             self._strategy,
             panel.adjusted_closes,
             self._strategy.to_universe(),
             decision_index=len(panel) - 1,
+            precomputed=inputs,
         )
         mapping = allocation.as_mapping(self._strategy.to_universe())
         return {str(symbol): float(weight) for symbol, weight in mapping.items() if weight > 0}
@@ -332,19 +351,25 @@ class SimulatedLiveAccount:
             handle.write(json.dumps(report.as_dict(), sort_keys=True) + "\n")
 
 
-def _position_quantity(result: BacktestResult, symbol: Symbol) -> Decimal:
+def _position_quantity(
+    result: BacktestResult,
+    symbol: Symbol,
+    *,
+    actions_by_session: Mapping[dt.date, Sequence[CorporateAction]] | None = None,
+) -> Decimal:
     """Net quantity held in ``symbol`` after replaying every recorded fill.
 
-    Derived from the fill history rather than read from a carried position map,
-    so the reported holding is reconcilable to the trades that produced it --
-    guardrail 6's requirement that every position change trace to a fill.
+    Splits apply to opening holdings before that session's fills, matching the
+    native accountant. A fill-only sum loses split entitlements and can make
+    reported position weights disagree with the already-correct equity.
     """
-    return sum(
-        (
-            fill.signed_quantity
-            for record in result.sessions
-            for fill in record.fills
-            if fill.symbol == symbol
-        ),
-        start=Decimal(0),
-    )
+    quantity = Decimal(0)
+    for record in result.sessions:
+        for action in (actions_by_session or {}).get(record.session, ()):
+            if action.symbol == symbol:
+                quantity = action.adjust_quantity(quantity)
+        quantity += sum(
+            (fill.signed_quantity for fill in record.fills if fill.symbol == symbol),
+            start=Decimal(0),
+        )
+    return quantity

@@ -1,0 +1,28 @@
+mode = "paper"
+account = "primary-crypto-paper"
+database = "../runtime/paper.sqlite"
+instruments = "instruments.json"
+
+[strategy]
+amat_root = "../../amat"
+python = "../../amat/.venv/bin/python"
+source_sha256 = "c16099944881bcecc4d1928b53a9cd3b2b739eb42632711d27e1eb4ce586af34"
+
+[paper]
+collateral = "10000"
+fee_rate = "0.0004"
+max_leverage = "2"
+maintenance_rate = "0.05"
+liquidation_fee = "0.005"
+
+[risk]
+max_gross = "1.96"
+max_order_notional = "1000"
+max_spread_bps = "50"
+max_loss_fraction = "0.20"
+quote_max_age_ms = 5000
+
+[venue]
+environment = "production"
+key_id_env = "KALSHI_PERPS_KEY_ID"
+private_key_env = "KALSHI_PERPS_PRIVATE_KEY_PATH"

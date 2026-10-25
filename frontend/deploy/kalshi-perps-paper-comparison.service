@@ -1,0 +1,19 @@
+[Unit]
+Description=Kalshi isolated paper strategy comparison (live disabled)
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=%h/Documents/amat-workspace/kalshi-perps
+ExecStart=/usr/bin/env -u KALSHI_PERPS_KEY_ID -u KALSHI_PERPS_PRIVATE_KEY_PATH %h/Documents/amat-workspace/kalshi-perps/.venv/bin/kalshi-perps run --all
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=60
+MemoryMax=1G
+TasksMax=64
+UMask=0077
+
+[Install]
+WantedBy=default.target

@@ -20,3 +20,7 @@ dist/
 build/
 *.egg-info/
 backups/
+
+# Share blank templates, never filled credentials.
+!.env.example
+!.env.*.example

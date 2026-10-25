@@ -1,0 +1,55 @@
+{
+  "schema": "research-design/1",
+  "status": "design_only_not_an_executable_strategy",
+  "name": "AMAT adaptive group rotation challenger",
+  "created": "2026-10-19",
+  "reference_repository": "https://github.com/AI4Finance-Foundation/FinRL-Trading",
+  "reference_commit": "4409abe925c904e570be78ebfb5e77ac3491dff8",
+  "baseline_config": "configs/strategy/amat_v13_return_target.toml",
+  "baseline_config_sha256": "fd08c1d114a4ee563944a8fd9e6fcc7afa6d47a5de4722f6676f9665227c5792",
+  "first_stage_universe": "Identical eleven instruments to v13; retain native symbol and cluster caps",
+  "pipeline": [
+    "Completed-session data and native quality gates",
+    "Existing trend eligibility",
+    "Select economic groups by robust trailing benchmark-relative performance",
+    "Rank eligible members by persistent group-adjusted momentum",
+    "Existing covariance estimation, volatility targeting and concentration caps",
+    "Separate causal slow regime and fast risk reduction with recovery hysteresis",
+    "Versioned target weights and unchanged authorization boundary",
+    "Shared execution-policy replay before considering activation"
+  ],
+  "candidate_groups": {
+    "growth": ["SPY", "QQQ", "IWM", "EFA", "EEM"],
+    "real_assets": ["GLD", "SLV", "DBC", "USO"],
+    "defensive": ["IEF", "UUP"]
+  },
+  "constraints": {
+    "max_active_groups": 2,
+    "max_positions": 4,
+    "max_gross_exposure": 1.0,
+    "volatility_target": 0.2,
+    "signal_to_execution_lag_sessions": 1,
+    "normal_selection_interval_sessions": 5,
+    "risk_monitoring": "Every completed session; reductions cannot wait for normal group refresh",
+    "benchmark": "QQQ with SPY secondary; references, not automatic risk-parity mandates",
+    "weekly_availability": "Only fully completed exchange weeks; no partial-week label leakage",
+    "vix": "Unavailable in current snapshot; no implicit substitution or fabricated VIX. Any realized-volatility variant is a separate named arm.",
+    "fallback": "Cash when no eligible exposure; no automatic purchase of failed-trend benchmarks"
+  },
+  "initial_arms": [
+    "Unchanged v13",
+    "Existing B1 daily-selection challenger",
+    "Group selection only",
+    "Group-adjusted member ranking only",
+    "Slow/fast risk overlay only",
+    "Turnover hysteresis only"
+  ],
+  "evaluation": {
+    "cost_bps_per_side": [2, 6, 10],
+    "causality": ["future mutation invariance", "completed-week boundary", "holiday and half-day calendar", "missing group member and benchmark abstention"],
+    "robustness": ["same-universe ablations", "risk-matched controls fitted on development only", "turnover and missed fills", "group/factor concentration", "delayed execution", "partial-fill and restart replay"],
+    "historical_scope": "Existing historical research and 2026 observations are previously examined evidence, not a fresh holdout",
+    "prospective_scope": "Freeze implementation and parameters before collecting any prospective results",
+    "promote_automatically": false
+  }
+}

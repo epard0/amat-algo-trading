@@ -1,0 +1,15 @@
+{
+  "schema_version": "terminal-metric-definitions/1",
+  "definitions": [
+    {"id":"equity","label":"Account equity","unit":"USD","owner":"executor","method":"Broker-observed account equity or explicitly dated executor report","availability":"Requires a successful account/report observation"},
+    {"id":"cash","label":"Cash","unit":"USD","owner":"executor","method":"Broker-observed cash; not buying power","availability":"Requires a successful account/report observation"},
+    {"id":"gross_exposure","label":"Gross exposure","unit":"fraction","owner":"executor","method":"Sum of absolute observed position market values divided by observed equity","availability":"Requires matching account and position valuation observations"},
+    {"id":"unrealized_pl","label":"Unrealized P&L","unit":"USD","owner":"broker","method":"Broker position unrealized P&L using broker cost-basis convention","availability":"Requires position valuation and cost basis"},
+    {"id":"total_return","label":"Observed equity change","unit":"fraction","owner":"executor","method":"Last observed equity / first observed equity - 1; raw equity change can include external cash flows and is not automatically a strategy return","availability":"Requires at least two valid equity observations"},
+    {"id":"drawdown","label":"Observed equity drawdown","unit":"fraction","owner":"executor","method":"Observed equity / running peak observed equity - 1; raw account equity is not cash-flow adjusted","availability":"Requires a valid equity curve; sample period must be displayed"},
+    {"id":"sharpe","label":"Sharpe (engine definition)","unit":"ratio","owner":"amat","method":"Display exact producer methodology and risk-free convention; existing CAGR/annualized-volatility measure differs from arithmetic excess-return Sharpe","availability":"Only use source-supplied validated metric; short/gapped paper samples remain insufficient"},
+    {"id":"progress_age","label":"Daemon progress age","unit":"seconds","owner":"executor","method":"Current UTC - heartbeat last_success_at; native health threshold 1800 seconds","availability":"Missing, corrupt or future heartbeat is unhealthy"},
+    {"id":"observation_age","label":"Observation age","unit":"seconds","owner":"terminal","method":"Current UTC - authoritative source observation time; file modification time alone does not prove a fresh observation","availability":"Requires a parseable source observation time"},
+    {"id":"ingestion_lag","label":"Event observation lag","unit":"seconds","owner":"terminal","method":"Adapter observed_at - native occurred_at; delivery order is not causal order","availability":"Requires both source and adapter timestamps"}
+  ]
+}

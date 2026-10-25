@@ -1,0 +1,10 @@
+[Unit]
+Description=Retain off-host AMAT executor snapshots every six hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:27:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

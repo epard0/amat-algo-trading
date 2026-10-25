@@ -24,7 +24,9 @@ along with it.
 from __future__ import annotations
 
 import datetime as dt
+import math
 from collections.abc import Mapping
+from dataclasses import replace
 from decimal import Decimal
 from typing import Literal
 
@@ -34,7 +36,7 @@ from amat.domain.instruments import Universe
 from amat.domain.types import Cash
 from amat.errors import DataIntegrityError
 from amat.execution.intent import ExecutionPlan, build_execution_plan
-from amat.portfolio import decide
+from amat.portfolio import decide, precompute_decision_inputs
 
 __all__ = ["PlanEngine", "build_plan"]
 
@@ -88,13 +90,20 @@ def build_plan(
     as_of_session = panel.sessions[-1]
     marks = {str(symbol): price for symbol, price in panel.marks_at(len(panel) - 1).items()}
 
-    allocation = decide(strategy, panel.adjusted_closes, universe, decision_index=len(panel) - 1)
+    inputs = precompute_decision_inputs(strategy, panel.adjusted_closes, sessions=panel.sessions)
+    allocation = decide(
+        strategy,
+        panel.adjusted_closes,
+        universe,
+        decision_index=len(panel) - 1,
+        precomputed=inputs,
+    )
     targets = {str(symbol): float(w) for symbol, w in allocation.as_mapping(universe).items()}
     for symbol in forced_zero_symbols:
         if symbol in targets:
             targets[symbol] = 0.0
 
-    return build_execution_plan(
+    plan = build_execution_plan(
         strategy,
         engine=engine,
         as_of_session=as_of_session,
@@ -108,4 +117,46 @@ def build_plan(
         appended_sessions=appended_sessions,
         generated_at=generated_at,
         extra_caveats=extra_caveats,
+    )
+    # A single snapshot supplies both endpoints on the same adjustment basis.
+    # Retain the actual exchange-session sequence, including missing marks, so
+    # a monitoring outage cannot silently turn five observations into five days.
+    history = []
+    for index in range(max(0, len(panel) - 65), len(panel)):
+        prices = {}
+        for column, symbol in enumerate(panel.symbols):
+            raw = float(panel.raw_closes[index, column])
+            adjusted = float(panel.adjusted_closes[index, column])
+            prices[str(symbol)] = (
+                {"raw_close": raw, "adjusted_close": adjusted}
+                if all(math.isfinite(value) and value > 0 for value in (raw, adjusted))
+                else None
+            )
+        history.append({"session": str(panel.sessions[index]), "prices": prices})
+    return replace(
+        plan,
+        monitoring={
+            "schema": "trade-context/1",
+            "as_of_session": str(as_of_session),
+            "price_history": history,
+            "forecast_status": "not_emitted_by_this_model",
+            "decision_diagnostics": {
+                "trend_scores": {
+                    str(symbol): float(score) if math.isfinite(float(score)) else None
+                    for symbol, score in zip(panel.symbols, inputs.long_scores[-1], strict=True)
+                },
+                "score_basis": "core trend score before selection/allocation; not a probability",
+                "binding_constraints": list(allocation.binding),
+                "forecast_portfolio_volatility_pre": (
+                    allocation.forecast_volatility_pre
+                    if math.isfinite(allocation.forecast_volatility_pre)
+                    else None
+                ),
+                "forecast_portfolio_volatility_post": (
+                    allocation.forecast_volatility_post
+                    if math.isfinite(allocation.forecast_volatility_post)
+                    else None
+                ),
+            },
+        },
     )

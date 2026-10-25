@@ -19,7 +19,9 @@ def amat_root(tmp_path: Path) -> Path:
     (root / "configs" / "strategy").mkdir(parents=True)
     (root / "data" / "snapshots" / "snap-1").mkdir(parents=True)
     (root / "pyproject.toml").write_text("[project]\nname='amat'\n", encoding="utf-8")
-    (root / "configs" / "strategy" / "amat_v6.toml").write_text("name='x'\n", encoding="utf-8")
+    (root / "configs" / "strategy" / "amat_group_selection_volatility.toml").write_text(
+        "name='x'\n", encoding="utf-8"
+    )
     return root
 
 
@@ -67,11 +69,11 @@ def test_resolves_with_defaults(base_env: pytest.MonkeyPatch, amat_root: Path) -
     settings = ExecutorSettings.from_environment()
 
     assert settings.amat_root == amat_root.resolve()
-    assert settings.strategy_config.name == "amat_v6.toml"
+    assert settings.strategy_config.name == "amat_group_selection_volatility.toml"
     assert settings.report_retention_days == 7
     assert settings.plan_lead_minutes == 10
     assert settings.plan_command == DEFAULT_PLAN_COMMAND
-    assert settings.dry_run is False
+    assert settings.dry_run is True
     assert settings.smtp is None
 
 
@@ -107,13 +109,13 @@ def test_a_nonsense_retention_window_is_rejected(base_env: pytest.MonkeyPatch, v
 
 
 def test_dry_run_is_opt_in_and_exact(base_env: pytest.MonkeyPatch) -> None:
-    """Anything other than a literal `true` means orders will be sent, so the
-    parse must not be clever about it."""
+    """A typo must not silently enable paper submissions."""
     base_env.setenv("DRY_RUN", "true")
     assert ExecutorSettings.from_environment().dry_run is True
 
     base_env.setenv("DRY_RUN", "yes")
-    assert ExecutorSettings.from_environment().dry_run is False
+    with pytest.raises(ConfigurationError, match="DRY_RUN"):
+        ExecutorSettings.from_environment()
 
 
 def test_plan_command_is_overridable(base_env: pytest.MonkeyPatch) -> None:
@@ -209,6 +211,17 @@ def test_risk_limits_resolve_from_environment(base_env: pytest.MonkeyPatch) -> N
     assert limits.equity_tolerance == Decimal("0.01")
 
 
+def test_unlimited_requires_an_explicit_setting(base_env: pytest.MonkeyPatch) -> None:
+    for key in ("MAX_SESSION_NOTIONAL", "MAX_SYMBOL_NOTIONAL", "MAX_ORDERS_PER_SESSION"):
+        base_env.setenv(key, "unlimited")
+    limits = ExecutorSettings.from_environment().limits
+    assert limits.max_session_notional is None
+    assert limits.max_symbol_notional is None
+    assert limits.max_orders_per_session is None
+    assert limits.authorized_config_sha256
+    assert limits.equity_tolerance == Decimal("0.01")
+
+
 @pytest.mark.parametrize(
     "missing",
     [
@@ -244,3 +257,22 @@ def test_non_positive_notional_is_rejected(base_env: pytest.MonkeyPatch, value: 
     base_env.setenv("MAX_SESSION_NOTIONAL", value)
     with pytest.raises(ConfigurationError, match="MAX_SESSION_NOTIONAL"):
         ExecutorSettings.from_environment()
+
+
+def test_staged_execution_is_explicit_and_unknown_modes_are_rejected(base_env):
+    base_env.setenv("EXECUTION_MODE", "staged-v1")
+    assert ExecutorSettings.from_environment().execution_mode == "staged-v1"
+    base_env.setenv("EXECUTION_MODE", "staged-v2")
+    with pytest.raises(ConfigurationError, match="EXECUTION_MODE"):
+        ExecutorSettings.from_environment()
+
+
+def test_whole_share_buys_require_staged_contract(monkeypatch,base_env,amat_root):
+    from executor.config import ExecutorSettings
+    from executor.errors import ConfigurationError
+    monkeypatch.setenv('WHOLE_SHARE_BUYS','true')
+    monkeypatch.setenv('EXECUTION_MODE','legacy')
+    # Existing fixture environment supplies the broker credentials.
+    with pytest.raises(ConfigurationError,match='requires staged-v1'):ExecutorSettings.from_environment()
+    monkeypatch.setenv('EXECUTION_MODE','staged-v1')
+    assert ExecutorSettings.from_environment().whole_share_buys is True

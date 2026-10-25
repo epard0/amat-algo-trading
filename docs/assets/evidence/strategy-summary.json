@@ -1,0 +1,231 @@
+{
+  "config_path": "amat/configs/strategy/amat_group_selection_volatility.toml",
+  "config_raw_sha256": "4a8c54e90ae362a5cca4f9e8ae4b1820c916615514e53532a3bc5d758d0f20e8",
+  "experiments": 5,
+  "limitations": [
+    "Previously inspected historical periods; not an untouched holdout.",
+    "Costs are modeled assumptions, not observed broker spreads/slippage.",
+    "Native QQQ is not risk/exposure matched.",
+    "Historical VWAP does not establish broker limit-order fill parity.",
+    "Original full account evidence remains outside the source release."
+  ],
+  "new_measurement": false,
+  "promotions": 0,
+  "published_date": "2026-10-25",
+  "rejected_candidate_arms": 10,
+  "report_raw_sha256": "63473289ffcba4ed0158e03540379b2285d13af64d6c4caea118f5ee6f057eca",
+  "report_relative_path": "amat/docs/research-2026-10-24-adaptive-campaign-final.md",
+  "rows": [
+    {
+      "annual_2023": 0.06546390580985517,
+      "average_exposure": 0.8681722012999897,
+      "cost_bps": 2,
+      "display_reason": "Unchanged baseline reproduced exactly against archived and new controls.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-foundation-1732/baseline-2bps.json",
+        "sha256": "b7f575e1999175fc776902961447d99fc1c79f4ce97358d1e68af8bb39feec48"
+      },
+      "fills": 1961,
+      "forward_drawdown": -0.12590512884148652,
+      "forward_return": 2.1189044003958655,
+      "id": "baseline-2",
+      "max_drawdown": -0.12590512884148652,
+      "misses": 2692,
+      "modeled_fees": 8962.668924,
+      "name": "Current default \u00b7 v14.3.0",
+      "net_return": 2.9639186120470002,
+      "reason": "Unchanged baseline reproduced exactly against archived and new controls.",
+      "status": "current verified default"
+    },
+    {
+      "annual_2023": 0.5458386338619223,
+      "average_exposure": 0.9899664630759871,
+      "cost_bps": 2,
+      "display_reason": "Reference investment; not an AMAT promotion candidate.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-foundation-1732/qqq_native-2bps.json",
+        "sha256": "4af3f15a1afacfb60b1ec0288983c129c019d49d149683b02c2d34c81dc24a50"
+      },
+      "fills": 3,
+      "forward_drawdown": -0.3474917093908224,
+      "forward_return": 2.6249643545947254,
+      "id": "qqq_native-2",
+      "max_drawdown": -0.3474917093908224,
+      "misses": 7,
+      "modeled_fees": 21.519989,
+      "name": "QQQ \u00b7 native entry cap",
+      "net_return": 5.55066679312,
+      "reason": "Reference investment; not an AMAT promotion candidate.",
+      "status": "reference only"
+    },
+    {
+      "annual_2023": 0.5485269295688202,
+      "average_exposure": 1.0,
+      "cost_bps": 2,
+      "display_reason": "Reference investment; not an AMAT promotion candidate.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-total-return-reference/qqq_total_return_reference-2bps.json",
+        "sha256": "1bba1773ad9ec2800c902fb199f549d1451fce55ce40a80f0d306d0744278c09"
+      },
+      "fills": 1,
+      "forward_drawdown": -0.3500255493101686,
+      "forward_return": 2.660647693817468,
+      "id": "qqq_total_return_reference-2",
+      "max_drawdown": -0.3500255493101686,
+      "misses": 0,
+      "modeled_fees": 19.996000799840033,
+      "name": "QQQ \u00b7 idealized total return",
+      "net_return": 5.694483189685832,
+      "reason": "Reference investment; not an AMAT promotion candidate.",
+      "status": "reference only"
+    },
+    {
+      "annual_2023": 0.057403224661567,
+      "average_exposure": 0.8626473652734817,
+      "cost_bps": 6,
+      "display_reason": "Unchanged baseline reproduced exactly against archived and new controls.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-foundation-1732/baseline-6bps.json",
+        "sha256": "ddcab0631ae9d1a7612b7d3967b4ad6706751085033cf02c3945c7dda77448d3"
+      },
+      "fills": 1929,
+      "forward_drawdown": -0.12836766893108165,
+      "forward_return": 1.9271986105181953,
+      "id": "baseline-6",
+      "max_drawdown": -0.12836766893108165,
+      "misses": 2868,
+      "modeled_fees": 24604.443393,
+      "name": "Current default \u00b7 v14.3.0",
+      "net_return": 2.597972627089,
+      "reason": "Unchanged baseline reproduced exactly against archived and new controls.",
+      "status": "current verified default"
+    },
+    {
+      "annual_2023": 0.5457994527151095,
+      "average_exposure": 0.9899996125859127,
+      "cost_bps": 6,
+      "display_reason": "Reference investment; not an AMAT promotion candidate.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-foundation-1732/qqq_native-6bps.json",
+        "sha256": "4c54ebefb98e0729b1546a7ed89a3ecd445544b1f1d46bc653fe297b9566ca86"
+      },
+      "fills": 3,
+      "forward_drawdown": -0.3474784054904291,
+      "forward_return": 2.6246876440926092,
+      "id": "qqq_native-6",
+      "max_drawdown": -0.3474784054904291,
+      "misses": 9,
+      "modeled_fees": 64.524214,
+      "name": "QQQ \u00b7 native entry cap",
+      "net_return": 5.55083263011,
+      "reason": "Reference investment; not an AMAT promotion candidate.",
+      "status": "reference only"
+    },
+    {
+      "annual_2023": 0.54852692956882,
+      "average_exposure": 1.0,
+      "cost_bps": 6,
+      "display_reason": "Reference investment; not an AMAT promotion candidate.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-total-return-reference/qqq_total_return_reference-6bps.json",
+        "sha256": "2642aa1d49669b07d3acfaaef4144cee1e8a87e7415dc1d732a862a90bdd5032"
+      },
+      "fills": 1,
+      "forward_drawdown": -0.3500255493101686,
+      "forward_return": 2.6606476938174684,
+      "id": "qqq_total_return_reference-6",
+      "max_drawdown": -0.3500255493101686,
+      "misses": 0,
+      "modeled_fees": 59.964021587047775,
+      "name": "QQQ \u00b7 idealized total return",
+      "net_return": 5.691807002122497,
+      "reason": "Reference investment; not an AMAT promotion candidate.",
+      "status": "reference only"
+    },
+    {
+      "annual_2023": 0.05071012355361493,
+      "average_exposure": 0.8563694964516939,
+      "cost_bps": 10,
+      "display_reason": "Unchanged baseline reproduced exactly against archived and new controls.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-foundation-1732/baseline-10bps.json",
+        "sha256": "730bc92fde751798c4d97f62fd81af82aa71afc1afe262cb255c739e879aad1d"
+      },
+      "fills": 1907,
+      "forward_drawdown": -0.1298198447304243,
+      "forward_return": 1.7760307058551605,
+      "id": "baseline-10",
+      "max_drawdown": -0.1298198447304243,
+      "misses": 3010,
+      "modeled_fees": 37259.039581,
+      "name": "Current default \u00b7 v14.3.0",
+      "net_return": 2.2188007958899996,
+      "reason": "Unchanged baseline reproduced exactly against archived and new controls.",
+      "status": "current verified default"
+    },
+    {
+      "annual_2023": 0.5459010955826358,
+      "average_exposure": 0.9901789545390499,
+      "cost_bps": 10,
+      "display_reason": "Reference investment; not an AMAT promotion candidate.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-foundation-1732/qqq_native-10bps.json",
+        "sha256": "e14b929e68eb259fab12185e73b34b32610958df019798a5adbbddcd89643945"
+      },
+      "fills": 3,
+      "forward_drawdown": -0.3475250467026746,
+      "forward_return": 2.625276655386054,
+      "id": "qqq_native-10",
+      "max_drawdown": -0.3475250467026746,
+      "misses": 7,
+      "modeled_fees": 107.54035800000001,
+      "name": "QQQ \u00b7 native entry cap",
+      "net_return": 5.55040246867,
+      "reason": "Reference investment; not an AMAT promotion candidate.",
+      "status": "reference only"
+    },
+    {
+      "annual_2023": 0.54852692956882,
+      "average_exposure": 1.0,
+      "cost_bps": 10,
+      "display_reason": "Reference investment; not an AMAT promotion candidate.",
+      "evidence": {
+        "path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/studies/qqq-total-return-reference/qqq_total_return_reference-10bps.json",
+        "sha256": "20c3d9560829551d06c2e82f7deb1a00cc345b1ff4af349f8e7e480239732885"
+      },
+      "fills": 1,
+      "forward_drawdown": -0.3500255493101686,
+      "forward_return": 2.6606476938174684,
+      "id": "qqq_total_return_reference-10",
+      "max_drawdown": -0.3500255493101686,
+      "misses": 0,
+      "modeled_fees": 99.9000999000999,
+      "name": "QQQ \u00b7 idealized total return",
+      "net_return": 5.689132953370399,
+      "reason": "Reference investment; not an AMAT promotion candidate.",
+      "status": "reference only"
+    }
+  ],
+  "sample": {
+    "end": "2026-10-12",
+    "forward_start": "2020-01-01",
+    "signal_warmup": "2016",
+    "snapshot": "alpaca-sip-core-2026-10-13-verified",
+    "start": "2017-01-03",
+    "starting_cash_usd": "100000"
+  },
+  "schema": "amat-readme-strategy-summary/1",
+  "source_compiled_utc": "2026-10-24T03:49:38.567701+00:00",
+  "source_raw_sha256": "723b2ea4dcbcd0547014402db5f1bb99ea7bd121b66faa0b5f7bbd15206a6b67",
+  "source_relative_path": "amat/outputs/research-campaigns/2026-10-23-adaptive-12h/final/comparison-complete.json",
+  "strategy_version": "14.3.0",
+  "units": {
+    "average_exposure": "fraction",
+    "cost_bps": "basis points per side",
+    "forward_drawdown": "negative fraction",
+    "forward_return": "fraction cumulative continuing account",
+    "max_drawdown": "negative fraction",
+    "modeled_fees": "USD",
+    "net_return": "fraction cumulative"
+  }
+}

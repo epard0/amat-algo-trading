@@ -1,0 +1,18 @@
+name = "btc-long-pnl"
+
+[evidence]
+selection = "amat/outputs/crypto-directional-2026-10-19/four-hour/selection.json"
+selection_sha256 = "5ddb5919dc6790c3fc2288a78ec5d95cec6f2e13cdfb7902edd0db2c0c8b9356"
+selected_key = "BTC-long-2x-pnl"
+status = "frozen training selection; paper research only"
+
+[sources]
+"crypto_directional.py" = "7c437b1a74665f3963e980848e22291ebb5d1dac3c93b0918a47912f6bf839f2"
+
+[[legs]]
+ticker = "KXBTCPERP"
+engine = "directional"
+allocation = "1"
+leverage = "2"
+sizing = "full"
+direction = 1

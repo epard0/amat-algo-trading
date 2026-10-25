@@ -1,0 +1,90 @@
+{
+  "hypothesis": "Test a trough-and-recovery path confirmed by positive participation.",
+  "patches": [],
+  "features": [],
+  "signal": {
+    "terms": [
+      {
+        "feature": {
+          "kind": "path_similarity",
+          "lookback": 21,
+          "secondary_lookback": 21,
+          "smoothing": 1,
+          "transform": "identity",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0,
+          "lag_sessions": 0,
+          "template": [
+            1.0,
+            0.0,
+            -1.0,
+            0.0,
+            1.0
+          ]
+        },
+        "weight": 0.0,
+        "center": 0.0,
+        "scale": 1.0
+      },
+      {
+        "feature": {
+          "kind": "volume_price",
+          "lookback": 21,
+          "secondary_lookback": 21,
+          "smoothing": 1,
+          "transform": "identity",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0,
+          "lag_sessions": 0,
+          "template": null
+        },
+        "weight": 0.0,
+        "center": 0.0,
+        "scale": 1.0
+      }
+    ],
+    "interactions": [],
+    "patterns": [
+      {
+        "name": "recovery_with_participation",
+        "mode": "all",
+        "conditions": [
+          {
+            "term": 0,
+            "predicate": "above",
+            "threshold": 0.65,
+            "lag": 0,
+            "window": 1,
+            "min_fraction": 1.0
+          },
+          {
+            "term": 1,
+            "predicate": "above",
+            "threshold": 0.0,
+            "lag": 0,
+            "window": 3,
+            "min_fraction": 0.6666666666666666
+          }
+        ],
+        "weight": 1.0
+      }
+    ],
+    "learner": "weighted",
+    "horizon": 20,
+    "baseline_mix": 0.0,
+    "policy": {
+      "entry_threshold": 0.55,
+      "exit_threshold": 0.45,
+      "confirmation_sessions": 1,
+      "min_hold_sessions": 0
+    }
+  },
+  "stage": "pattern",
+  "parent_candidate": null,
+  "research": {
+    "mechanism": "A recovered price trough with positive volume-price participation may persist.",
+    "falsification": "Removing participation or changing the trough template should reduce the effect."
+  }
+}

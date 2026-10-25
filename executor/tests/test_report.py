@@ -21,6 +21,7 @@ from executor.report.daily import (
     write_report,
 )
 from executor.report.metrics import compute_execution_quality
+from executor.submit import client_order_id_for
 
 
 def _curve(*equities: str) -> list[dict[str, object]]:
@@ -214,7 +215,7 @@ def test_write_report_emits_both_forms(tmp_path: Path) -> None:
     assert markdown_path.name == "2026-08-11.md"
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["stats"]["sessions"] == 2
-    assert payload["execution"]["reconciliation_complete"]
+    assert not payload["execution"]["reconciliation_complete"]
 
 
 # -- execution reconciliation ------------------------------------------------
@@ -223,7 +224,9 @@ def test_write_report_emits_both_forms(tmp_path: Path) -> None:
 def _order(**overrides: object) -> Order:
     payload = {
         "id": "order-1",
-        "client_order_id": "amat-2026-08-10-SPY-buy-test",
+        "client_order_id": client_order_id_for(
+            parse_plan(_plan_payload()), parse_plan(_plan_payload()).intents[0]
+        ),
         "symbol": "SPY",
         "side": "buy",
         "qty": "15.9684",
@@ -253,6 +256,22 @@ def test_execution_quality_flags_an_unmatched_plan_intent() -> None:
     assert not quality.reconciliation_complete
     assert quality.unmatched_intent_count == 1
     assert quality.reference_notional_fill_rate == 0.0
+
+
+def test_same_symbol_side_from_another_plan_does_not_reconcile() -> None:
+    quality = compute_execution_quality(
+        parse_plan(_plan_payload()), (_order(client_order_id="unrelated-SPY-buy"),)
+    )
+    assert not quality.reconciliation_complete
+    assert quality.unmatched_intent_count == 1
+    assert quality.unmatched_order_count == 1
+
+
+def test_missing_plan_or_failed_order_fetch_cannot_reconcile() -> None:
+    assert not compute_execution_quality(None, ()).reconciliation_complete
+    empty = parse_plan(_plan_payload(intents=[]))
+    assert compute_execution_quality(empty, ()).reconciliation_complete
+    assert not compute_execution_quality(empty, (), orders_available=False).reconciliation_complete
 
 
 def test_execution_quality_flags_unmatched_and_overfilled_orders() -> None:

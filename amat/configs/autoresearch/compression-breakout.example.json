@@ -1,0 +1,84 @@
+{
+  "hypothesis": "Test whether a quiet period followed by a breakout predicts continuation.",
+  "patches": [],
+  "features": [],
+  "signal": {
+    "terms": [
+      {
+        "feature": {
+          "kind": "volatility",
+          "lookback": 21,
+          "secondary_lookback": 21,
+          "smoothing": 1,
+          "transform": "time_series_rank",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0,
+          "lag_sessions": 0,
+          "template": null
+        },
+        "weight": 0.0,
+        "center": 0.0,
+        "scale": 1.0
+      },
+      {
+        "feature": {
+          "kind": "breakout_distance",
+          "lookback": 21,
+          "secondary_lookback": 21,
+          "smoothing": 1,
+          "transform": "identity",
+          "normalization_window": 63,
+          "benchmark": "SPY",
+          "clip": 3.0,
+          "lag_sessions": 0,
+          "template": null
+        },
+        "weight": 0.0,
+        "center": 0.0,
+        "scale": 1.0
+      }
+    ],
+    "interactions": [],
+    "patterns": [
+      {
+        "name": "compression_then_breakout",
+        "mode": "sequence",
+        "conditions": [
+          {
+            "term": 0,
+            "predicate": "below",
+            "threshold": 0.35,
+            "lag": 2,
+            "window": 5,
+            "min_fraction": 0.6
+          },
+          {
+            "term": 1,
+            "predicate": "above",
+            "threshold": 0.1,
+            "lag": 0,
+            "window": 2,
+            "min_fraction": 0.5
+          }
+        ],
+        "weight": 1.0
+      }
+    ],
+    "learner": "weighted",
+    "horizon": 20,
+    "baseline_mix": 0.0,
+    "policy": {
+      "entry_threshold": 0.55,
+      "exit_threshold": 0.45,
+      "confirmation_sessions": 1,
+      "min_hold_sessions": 0
+    }
+  },
+  "stage": "pattern",
+  "parent_candidate": null,
+  "research": {
+    "mechanism": "A sustained volatility compression precedes a positive range breakout.",
+    "falsification": "Removing temporal order or the breakout condition should erase the advantage."
+  }
+}

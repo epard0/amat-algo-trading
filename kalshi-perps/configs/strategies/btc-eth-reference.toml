@@ -1,0 +1,18 @@
+name = "btc-eth-reference"
+
+[sources]
+"crypto_perpetual_study.py" = "c16099944881bcecc4d1928b53a9cd3b2b739eb42632711d27e1eb4ce586af34"
+
+[[legs]]
+ticker = "KXBTCPERP"
+engine = "symmetric"
+allocation = "0.5"
+leverage = "2"
+sizing = "vol20"
+
+[[legs]]
+ticker = "KXETHPERP"
+engine = "symmetric"
+allocation = "0.5"
+leverage = "2"
+sizing = "vol20"
