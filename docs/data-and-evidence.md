@@ -33,4 +33,4 @@ Generic cleanup must exclude active databases/WALs, order/funding deduplication,
 
 Only allowlisted, completed, inactive generated collector detail older than seven days is eligible for compression. Publish archives atomically with manifests/checksums, retain summaries and compressed detail, and use archive-aware readers. Maintenance is bounded and low priority and defers under insufficient headroom. No automatic deletion of retained archives is introduced. Backups have their own documented lifecycle and isolated restore verification.
 
-See [operations](operations.md), [backup contract](../executor/scripts/BACKUPS.md), and [collector archive contract](../frontend/deploy/paper-monitor/ARCHIVES.md).
+See [operations](operations.md), [backup contract](executor/scripts/BACKUPS.md), and [collector archive contract](frontend/deploy/paper-monitor/ARCHIVES.md).

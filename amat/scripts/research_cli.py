@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
             "Models": ROOT / "configs/autoresearch/llm-chain.example.toml",
             "Datasets": ROOT / "data/research-datasets.json",
             "Credentials": Path(os.environ.get("UV_ENV_FILE", str(ROOT / ".env"))),
-            "Cheatsheet": ROOT.parent / "COMMANDS_CHEATSHEET.md",
+            "Cheatsheet": ROOT.parent / "docs/COMMANDS_CHEATSHEET.md",
         }.items():
             print(f"{label}: {path}")
         return 0

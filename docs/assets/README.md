@@ -23,3 +23,5 @@ These are documentation captures, not new end-to-end execution or responsive-lay
 ## Numeric evidence
 
 [evidence/strategy-summary.json](evidence/strategy-summary.json) is a curated extract from the final October 23–24 campaign comparison. Fractions, signed drawdowns, money and cost units remain explicit. It retains original raw-source and per-record identities while converting provenance paths to repository-relative paths. It does not include private account databases or claim that excluded source artifacts can be downloaded from GitHub. See [the performance explanation](../strategy-performance.md) and [source map](../project-sources.md).
+
+After documentation relocation, the extract records both the original report path/hash and the published report path/hash. Original measurement and record hashes remain unchanged; the published hash accounts for documentation link edits.

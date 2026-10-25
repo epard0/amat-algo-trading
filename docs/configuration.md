@@ -62,4 +62,4 @@ The blank [SSH template](../frontend/config/remote.example.toml) uses placeholde
 
 Changing a policy/source selection requires an explicit new account identity/state path, rather than reinterpreting old account events. Preserve the fixed-origin history anchor and source hashes. The risk overlay, actual integer fills, fees and native funding can make paper results differ from research targets. Configure notifications separately; alert account selection defaults to the main account.
 
-See [security](../SECURITY.md) for exposure response and [operations](operations.md) for safe release handling.
+See [security](SECURITY.md) for exposure response and [operations](operations.md) for safe release handling.

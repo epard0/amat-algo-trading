@@ -12,16 +12,16 @@ Reviewed the completed October 23–24 campaign and subsequent October 24 namesp
 
 Public repository sources:
 
-- [Final campaign analysis](../amat/docs/research-2026-10-24-adaptive-campaign-final.md): sample, costs, all candidates, QQQ comparisons, annual/stress diagnostics and limitations.
+- [Final campaign analysis](research/research-2026-10-24-adaptive-campaign-final.md): sample, costs, all candidates, QQQ comparisons, annual/stress diagnostics and limitations.
 - [Retained strategy configuration](../amat/configs/strategy/amat_group_selection_volatility.toml): exact v14.3.0 settings.
 - [Published performance explanation](strategy-performance.md) and [curated numerical extract](assets/evidence/strategy-summary.json): the README's selected values and source identities.
-- [Post-campaign namespace repair](../amat/docs/repair-2026-10-24-risk-package-attestation.md) and [native-plan/broker contract audit](../amat/docs/research-2026-10-24-native-plan-broker-parity.md): later engineering status, separate from investment returns.
+- [Post-campaign namespace repair](research/repair-2026-10-24-risk-package-attestation.md) and [native-plan/broker contract audit](research/research-2026-10-24-native-plan-broker-parity.md): later engineering status, separate from investment returns.
 
 The original machine comparison and account histories remain private/generated evidence under `amat/outputs/research-campaigns/2026-10-23-adaptive-12h/`. The curated extract retains their exact hashes and relative provenance paths; it is not a new backtest or a substitute for full account evidence.
 
 ## S2 — Selection mechanism and older baseline
 
-The same **“Improve AMAT strategy engine”** history covers the selection and failed challenger studies leading to the retained default. The [October 19 default study](../amat/docs/volatility-default-next-results-2026-10-19.md) records its earlier results and acceptance rules.
+The same **“Improve AMAT strategy engine”** history covers the selection and failed challenger studies leading to the retained default. The [October 19 default study](research/volatility-default-next-results-2026-10-19.md) records its earlier results and acceptance rules.
 
 The README deliberately uses the later October 23–24 native accounting/control reproduction. Earlier reports can quote different returns for the same named strategy because their accounting/source/evaluation records differ. Do not splice the strongest value from each report into a single “best” result or treat an accounting correction as alpha promotion.
 
@@ -33,7 +33,7 @@ The actual switching implementation is [adaptive.py](../amat/src/amat/portfolio/
 
 Reviewed the initial request, the operator's choices and the approved implementation result. The final decision is a guided registered-task CLI, automatic diagnostics only while the local API runs, compression after seven days without archive deletion, and three retained remote applications. Shadow is retired with state preserved; alerts watch the main account. Earlier suggestions in the discussion to use a VPS diagnostic timer were superseded by the operator's explicit API-lifecycle choice.
 
-Public sources: [approved plan](ui-remote-operations-plan-2026-10-23.md), [terminal guide](../frontend/README.md), [remote interface](../frontend/docs/REMOTE.md), [archive contract](../frontend/deploy/paper-monitor/ARCHIVES.md), and [current architecture](architecture.md). Real deployment/restore receipts remain private under `operations/`.
+Public sources: [approved plan](ui-remote-operations-plan-2026-10-23.md), [terminal guide](frontend/README.md), [remote interface](frontend/REMOTE.md), [archive contract](frontend/deploy/paper-monitor/ARCHIVES.md), and [current architecture](architecture.md). Real deployment/restore receipts remain private under `operations/`.
 
 The README screenshots were captured from the actual local UI on October 25. They illustrate implementation; they do not recertify the October 23 deployment. See [asset provenance](assets/README.md).
 
@@ -43,7 +43,7 @@ The README screenshots were captured from the actual local UI on October 25. The
 
 The discussion distinguishes completed proxy-candle signals, native execution books/funding, separate paper account identities, frozen profiles and a prospective shadow experiment. Historical startup observations with zero fills are not statistical evidence of profitability. The older two-account notification configuration is superseded by S3's later main-account-only decision; do not revive shadow from the old description.
 
-Public sources: [Kalshi guide](../kalshi-perps/README.md), [strategy API](../kalshi-perps/STRATEGY_API.md), [trade-alert contract](../kalshi-perps/docs/TRADE_ALERTS.md), and the [Kalshi component guide](components/kalshi-perps.md).
+Public sources: [Kalshi guide](kalshi-perps/README.md), [strategy API](kalshi-perps/STRATEGY_API.md), [trade-alert contract](kalshi-perps/TRADE_ALERTS.md), and the [Kalshi component guide](components/kalshi-perps.md).
 
 ## S5 — Frontend/executor integration intent
 

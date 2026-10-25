@@ -78,7 +78,7 @@ uv run --project amat amat --help
 (cd amat && uv run python scripts/ingest_market_data.py --help)
 ```
 
-Then use the [data guide](data-and-evidence.md) and [native ingestion guide](../amat/docs/market-data-and-simulation.md). Historical commands naming a dated snapshot are examples of an existing local artifact, not a dataset included in Git. Preserve provider identity, adjustment policy, timezone, coverage and checksums. Validate configurations before expensive studies:
+Then use the [data guide](data-and-evidence.md) and [native ingestion guide](research/market-data-and-simulation.md). Historical commands naming a dated snapshot are examples of an existing local artifact, not a dataset included in Git. Preserve provider identity, adjustment policy, timezone, coverage and checksums. Validate configurations before expensive studies:
 
 ```sh
 (cd amat && uv run amat validate-config configs/strategy/amat_group_selection_volatility.toml)
@@ -109,7 +109,7 @@ cp -n frontend/config/remote.example.toml frontend/.runtime/remote.toml
 chmod 600 frontend/.runtime/remote.toml
 ```
 
-Edit the host, port, operator, private-key path and known-hosts path for your infrastructure. Verify the server fingerprint through an independent trusted channel before accepting it into `known_hosts`. Do not disable host-key verification. Then start the terminal with `TERMINAL_PERPS_TARGET=remote`; this enables API-owned read-only collection through the registered helper. Remote helpers, containers and backups must already be installed and compatible. See [remote diagnostics](../frontend/docs/REMOTE.md) and [operations](operations.md).
+Edit the host, port, operator, private-key path and known-hosts path for your infrastructure. Verify the server fingerprint through an independent trusted channel before accepting it into `known_hosts`. Do not disable host-key verification. Then start the terminal with `TERMINAL_PERPS_TARGET=remote`; this enables API-owned read-only collection through the registered helper. Remote helpers, containers and backups must already be installed and compatible. See [remote diagnostics](frontend/REMOTE.md) and [operations](operations.md).
 
 A fresh source clone intentionally lacks original research output archives. Evidence-dependent checks report explicit skips; ordinary source, API, safety and synthetic tests remain available. Restoring an evidence directory re-enables its integrity checks.
 

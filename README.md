@@ -26,13 +26,14 @@ Research produces signals, plans and evidence. Execution components own accounts
 - [Data, evidence and reproducibility](docs/data-and-evidence.md)
 - [Operations, backup and release](docs/operations.md)
 - [Testing and verification](docs/testing.md)
-- [Contributing](CONTRIBUTING.md)
-- [Security and credential handling](SECURITY.md)
+- [Contributing](docs/CONTRIBUTING.md)
+- [Security and credential handling](docs/SECURITY.md)
 - [Preparing a GitHub upload](docs/github-publication.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Preparation verification and known baseline failures](docs/publication-verification-2026-10-25.md)
-- [Documentation status and historical references](docs/README.md)
-- [Change history](CHANGES.md)
+- [Documentation index and layout](docs/README.md)
+- [Complete component and research document catalog](docs/catalog.md)
+- [Change history](docs/CHANGES.md)
 
 ## UI screenshots
 
@@ -64,7 +65,7 @@ The retained equity strategy is **v14.3.0: all groups with volatility-triggered,
 | 6 bps (0.06%) | **259.80%** | 192.72% | 12.84% | 555.08% | 34.75% |
 | 10 bps (0.10%) | **221.88%** | 177.60% | 12.98% | 555.04% | 34.75% |
 
-At the middle 6 bps assumption, the recorded account has **1,929 fills**, **2,868 missed instructions**, **86.26% average exposure**, and **$24,604.44 modeled fees**. A missed instruction can reflect cash, rounding or historical liquidity rules; it is not automatically a broker incident. These figures come from the [October 23–24 final campaign report](amat/docs/research-2026-10-24-adaptive-campaign-final.md) and [publication summary](docs/strategy-performance.md).
+At the middle 6 bps assumption, the recorded account has **1,929 fills**, **2,868 missed instructions**, **86.26% average exposure**, and **$24,604.44 modeled fees**. A missed instruction can reflect cash, rounding or historical liquidity rules; it is not automatically a broker incident. These figures come from the [October 23–24 final campaign report](docs/research/research-2026-10-24-adaptive-campaign-final.md) and [publication summary](docs/strategy-performance.md).
 
 AMAT's historical drawdown was substantially lower than QQQ's, while its cumulative growth was substantially lower too. QQQ is a concentrated reference with a different risk/exposure profile, not a matched-risk strategy or an admissible diversified candidate. The separate idealized fractional QQQ total-return reference returned 569.18% at 6 bps; it is not the native executable benchmark. Broker spread/slippage and actual execution costs were not measured by these modeled assumptions. Historical VWAP fills do not prove parity with staged broker limit orders. [Measurement and limitations](docs/strategy-performance.md).
 
@@ -83,10 +84,10 @@ The switching edge is a fixed opportunity proxy, not a calibrated return forecas
 
 | Directory | Responsibility | Detailed documentation |
 | --- | --- | --- |
-| `amat/` | Strategy computation, historical simulation, validation, research and immutable evidence | [Research component](docs/components/research.md), [existing AMAT guide](amat/README.md) |
-| `executor/` | Alpaca account checks, order safety, scheduling, reconciliation and receipts | [Executor component](docs/components/executor.md), [native guide](executor/README.md) |
-| `kalshi-perps/` | Persistent perpetual paper accounts, source-pinned strategy adapter, native books/funding, alerts | [Kalshi component](docs/components/kalshi-perps.md), [native guide](kalshi-perps/README.md) |
-| `frontend/` | Loopback UI/API, registered task adapters, independent workers, cached remote diagnostics | [Terminal component](docs/components/terminal.md), [native guide](frontend/README.md) |
+| `amat/` | Strategy computation, historical simulation, validation, research and immutable evidence | [Research component](docs/components/research.md), [existing AMAT guide](docs/research/README.md) |
+| `executor/` | Alpaca account checks, order safety, scheduling, reconciliation and receipts | [Executor component](docs/components/executor.md), [native guide](docs/executor/README.md) |
+| `kalshi-perps/` | Persistent perpetual paper accounts, source-pinned strategy adapter, native books/funding, alerts | [Kalshi component](docs/components/kalshi-perps.md), [native guide](docs/kalshi-perps/README.md) |
+| `frontend/` | Loopback UI/API, registered task adapters, independent workers, cached remote diagnostics | [Terminal component](docs/components/terminal.md), [native guide](docs/frontend/README.md) |
 | `docs/` | Current cross-system guides and dated design contracts | [Documentation index](docs/README.md) |
 | `scripts/` | Repository publication checks | [Publication guide](docs/github-publication.md) |
 | `operations/` | Private local deployment/repair evidence; excluded from upload | [Operations guide](docs/operations.md) |

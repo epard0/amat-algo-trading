@@ -1,6 +1,6 @@
 # Local HTTP API and task integration
 
-The FastAPI application in [server/app.py](../frontend/server/app.py) is the workstation's loopback gateway. Its implemented routes and generated `/openapi.json` are authoritative. [The original API contract](../frontend/api/CONTRACT.md) includes roadmap requirements; do not treat every target endpoint or normalized event name there as implemented.
+The FastAPI application in [server/app.py](../frontend/server/app.py) is the workstation's loopback gateway. Its implemented routes and generated `/openapi.json` are authoritative. [The original API contract](frontend/api/CONTRACT.md) includes roadmap requirements; do not treat every target endpoint or normalized event name there as implemented.
 
 Start the [local server](installation.md) and inspect [OpenAPI](http://127.0.0.1:8765/openapi.json). Do not expose this API as a public unauthenticated service or bypass local Host/origin/session checks with a reverse proxy.
 

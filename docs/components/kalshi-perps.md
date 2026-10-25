@@ -41,4 +41,4 @@ The paper ledger applies integer holdings, actual sorted book depth, modeled cos
 
 The optional shadow experiment is retired. Its protocol, profile, original account volume and results are retained. The presence of `shadow.compose.yml` does not authorize restarting it or mounting it into the active alert watcher. Local multi-account comparison workflows documented historically are distinct from the approved three-container deployment.
 
-Read [strategy API](../strategy-api.md), [native guide](../../kalshi-perps/README.md), [native API details](../../kalshi-perps/STRATEGY_API.md) and [trade alerts](../../kalshi-perps/docs/TRADE_ALERTS.md).
+Read [strategy API](../strategy-api.md), [native guide](../kalshi-perps/README.md), [native API details](../kalshi-perps/STRATEGY_API.md) and [trade alerts](../kalshi-perps/TRADE_ALERTS.md).

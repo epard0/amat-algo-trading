@@ -13,8 +13,11 @@
   "promotions": 0,
   "published_date": "2026-10-25",
   "rejected_candidate_arms": 10,
+  "report_original_relative_path": "amat/docs/research-2026-10-24-adaptive-campaign-final.md",
+  "report_provenance_note": "Original report path/hash identify the sealed pre-relocation source; published path/hash identify the relocated documentation with updated links. Performance measurements are unchanged.",
+  "report_published_raw_sha256": "3437a2486521627184038d90ae75261d1c87d756f120c270ac5666b4973457e8",
   "report_raw_sha256": "63473289ffcba4ed0158e03540379b2285d13af64d6c4caea118f5ee6f057eca",
-  "report_relative_path": "amat/docs/research-2026-10-24-adaptive-campaign-final.md",
+  "report_relative_path": "docs/research/research-2026-10-24-adaptive-campaign-final.md",
   "rows": [
     {
       "annual_2023": 0.06546390580985517,

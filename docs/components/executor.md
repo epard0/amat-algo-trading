@@ -37,4 +37,4 @@ Plans bind completed signal sessions, expiry, allowed configuration and sizing i
 
 Receipts, registry state, interlocks, equity history and checkpoints survive code rollback. Restore testing uses isolated state. Monitoring reads evidence and cannot clear stops, restart engines or place orders. “Healthy” reports durable process progress; “ready” adds configured operational conditions and is still not proof of a fill.
 
-See [native README](../../executor/README.md), [batch contract](../../executor/docs/execution-batch-v1.md), [backup contract](../../executor/scripts/BACKUPS.md) and [operations](../operations.md). The [VPS runbook](../../executor/VPS_RUNBOOK.md) contains dated deployment context; adapt it to your own infrastructure and current source identity.
+See [native README](../executor/README.md), [batch contract](../executor/execution-batch-v1.md), [backup contract](../executor/scripts/BACKUPS.md) and [operations](../operations.md). The [VPS runbook](../executor/VPS_RUNBOOK.md) contains dated deployment context; adapt it to your own infrastructure and current source identity.

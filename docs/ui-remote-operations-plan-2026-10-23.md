@@ -254,7 +254,7 @@ Rollback restores previous code/images/helper configuration while preserving cur
 
 ## 10. Documentation and final delivery
 
-Update `frontend/README.md`, `frontend/web/README.md`, relevant API/remote/deployment/verification docs, executor runbook and Kalshi operations documentation where changed. Retain older receipts as historical evidence with their dates.
+Update `docs/frontend/README.md`, `docs/frontend/web/README.md`, relevant API/remote/deployment/verification docs, executor runbook and Kalshi operations documentation where changed. Retain older receipts as historical evidence with their dates.
 
 Create root `AGENTS.md` with reusable, factual instructions for:
 

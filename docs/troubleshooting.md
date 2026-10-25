@@ -19,4 +19,4 @@
 | Alert sends fail | Validate private notification setup and delivery state without exposing tokens/destinations. Preserve cursor/outbox receipts; do not replay historical notifications. |
 | Missing historical report link | Dated docs can point to intentionally excluded private/generated evidence. See the documentation index and recover only your own verified artifact. |
 
-For reproducible bugs, include package/source identity, command shape, a redacted error and synthetic reproduction. Use [contribution standards](../CONTRIBUTING.md) and [private security reporting](../SECURITY.md) as appropriate.
+For reproducible bugs, include package/source identity, command shape, a redacted error and synthetic reproduction. Use [contribution standards](CONTRIBUTING.md) and [private security reporting](SECURITY.md) as appropriate.

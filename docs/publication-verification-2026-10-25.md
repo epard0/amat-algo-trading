@@ -102,3 +102,28 @@ Actual follow-up checks:
 | Publication identifiers and supported content checks | Passed; no original deployment identifiers in eligible files |
 
 The earlier full AMAT/Kalshi results remain dated preparation evidence, not newly rerun checks in this follow-up. Their implementations were not changed. No remote deployment, SSH probe, account operation, local API restart or GitHub upload was performed. The source export/archive/checksums were refreshed after these checks; earlier public-facing artifact paths now refer to the hardened source candidate.
+
+## Follow-up: documentation consolidation — October 25, 2026
+
+Moved 214 publishable Markdown documents and three ignored private operator notes into the root `docs/` tree. The root README remains the landing page. Component guides and their historical documentation now live in `docs/research/`, `docs/executor/`, `docs/frontend/` and `docs/kalshi-perps/`; shared contribution/security standards, change history and command reference also live under `docs/`. The README links the documentation index and complete 245-document catalog. Tool-discovered instructions/templates, licenses, runtime-required examples/protocols and immutable generated research evidence retain their functional locations.
+
+Updated relative Markdown links, inline documentation pointers and the research shortcut's cheatsheet path. Both Python packages now carry a short inline metadata overview rather than requiring a component-local README; the executor Docker COPY and selective packaging allowlist follow the new layout. The deployment package includes the relocated VPS runbook. Private notes retain their original bytes and remain ignored at both their new paths and legacy paths. Original strategy report identity is retained separately from its published path/hash; measurements and evidence identities are unchanged.
+
+A private baseline outside the checkout records all 1,347 source files present before this relocation, Git status and a documentation/source archive. Concurrent unrelated source work was preserved. The source-only upload directory, tarball, manifest and checksum are refreshed from current eligible working files after these changes.
+
+| Relocation check | Result |
+| --- | --- |
+| All publishable local Markdown links | 815 existing targets; zero unresolved targets |
+| Documentation placement | Only root `README.md` and operational `AGENTS.md` remain outside `docs/` and tool-configuration directories |
+| Private notes | Three original byte sequences preserved; new and legacy locations ignored |
+| Runtime documentation fixtures/protocol | Five example/protocol files unchanged at original paths |
+| AMAT and executor distribution builds | Source distributions and wheels built successfully; no component-local README dependency |
+| Focused research shortcuts/model-policy regressions | 20 passed |
+| API/launcher regressions | 182 passed; one existing Starlette TestClient deprecation warning |
+| Executor regressions | 398 passed |
+| UI production build | TypeScript/Vite passed |
+| Publication-tool regressions | Nine passed |
+| Research shortcut lint | Passed |
+| Packaging shell syntax and Git whitespace | Passed |
+
+The full AMAT research suite and remote/container deployment were not repeated for documentation relocation. No remote state or service lifecycle was changed. Historical test counts earlier in this document describe their own runs rather than this follow-up.

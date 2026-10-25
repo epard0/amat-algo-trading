@@ -11,7 +11,7 @@ The retained equity incumbent is `amat-group-selection-volatility`, v14.3.0. The
 - Costs: assumed 2/6/10 basis points per side. One basis point is 0.01%; these are modeled combined trading frictions, not measured historical broker spread/slippage. Cash earns zero in this study.
 - Evaluation: the 2020-onward slice continues the same account. All historical periods have prior research exposure. The chronological slice is not an untouched out-of-sample discovery.
 
-The [final campaign report](../amat/docs/research-2026-10-24-adaptive-campaign-final.md) contains the full fixed experiment matrix, annual/stress/month/recovery diagnostics and source/reproduction index. [The curated numerical extract](assets/evidence/strategy-summary.json) retains the selected baseline/benchmark metrics, original evidence hashes and units without private machine paths. It was copied from existing sealed evidence, not remeasured during README preparation.
+The [final campaign report](research/research-2026-10-24-adaptive-campaign-final.md) contains the full fixed experiment matrix, annual/stress/month/recovery diagnostics and source/reproduction index. [The curated numerical extract](assets/evidence/strategy-summary.json) retains the selected baseline/benchmark metrics, original evidence hashes and units without private machine paths. It was copied from existing sealed evidence, not remeasured during README preparation.
 
 ## Baseline and benchmark statistics
 
@@ -35,7 +35,7 @@ Volatility configuration blends 20- and 60-session half-lives, with a 5% annuali
 
 In [adaptive.py](../amat/src/amat/portfolio/adaptive.py), only completed exchange weeks become ranking observations, avoiding partial-week lookahead. The volatility switch gate activates when completed-close fast volatility annualizes above 25% or exceeds 1.5 times slow volatility. For discretionary within-group replacement, a five-day projection of the trailing 20-session relative log-return difference is compared with the configured round-trip hurdle. This is a fixed opportunity proxy, not a calibrated forecast. Invalid or excluded incumbents can exit immediately. Rebalance bands and minimum trade notional are 2% and $25 in the retained configuration.
 
-The inert planning API binds dates, config/snapshot/code identity, sizing inputs, intents, misses and expiry. The Alpaca executor independently checks account/safety/ownership and native execution policy. Historical VWAP accounting cannot establish identical fills under DAY limit orders, cancellation latency and live book liquidity. [The later native-plan audit](../amat/docs/research-2026-10-24-native-plan-broker-parity.md) verifies research-envelope mechanics while explicitly blocking unsupported broker execution parity.
+The inert planning API binds dates, config/snapshot/code identity, sizing inputs, intents, misses and expiry. The Alpaca executor independently checks account/safety/ownership and native execution policy. Historical VWAP accounting cannot establish identical fills under DAY limit orders, cancellation latency and live book liquidity. [The later native-plan audit](research/research-2026-10-24-native-plan-broker-parity.md) verifies research-envelope mechanics while explicitly blocking unsupported broker execution parity.
 
 ## Rejected candidates and evidence limits
 

@@ -20,7 +20,7 @@ Automatic diagnostic scheduling belongs to the local API lifecycle, independentl
 
 Coordinate SQLite online backup, source/transfer budgets, temporary disk requirements and isolated restore verification. Copying a live database file independently of its WAL is not a substitute for a consistent backup. Preserve order/funding deduplication, accepted-order receipts, uncertain outcomes, equity, account/event ordering, checkpoints and authorization/interlock files.
 
-The [backup contract](../executor/scripts/BACKUPS.md) describes installed mechanisms and limits. [The archive contract](../frontend/deploy/paper-monitor/ARCHIVES.md) covers completed collector detail. These are separate retention policies. Do not use repository cleanup as authorization to delete account state, archives or immutable research evidence.
+The [backup contract](executor/scripts/BACKUPS.md) describes installed mechanisms and limits. [The archive contract](frontend/deploy/paper-monitor/ARCHIVES.md) covers completed collector detail. These are separate retention policies. Do not use repository cleanup as authorization to delete account state, archives or immutable research evidence.
 
 ## Install sequentially and verify
 
@@ -34,4 +34,4 @@ A code/image rollback must keep newer account state and accepted-order receipts.
 
 Store real release/repair receipts privately under `operations/` or your durable evidence store. Record actual test commands/results, known baseline failures, deployment identity, backup/restore proof, continuity/rollback observations and measured limits. Never substitute an old receipt or fixture for new remote verification. A documentation-only repository cleanup requires no remote deployment.
 
-The detailed approved [UI/remote operations design](ui-remote-operations-plan-2026-10-23.md), [executor runbook](../executor/VPS_RUNBOOK.md), and [remote diagnostics](../frontend/docs/REMOTE.md) provide context. Their dated observations must be recaptured for an actual release.
+The detailed approved [UI/remote operations design](ui-remote-operations-plan-2026-10-23.md), [executor runbook](executor/VPS_RUNBOOK.md), and [remote diagnostics](frontend/REMOTE.md) provide context. Their dated observations must be recaptured for an actual release.

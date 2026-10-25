@@ -26,10 +26,10 @@ Tasks select typed registered inputs, preview effects and dispatch once under ex
 
 The local SSH adapter loads mode-600 configuration, verifies pinned host keys and bounds connection/command/output work. Remote helper operations are named contracts; the browser cannot send shell commands or credential dictionaries. Health collection is read-only and reports transport, process responsiveness, data freshness, readiness/reconciliation, backups and resource pressure separately.
 
-The separately installed paper-session collector has an enforced top-level `manifest.json["files"]` hash map. Updating any installed helper requires updating each changed/new file's hash before collector startup, while keeping unchanged attestations. Auxiliary release metadata does not replace that map. See [archive contract](../../frontend/deploy/paper-monitor/ARCHIVES.md).
+The separately installed paper-session collector has an enforced top-level `manifest.json["files"]` hash map. Updating any installed helper requires updating each changed/new file's hash before collector startup, while keeping unchanged attestations. Auxiliary release metadata does not replace that map. See [archive contract](../frontend/deploy/paper-monitor/ARCHIVES.md).
 
 ## UI contribution expectations
 
 Run the UI build and API/launcher regressions. Check each record/table wrapper as well as document overflow at desktop, tablet and mobile widths. Keep meaningful labels and values readable; searchable selectors must work by keyboard. Preserve focus, escaping/redaction and selected-run identity. Browser smoke actions must be inert, such as local config validation. Native Electron packaging is a separate test scope.
 
-See [installation](../installation.md), [HTTP API](../http-api.md), [native README](../../frontend/README.md), and [remote diagnostics](../../frontend/docs/REMOTE.md).
+See [installation](../installation.md), [HTTP API](../http-api.md), [native README](../frontend/README.md), and [remote diagnostics](../frontend/REMOTE.md).

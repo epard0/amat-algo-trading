@@ -43,7 +43,7 @@ RUN mkdir -p /var/lib/amat-executor-live \
 WORKDIR /opt/executor
 
 # Dependency layer first, so edits to source do not invalidate the install.
-COPY pyproject.toml README.md ./
+COPY pyproject.toml ./
 RUN uv venv /opt/executor/.venv \
     && uv pip install --python /opt/executor/.venv/bin/python --no-cache hatchling
 

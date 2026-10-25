@@ -1,6 +1,6 @@
 # AMAT Hedge Fund Workbench — complete local implementation plan
 
-> October 8 update: [AMAT Terminal plan](../../frontend/docs/PLAN.md) adds the financial-terminal layout, metric definitions, current executor health and correlated action events. It establishes a top-level `frontend/` application boundary and supersedes the `workbench/` folder proposal and operations delivery priority below. Research/configuration coverage remains applicable. The initial terminal was implemented October 9; see [implementation status](../../frontend/docs/IMPLEMENTATION.md) for actual delivered scope. The broader full workbench remains a roadmap.
+> October 8 update: [AMAT Terminal plan](../frontend/PLAN.md) adds the financial-terminal layout, metric definitions, current executor health and correlated action events. It establishes a top-level `frontend/` application boundary and supersedes the `workbench/` folder proposal and operations delivery priority below. Research/configuration coverage remains applicable. The initial terminal was implemented October 9; see [implementation status](../frontend/IMPLEMENTATION.md) for actual delivered scope. The broader full workbench remains a roadmap.
 
 Planning baseline: September 30, 2026, America/Detroit. This document specifies a build; it does not claim the application has been implemented. The source inventory reflects the current working tree, including existing uncommitted work, rather than only the committed revision.
 

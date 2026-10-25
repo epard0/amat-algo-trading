@@ -38,7 +38,7 @@ Money and quantities serialize as decimal strings. Weights are numeric fractions
 
 Withheld instructions retain a reason rather than disappearing. Unrecognized holdings are reported and not traded by that plan. Expiry checks require timezone-aware instants. The executor resolves the earliest permitted date against its actual exchange calendar.
 
-The consumer [plan_source.py](../executor/src/executor/plan_source.py) supports major version 1 and refuses unknown major versions. It explicitly rejects `research-policy/1` or required-capability plans on the legacy path. The [batch contract](../executor/docs/execution-batch-v1.md) defines staged sell-confirm-budget-buy behavior. Native safety rechecks account binding, authorization, timing, equity tolerance, caps, ownership and uncertain outcomes at submission. An inert plan is not permission to skip these checks.
+The consumer [plan_source.py](../executor/src/executor/plan_source.py) supports major version 1 and refuses unknown major versions. It explicitly rejects `research-policy/1` or required-capability plans on the legacy path. The [batch contract](executor/execution-batch-v1.md) defines staged sell-confirm-budget-buy behavior. Native safety rechecks account binding, authorization, timing, equity tolerance, caps, ownership and uncertain outcomes at submission. An inert plan is not permission to skip these checks.
 
 ## Perpetual Python API
 
@@ -112,4 +112,4 @@ To add a profile using an existing family:
 
 For a new family, add its strict schema, allowlisted source mapping, subprocess adapter and meaningful causal/parity tests. Broker clients belong outside this API. A new data provider implements observed `candles(symbol, start_ms, stop_ms)` plus provenance receipts; `SignalHistory` owns immutable cache/coverage and normalization. Use an explicit instrument mapping and block new risk on stale/missing intervals.
 
-Change wire versions deliberately, update producers and consumers together, and retain rejection tests. Never rewrite source hashes just to silence a mismatch on an existing account. Consult [the native strategy guide](../kalshi-perps/STRATEGY_API.md) and [contribution standards](../CONTRIBUTING.md) before extending these contracts.
+Change wire versions deliberately, update producers and consumers together, and retain rejection tests. Never rewrite source hashes just to silence a mismatch on an existing account. Consult [the native strategy guide](kalshi-perps/STRATEGY_API.md) and [contribution standards](CONTRIBUTING.md) before extending these contracts.

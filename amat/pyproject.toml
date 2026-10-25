@@ -2,7 +2,7 @@
 name = "amat"
 version = "0.1.0"
 description = "Reproducible, adversarially validated backtesting platform for the Adaptive Multi-Asset Trend (AMAT) ETF strategy."
-readme = "README.md"
+readme = { text = "AMAT research component. Full documentation is maintained in docs/research/README.md at the repository root.", content-type = "text/markdown" }
 requires-python = ">=3.12"
 license = { text = "Proprietary" }
 authors = [{ name = "AMAT project" }]

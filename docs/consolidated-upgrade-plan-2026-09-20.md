@@ -1,6 +1,6 @@
 # AMAT consolidated upgrade plan — September 20, 2026
 
-Status: consolidated roadmap with confirmed priority of reliable paper trading and defensible research, and confirmed architecture of LangGraph + existing llmrouter. Budget, reporting, persistence and research-objective decisions are confirmed below. This document consolidates CHANGES.md, AMAT_DEEP_RESEARCH_IMPLEMENTATION_INSTRUCTIONS.md, and the user's pasted alpha-engine article. The completed Phase A audit is recorded separately in `amat/docs/deep-research-phase0-audit.md`; operational readiness is not established by the plan. No strategy, deployment, or provider configuration was changed for this review.
+Status: consolidated roadmap with confirmed priority of reliable paper trading and defensible research, and confirmed architecture of LangGraph + existing llmrouter. Budget, reporting, persistence and research-objective decisions are confirmed below. This document consolidates CHANGES.md, AMAT_DEEP_RESEARCH_IMPLEMENTATION_INSTRUCTIONS.md, and the user's pasted alpha-engine article. The completed Phase A audit is recorded separately in `docs/research/deep-research-phase0-audit.md`; operational readiness is not established by the plan. No strategy, deployment, or provider configuration was changed for this review.
 
 ## Recommendation and repository evidence
 
@@ -8,7 +8,7 @@ Prioritize reliable paper execution, data integrity, defensible evaluation, and 
 
 - The workspace separates AMAT research/planning from an Alpaca paper-only executor. Preserve this contract.
 - v13 contains eleven ETFs: SPY, QQQ, IWM, EFA, EEM, IEF, GLD, SLV, DBC, USO, UUP. Its 63/126/252-session trend horizons already provide multiple daily lookbacks; that is distinct from combining intraday/daily/weekly bars.
-- `amat/docs/return-target-review-2026-09-14.md` reports v13 CAGR of 13.34% versus v6 5.52%, with maximum drawdown 15.01% versus 7.94%, worst v13 daily loss 9.87%, and conventional Sharpe 1.004 versus 1.010. These are reported historical results, not independently rerun here. Higher risk explains an important part of the return improvement. Investigate the loss and risk-control semantics before treating configured loss thresholds as realized-loss guarantees.
+- `docs/research/return-target-review-2026-09-14.md` reports v13 CAGR of 13.34% versus v6 5.52%, with maximum drawdown 15.01% versus 7.94%, worst v13 daily loss 9.87%, and conventional Sharpe 1.004 versus 1.010. These are reported historical results, not independently rerun here. Higher risk explains an important part of the return improvement. Investigate the loss and risk-control semantics before treating configured loss thresholds as realized-loss guarantees.
 - That review uses development through 2022 and later historical validation through September 11, 2026, explicitly acknowledging previously inspected history. Existing program defaults also contain older holdout boundaries. Audit actual access history across workflows; a new date split cannot restore untouched status.
 - `llmrouter/chain.py` already includes Gemini, OpenAI, NVIDIA, and OpenRouter transports, provider health, and budget hooks. Groq is absent from the inspected default provider map. Add it through the same boundary.
 - `autoresearch/ledger.py` already owns SQLite state, experiments, cache, calls, and events, with a single-writer lock. `memory.py` checks historical/configuration compatibility and evidence hashes. Extend these controls rather than creating an independent source of truth.
@@ -74,7 +74,7 @@ Question → contract/budget → allowed prior knowledge → deterministic route
 
 ### Phase A — Baseline and Phase 0 audit
 
-Produce the requested `amat/docs/deep-research-phase0-audit.md` before research implementation. Trace model call sites, budget settlement, ledger tables, memory compatibility, proposal inspirations, tool boundaries, frozen mutation controls, historical access, report consumers, and migrations. Record code/config/data digests and a complete baseline of intended local work. Run both modules' required baseline checks; distinguish pre-existing failures.
+Produce the requested `docs/research/deep-research-phase0-audit.md` before research implementation. Trace model call sites, budget settlement, ledger tables, memory compatibility, proposal inspirations, tool boundaries, frozen mutation controls, historical access, report consumers, and migrations. Record code/config/data digests and a complete baseline of intended local work. Run both modules' required baseline checks; distinguish pre-existing failures.
 
 Add a read-only deployment review covering configured strategy/snapshot, daemon health, journal, orders, positions, fills, and current reports. Use the authoritative container state when deployed in Docker. Do not submit an order to prove the audit.
 
@@ -204,7 +204,7 @@ Confirmed: reliable paper operations and defensible research first; LangGraph + 
 - The paper executor is authorized to use `amat_v13_return_target.toml` with its exact configuration hash. This is separate from the default exposure-matched research objective.
 - Paper execution notional and order-count caps are explicitly unlimited; strategy allocation constraints and operational refusal checks remain in force.
 - The user authorized cancellation of the stale non-AMAT SPY buy order. A cancellation request is not a confirmed cancellation.
-- See `amat/docs/implementation-progress-2026-09-20.md` for implementation evidence and remaining gates.
+- See `docs/research/implementation-progress-2026-09-20.md` for implementation evidence and remaining gates.
 
 ## Latest confirmed routing and interface decisions — September 21
 
@@ -217,4 +217,4 @@ Keep normal operation small: executor run/status; research run/status/report.
 Planning and monitoring happen inside those workflows. Configuration carries
 provider and execution parameters; advanced diagnostic commands remain compatible.
 The short delivery/next-step record is
-`amat/docs/pipeline-continuation-2026-09-21.md`.
+`docs/research/pipeline-continuation-2026-09-21.md`.

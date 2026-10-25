@@ -44,12 +44,12 @@ snapshot_path = (root / snapshot).resolve()
 snapshot_root = (root / 'amat/data/snapshots').resolve()
 if not snapshot or not snapshot_path.is_relative_to(snapshot_root) or not snapshot_path.is_dir():
     sys.exit('SNAPSHOT in executor/.env must select an existing amat/data/snapshots directory.')
-paths = [root / 'package-server.sh', snapshot_path]
+paths = [root / 'package-server.sh', snapshot_path, root / 'docs/executor/VPS_RUNBOOK.md']
 for package in ('amat', 'executor'):
     base = root / package
     paths.extend(base / name for name in ('src', 'configs', 'pyproject.toml', 'uv.lock',
-                 'README.md', '.python-version', 'Dockerfile', '.dockerignore',
-                 'docker-compose.yml', 'rebuild-restart.sh', 'VPS_RUNBOOK.md')
+                 '.python-version', 'Dockerfile', '.dockerignore',
+                 'docker-compose.yml', 'rebuild-restart.sh')
                  if (base / name).exists())
     paths.extend(base.glob('.env*'))
 paths.extend(root.glob('.env*'))

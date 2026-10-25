@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12, uv, pydantic 2, pytest, mypy strict, ruff; `openai>=2,<3` SDK (Responses and Chat Completions), `google-genai>=2.17,<3`; SQLite (stdlib).
 
-**Spec:** `amat/docs/autoresearch-audit-and-plan-2026-09-10.md` (sections 2.1, 2.2, 2.3, 4.7, Phase 0).
+**Spec:** `docs/research/autoresearch-audit-and-plan-2026-09-10.md` (sections 2.1, 2.2, 2.3, 4.7, Phase 0).
 
 ## Global Constraints
 
@@ -29,7 +29,7 @@ Executor (`executor/src/executor/`):
 - Modify `daemon.py`: pass limits; startup digest check; retry-within-window with attempt ledger.
 - Modify `report/metrics.py`, `report/daily.py`: gate annualized/tail stats on sample size.
 - Tests: `tests/test_config.py`, `tests/test_submit.py`, `tests/test_daemon.py`, `tests/test_report.py`.
-- Docs: `executor/README.md` (new env vars), `executor/.env.example` if present.
+- Docs: `docs/executor/README.md` (new env vars), `executor/.env.example` if present.
 
 AMAT (`amat/src/`):
 - Create `llmrouter/__init__.py`, `llmrouter/contracts.py` (request/response/outcome types, error classification), `llmrouter/health.py` (sliding-window provider health), `llmrouter/transports.py` (OpenAI-compatible + Gemini transports), `llmrouter/chain.py` (chain config, TOML loader, `Router`), `llmrouter/py.typed`.
@@ -252,7 +252,7 @@ git commit -m "executor: require authorized config digests and risk limits in se
 - Modify: `executor/src/executor/submit.py:142-173` (`_preflight`), `submit_plan` signature
 - Modify: `executor/src/executor/daemon.py:294-375` (`run_submit`), `Daemon.__init__` startup check
 - Test: `executor/tests/test_submit.py`, `executor/tests/test_daemon.py`
-- Docs: `executor/README.md`
+- Docs: `docs/executor/README.md`
 
 **Interfaces:**
 - Consumes: `RiskLimits` from Task 1.
@@ -499,7 +499,7 @@ Expected: all PASS.
 
 - [ ] **Step 6: Document the new environment variables**
 
-In `executor/README.md`, in the configuration/environment section, add a table:
+In `docs/executor/README.md`, in the configuration/environment section, add a table:
 
 | Variable | Required | Meaning |
 |---|---|---|
@@ -1286,7 +1286,7 @@ git commit -m "pmteam: charge a fixed penalty for failed model calls and expose 
 Run: `cd amat && uv run --locked pytest -q && uv run --locked mypy src && uv run --locked ruff check src tests && uv run --locked ruff format --check src tests`
 Expected: PASS (1,477+ tests).
 
-- [ ] **Step 5: Update docs**: `amat/docs/research-team-workflow.md` "Use it now" section gains the `--provider chain` form and a paragraph on failover behaviour and `pmteam budget`. `docs/portfolio-team-operations.md` budget section rewritten for the penalty rule.
+- [ ] **Step 5: Update docs**: `docs/research/research-team-workflow.md` "Use it now" section gains the `--provider chain` form and a paragraph on failover behaviour and `pmteam budget`. `docs/portfolio-team-operations.md` budget section rewritten for the penalty rule.
 
 - [ ] **Step 6: Commit (with approval)**
 
@@ -1387,13 +1387,13 @@ MAX_SYMBOL_NOTIONAL=30000
 EQUITY_TOLERANCE=0.01
 ```
 
-- [ ] **Step 3: Rebuild via the state-preserving path** described in `executor/README.md` (snapshot the named volume, rebuild the image, recreate only the executor service), outside market hours. Then:
+- [ ] **Step 3: Rebuild via the state-preserving path** described in `docs/executor/README.md` (snapshot the named volume, rebuild the image, recreate only the executor service), outside market hours. Then:
 
 Run: `docker ps --filter name=amat-executor --format '{{.Status}}'` → healthy; `docker logs amat-executor --since 5m | grep -i "authorization_check\|ConfigurationError"` → one `authorization_check` with `authorized: true`; `docker exec amat-executor executor check` → plan built, nothing submitted.
 
 - [ ] **Step 4: Negative rehearsal** (dry run only): temporarily set `EXECUTOR_DISABLED=true`, run `executor check`, confirm the journal shows `submission_refused` with the `EXECUTOR_DISABLED` reason, then restore `false` and recreate.
 
-- [ ] **Step 5: Record the verification** in `amat/docs/autoresearch-audit-and-plan-2026-09-10.md` under a new "Phase 0 verification (date)" heading: test counts, container status, digest authorized, negative rehearsal result.
+- [ ] **Step 5: Record the verification** in `docs/research/autoresearch-audit-and-plan-2026-09-10.md` under a new "Phase 0 verification (date)" heading: test counts, container status, digest authorized, negative rehearsal result.
 
 ---
 

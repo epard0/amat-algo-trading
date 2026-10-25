@@ -1,0 +1,127 @@
+{
+  "contract_sha256": "40c40ebe0daf91e72f622b3719d3d2cee73669ff7162c32608ffbb9c5d92d5b0",
+  "engine": "research-policy/1",
+  "execution_authority": "none",
+  "original_plan": {
+    "context": {
+      "account_id": "SYNTHETIC-ADAPTER-resize",
+      "account_observed_at": "2026-10-23 20:00:00+00:00",
+      "authorized_intents": [],
+      "confirmed_cash": "9000",
+      "decision_at": "2026-10-23 20:00:00+00:00",
+      "equity": "10000",
+      "evidence": [
+        {
+          "available_at": "2026-10-23 20:00:00+00:00",
+          "borrow_annual_rate": null,
+          "borrow_available": null,
+          "entry_quantity_cap": "100",
+          "evidence_id": "synthetic-QQQ",
+          "instrument": "ordinary_etf",
+          "mark": "100",
+          "short_stress_validated": false,
+          "symbol": "QQQ"
+        },
+        {
+          "available_at": "2026-10-23 20:00:00+00:00",
+          "borrow_annual_rate": null,
+          "borrow_available": null,
+          "entry_quantity_cap": "100",
+          "evidence_id": "synthetic-SPY",
+          "instrument": "ordinary_etf",
+          "mark": "100",
+          "short_stress_validated": false,
+          "symbol": "SPY"
+        }
+      ],
+      "execution_at": "2026-10-26 13:30:00+00:00",
+      "execution_clock": "next_session_open",
+      "expires_at": "2026-10-26 13:35:00+00:00",
+      "policy": {
+        "allow_direct_short": false,
+        "allow_intraday": false,
+        "allow_inverse": false,
+        "cash_reserve_fraction": "0.01",
+        "max_abs_net": "1",
+        "max_actions": 16,
+        "max_evidence_age_seconds": 300,
+        "max_gross": "1",
+        "max_symbol": "0.45",
+        "one_way_bps": "6",
+        "short_collateral_fraction": "1"
+      },
+      "positions": [
+        [
+          "QQQ",
+          "10"
+        ]
+      ],
+      "restricted_cash": "0"
+    },
+    "context_sha256": "b2ac8082e0243c0fadb44c553835f417e179adfdc358b8c1b90890194ac85b03",
+    "execution_authority": "none",
+    "limitations": [
+      "Research only; no broker, native executable export, default change or promotion authority.",
+      "Single opening-window attempt; no automatic retry, intrawindow trigger or tick-path inference.",
+      "Observed ranges bound limit eligibility retrospectively; only opening quotes trigger stops.",
+      "Coverage is an explicit source declaration, not proof of vendor completeness.",
+      "No corporate-action unit changes, direct shorts, inverse instruments or intraday policy support.",
+      "Window-end VWAP valuation is not daily-close or full-strategy performance evidence.",
+      "Durable receipt ownership is the caller's responsibility; this pure module submits nothing."
+    ],
+    "plan_id": "1a4550db065fd072bf6c745566d62714b7b97afd320b405e8445387273fa8573",
+    "promotion_authority": false,
+    "proposal": {
+      "account_id": "SYNTHETIC-ADAPTER-resize",
+      "actions": [
+        {
+          "evidence_id": "synthetic-QQQ",
+          "kind": "resize",
+          "limit_price": "101",
+          "quantity": "1",
+          "reason": "Preregistered synthetic native parity",
+          "side": "buy",
+          "symbol": "QQQ"
+        }
+      ],
+      "authorized_intents_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "decision_at": "2026-10-23T20:00:00+00:00",
+      "evidence_sha256": "b2ac8082e0243c0fadb44c553835f417e179adfdc358b8c1b90890194ac85b03",
+      "execution_at": "2026-10-26T13:30:00+00:00",
+      "execution_authority": "none",
+      "execution_clock": "next_session_open",
+      "expires_at": "2026-10-26T13:35:00+00:00",
+      "limits": {
+        "max_abs_net": "1",
+        "max_gross": "1",
+        "max_symbol": "0.45"
+      },
+      "model_id": "synthetic/no-inference:free",
+      "policy_id": "114515a0144e670b6f6841c96e3a9bc6e74808362bdc396c43c5e546d2dcecff",
+      "provider": "openrouter",
+      "research_only": true,
+      "schema": "research-agent-portfolio-action/1"
+    },
+    "schema": "research-native-opening-attempt/1"
+  },
+  "policy_id": "abe7cf72d2454fb4e6aa2c963ecb1cd66578630a5c9539c85c7d45dd0bd9fe6b",
+  "promotion_authority": false,
+  "required_capabilities": [
+    "research-causal-day-limit/1"
+  ],
+  "research_only": true,
+  "rules": {
+    "corporate_actions": "explicit_empty_coverage_required",
+    "entry_participation": "0.01",
+    "expiry": "stop_submission_request_cancel_keep_commitments_until_terminal",
+    "fill": "broker_observation_only_no_vwap_or_queue_inference",
+    "max_prefix_delay_seconds": 5,
+    "max_quote_age_seconds": 2,
+    "opening_window_seconds": 300,
+    "prefix_seconds": 60,
+    "retry": "never_automatically_resubmit_original_intent",
+    "time_in_force": "day",
+    "trigger": "one_fresh_executable_quote_after_completed_prefix"
+  },
+  "schema": "research-causal-day-limit/1"
+}

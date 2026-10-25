@@ -165,6 +165,20 @@
 **/id_dsa
 **/*.pub
 # Immutable operator-specific historical notes stay local, like operations/.
+/docs/frontend/OPERATIONS_VERIFICATION.md
+/docs/frontend/VPS_PAPER_DEPLOYMENT_2026-10-20.md
+/docs/research/remote-paper-monitor.md
+
+# Relocated documentation may reference local generated research/audit artifacts.
+/docs/research/phase0-evidence-2026-09-20/
+/docs/research/**/*.json
+!/docs/research/**/*.example.json
+/docs/research/**/*.csv
+/docs/research/**/*.png
+/docs/frontend/**/*.png
+/docs/frontend/*.json
+
+# Keep legacy private-note locations excluded if an older operator tool recreates them.
 /frontend/docs/OPERATIONS_VERIFICATION.md
 /frontend/docs/VPS_PAPER_DEPLOYMENT_2026-10-20.md
 /amat/docs/remote-paper-monitor.md
